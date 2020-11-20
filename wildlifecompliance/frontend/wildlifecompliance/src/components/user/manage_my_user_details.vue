@@ -44,7 +44,13 @@
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                             <div class="col-sm-6">
-                                <input type="date" class="form-control" name="dob" placeholder="" max="2100-12-31" v-model="current_user.dob">
+                                <!-- <input type="date" class="form-control" name="dob" placeholder="" max="2100-12-31" v-model="current_user.dob"> -->
+                                <div class="input-group date" ref="dob" style="width: 100%;">
+                                    <input type="text" class="form-control" name="dob" placeholder="DD/MM/YYYY" v-model="current_user.dob">
+                                    <span class="input-group-addon">
+                                        <span class="glyphicon glyphicon-calendar"></span>
+                                    </span>
+                                </div>
                             </div>
                           </div>
                           <div class="form-group">
@@ -451,7 +457,14 @@ export default {
             role:null,
             orgRequest_pending:[],
             orgRequest_amendment_requested:[],
-            new_user: false
+            new_user: false,
+            datepickerOptions:{
+                format: 'DD/MM/YYYY',
+                showClear:true,
+                useCurrent:false,
+                keepInvalid:true,
+                allowInputToggle:true
+            },
         }
     },
     watch: {
@@ -1074,6 +1087,19 @@ export default {
             },(error) => {
             })
         },
+        eventListeners:function () {
+            const self = this
+            let _dob = 'dob';
+            $(`[name='${_dob}']`).datetimepicker(self.datepickerOptions);
+            $(`[name='${_dob}']`).on('dp.change', function(e){
+                if ($(`[name='${_dob}']`).data('DateTimePicker').date()) {
+                    self.current_user.dob =  e.date.format('DD/MM/YYYY');
+                }
+                else if ($(`[name='${_dob}']`).data('date') === "") {
+                    self.current_user.dob = "";
+                }
+            });
+        },
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.my_user_details).then((response) => {
@@ -1105,6 +1131,9 @@ export default {
         Vue.http.get(api_endpoints.is_new_user).then((response) => {
             this.new_user = response.body;
         })
+        this.$nextTick(()=>{
+            this.eventListeners();
+        });
     }
 }
 </script>

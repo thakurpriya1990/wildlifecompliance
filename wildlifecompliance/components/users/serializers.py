@@ -329,6 +329,7 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
     is_internal = serializers.SerializerMethodField()
     prefer_compliance_management = serializers.SerializerMethodField()
     is_reception = serializers.SerializerMethodField()
+    dob = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -353,6 +354,13 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             'prefer_compliance_management',
             'is_reception',
         )
+
+    def get_dob(self, obj):
+        formatted_date = obj.dob.strftime(
+            '%d/%m/%Y'
+        ) if obj.dob else None
+
+        return formatted_date
 
     def get_personal_details(self, obj):
         return True if obj.last_name and obj.first_name and obj.dob else False
@@ -477,6 +485,12 @@ class EmailUserActionSerializer(serializers.ModelSerializer):
 
 
 class PersonalSerializer(serializers.ModelSerializer):
+    dob = serializers.DateField(
+        input_formats=['%d/%m/%Y'],
+        required=False,
+        allow_null=True
+    )
+
     class Meta:
         model = EmailUser
         fields = (
@@ -570,4 +584,3 @@ class CompliancePermissionGroupDetailedSerializer(serializers.ModelSerializer):
         for permission in obj.permissions.all():
             permissions_list.append(permission.codename)
         return permissions_list
-
