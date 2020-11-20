@@ -1298,7 +1298,7 @@ class Application(RevisionedMixin):
                 if self.amendment_requests:
                     self.log_user_action(
                         ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT.format(
-                            self.id), request)
+                            self.lodgement_number), request)
                     if requires_refund:
                         self.alert_for_refund(request)
                     else:
@@ -3658,7 +3658,8 @@ class AmendmentRequest(ApplicationRequest):
 
                 # Create a log entry for the application
                 self.application.log_user_action(
-                    ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS, request)
+                    ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS.format(
+                        self.application.lodgement_number), request)
                 self.save()
             except BaseException:
                 raise
@@ -6248,7 +6249,7 @@ class ApplicationUserAction(UserAction):
     ACTION_CREATE_CUSTOMER_ = "Create customer {}"
     ACTION_CREATE_PROFILE_ = "Create profile {}"
     ACTION_LODGE_APPLICATION = "Lodge application {}"
-    ACTION_SAVE_APPLICATION = "Save changes to application {}"
+    ACTION_SAVE_APPLICATION = "Save changes to {}"
     ACTION_ASSIGN_TO_OFFICER = "Assign application {} to officer {}"
     ACTION_UNASSIGN_OFFICER = "Unassign officer from application {}"
     ACTION_ACCEPT_ID = "Accept ID check"
@@ -6260,8 +6261,8 @@ class ApplicationUserAction(UserAction):
     ACTION_RESET_REVIEW = "Reset review"
     ACTION_ACCEPT_RETURN = 'Accept return check'
     ACTION_RESET_RETURN = 'Reset return check'
-    ACTION_ID_REQUEST_AMENDMENTS = "Request amendments"
-    ACTION_ID_REQUEST_AMENDMENTS_SUBMIT = "Amendment submitted by {}"
+    ACTION_ID_REQUEST_AMENDMENTS = "Request amendment for {}"
+    ACTION_ID_REQUEST_AMENDMENTS_SUBMIT = "Amendment submitted for {}"
     ACTION_SEND_FOR_ASSESSMENT_TO_ = "Sent for assessment to {}"
     ACTION_SEND_ASSESSMENT_REMINDER_TO_ = "Send assessment reminder to {}"
     ACTION_ASSESSMENT_RECALLED = "Assessment recalled {}"

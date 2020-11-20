@@ -1694,7 +1694,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
                 instance.log_user_action(
                     ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
-                        instance.id), request)
+                        instance.lodgement_number
+                    ), request)
 
             logger.debug('form_data() - successful response')
             return Response({'success': True})
