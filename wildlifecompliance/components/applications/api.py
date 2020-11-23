@@ -1534,20 +1534,25 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         logger.debug('assessment_data()')
         try:
             instance = self.get_object()
+            assess = request.data.pop('__assess', False)
             with transaction.atomic():
+                is_initial_assess = instance.get_property_cache_assess()
+                if assess or is_initial_assess:
 
-                checkbox = CheckboxAndRadioButtonVisitor(
-                    instance, request.data
-                )
-                # Set StandardCondition Fields.
-                for_condition_fields = StandardConditionFieldElement()
-                for_condition_fields.accept(checkbox)
+                    checkbox = CheckboxAndRadioButtonVisitor(
+                        instance, request.data
+                    )
+                    # Set StandardCondition Fields.
+                    for_condition_fields = StandardConditionFieldElement()
+                    for_condition_fields.accept(checkbox)
 
-                # Set PromptInspection Fields.
-                for_inspection_fields = PromptInspectionFieldElement()
-                for_inspection_fields.accept(checkbox)
+                    # Set PromptInspection Fields.
+                    for_inspection_fields = PromptInspectionFieldElement()
+                    for_inspection_fields.accept(checkbox)
 
-                instance.save()
+                    if is_initial_assess:
+                        instance.set_property_cache_assess(False)
+                        instance.save()
 
             logger.debug('assessment_data() - response success')
             return Response({'success': True})

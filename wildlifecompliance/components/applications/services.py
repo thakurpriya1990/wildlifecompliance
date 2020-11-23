@@ -171,8 +171,8 @@ class ApplicationService(object):
         Calculates fees for Application and Licence. Application fee is
         calculated with the base fee in all instances to allow for adjustments
         made from form attributes. Previous attributes settings are not saved.
-        Licence fees cannot be adjusted with form attributes.
         """
+        logger.debug('ApplicationService.calculate_fees() - start')
         # Get all fee adjustments made with checkboxes and radio buttons.
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
         for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
@@ -181,6 +181,7 @@ class ApplicationService(object):
         MIGRATE = Application.SUBMIT_TYPE_MIGRATE
         fee_exempted = True if application.submit_type == MIGRATE else False
         for_increase_fee_fields.set_has_fee_exemption(fee_exempted)
+        logger.debug('ApplicationService.calculate_fees() - end')
 
         return for_increase_fee_fields.get_adjusted_fees()
 
@@ -201,14 +202,22 @@ class ApplicationService(object):
         Creates an application from Form attributes based on admin schema
         definition.
         """
-        logger.debug('ApplicationService.process_form()')
+        logger.debug('ApplicationService.process_form() - start')
+        update_fee = form_data.pop('__update_fee', False)
         do_process_form(
             request,
             application,
             form_data,
             action)
 
-        do_update_dynamic_attributes(application)
+        process_status = [
+            Application.PROCESSING_STATUS_UNDER_REVIEW
+        ]
+
+        if update_fee or application.processing_status not in process_status:
+            do_update_dynamic_attributes(application)
+
+        logger.debug('ApplicationService.process_form() - end')
 
     @staticmethod
     def update_dynamic_attributes(application):
@@ -877,7 +886,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         return 'Field Element: {0}'.format(self._NAME)
 
     def accept(self, application_form_visitor):
-        logger.debug('IncreaseApplicationFeeFieldElement.accept() #1')
+        logger.debug('IncreaseApplicationFeeFieldElement.accept() - start')
         self._app = application_form_visitor._application
         self._data_source = application_form_visitor._data_source
         # Add relevant Fee policy to impact the Increase Application Fee.
@@ -889,7 +898,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         self.dynamic_attributes = self.fee_policy.get_dynamic_attributes()
         logger.debug('IncreaseApplicationFeeFieldElement.accept() #3')
         application_form_visitor.visit_increase_application_fee_field(self)
-        logger.debug('IncreaseApplicationFeeFieldElement.accept() #4')
+        logger.debug('IncreaseApplicationFeeFieldElement.accept() - end')
 
     def set_updating(self, is_update):
         '''
@@ -1198,7 +1207,7 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
     options. Any attributes which impact the fee for the application can be
     exempted.
     '''
-    logger.debug('service.do_update_dynamic_attributes() #1')
+    logger.debug('service.do_update_dynamic_attributes() - start')
 
     if application.processing_status not in [
             Application.PROCESSING_STATUS_DRAFT,
@@ -1214,11 +1223,11 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
     for_increase_fee_fields.accept(checkbox)
     for_increase_fee_fields.set_has_fee_exemption(fee_exemption)
     dynamic_attributes = for_increase_fee_fields.get_dynamic_attributes()
-    logger.debug('service.do_update_dynamic_attributes() #2')
+
     # Save any parsed per-activity modifiers
     for selected_activity, field_data in \
             dynamic_attributes['activity_attributes'].items():
-
+        logger.debug('service.do_update_dynamic_attributes() - save Activity')
         fees = field_data.pop('fees', {})
         selected_activity.licence_fee = fees['licence']
         selected_activity.application_fee = fees['application']
@@ -1230,13 +1239,14 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
             setattr(selected_activity, field, value)
 
         selected_activity.save()
-    logger.debug('service.do_update_dynamic_attributes() #3')
+    logger.debug('service.do_update_dynamic_attributes() - save Application')
     # Update application and licence fees
     fees = dynamic_attributes['fees']
     application.application_fee = fees['application']
     application.set_property_cache_licence_fee(fees['licence'])
     application.save()
-    logger.debug('service.do_update_dynamic_attributes() #4')
+    logger.debug('service.do_update_dynamic_attributes() - end')
+
 
 """
 NOTE: Section for objects relating to generating Application species list.

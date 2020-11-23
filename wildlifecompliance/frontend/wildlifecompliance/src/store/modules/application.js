@@ -7,6 +7,8 @@ import {
     UPDATE_APPLICATION_CHECK_STATUS_ID,
     UPDATE_APPLICATION_CHECK_STATUS_CHARACTER,
     UPDATE_APPLICATION_CHECK_STATUS_RETURN,
+    UPDATE_APPLICATION_FEE_STATUS,
+    UPDATE_APPLICATION_ASSESS_STATUS,
 } from '@/store/mutation-types';
 
 
@@ -156,6 +158,12 @@ export const applicationStore = {
         [UPDATE_APPLICATION_CHECK_STATUS_RETURN] (state, return_status) {
             Vue.set(state, 'return_check_status', return_status);
         },
+        [UPDATE_APPLICATION_FEE_STATUS] (state, fee_status) {
+            Vue.set(state.application, 'update_fee', fee_status);
+        },
+        [UPDATE_APPLICATION_ASSESS_STATUS] (state, assess_status) {
+            Vue.set(state.application, 'assess', assess_status);
+        },
     },
     actions: {
         refreshAddresses({ commit, state, getters }) {
@@ -174,7 +182,9 @@ export const applicationStore = {
                     dispatch('setApplication', {
                         ...state.application,
                         application_fee: res.body.adjusted_paid_amount.application_fee,
-                        licence_fee: res.body.adjusted_paid_amount.licence_fee
+                        licence_fee: res.body.adjusted_paid_amount.licence_fee,
+                        update_fee: false,
+                        assess: false,
                     });
                     for(let form_data_record of res.body.data) {
                         dispatch('setFormValue', {
@@ -223,7 +233,9 @@ export const applicationStore = {
                 dispatch('setApplication', {
                     ...state.application,
                     application_fee: res.body.fees.application,
-                    licence_fee: res.body.fees.licence
+                    licence_fee: res.body.fees.licence,
+                    update_fee: true,
+                    assess: true,
                 });
             }, err => {
                 console.log(err);
@@ -237,6 +249,12 @@ export const applicationStore = {
         },
         setReturnCheckStatus({ commit }, return_status) {
             commit(UPDATE_APPLICATION_CHECK_STATUS_RETURN, return_status);
+        },
+        setAssessStatus({ commit }, assess_status) {
+            commit(UPDATE_APPLICATION_ASSESS_STATUS, assess_status);
+        },
+        resetUpdateFeeStatus({ commit }) {
+            commit(UPDATE_APPLICATION_FEE_STATUS, false);
         },
     }
 }

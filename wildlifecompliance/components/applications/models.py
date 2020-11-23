@@ -835,6 +835,32 @@ class Application(RevisionedMixin):
         except AttributeError:
             return ''
 
+    def set_property_cache_assess(self, assess):
+        '''
+        Setter for assess status for conditions on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            data = assess
+            self.property_cache['assess'] = data
+
+    def get_property_cache_assess(self):
+        '''
+        Getter for assess status for conditions on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        assess = False
+        try:
+
+            assess = self.property_cache['assess']
+
+        except KeyError:
+            pass
+
+        return assess
+
     def set_property_cache_licence_fee(self, licence_fee):
         '''
         Setter for licence fee on the property cache.
@@ -1190,11 +1216,10 @@ class Application(RevisionedMixin):
                 self.customer_status = Application.CUSTOMER_STATUS_UNDER_REVIEW
                 self.submitter = request.user
                 self.lodgement_date = timezone.now()
-                # set is_resubmitted to True everytime.
+                # set assess status to True everytime.
                 # flag is only used for assessments and conditions and is set
                 # to false once conditions are processed.
-                # NOTE: self.is_resubmitted not used.
-                # self.is_resubmitted = True
+                self.set_property_cache_assess(True)
                 # if amendment is submitted change the status of only particular activity
                 # else if the new application is submitted change the status of
                 # all the activities
