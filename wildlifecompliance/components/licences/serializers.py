@@ -8,6 +8,8 @@ from wildlifecompliance.components.licences.models import (
     LicencePurpose,
     LicenceDocument,
 )
+from wildlifecompliance.components.licences.utils import LicencePurposeUtil
+
 from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
@@ -326,6 +328,7 @@ class PurposeSerializer(BasePurposeSerializer):
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
     renewal_application_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
+    is_valid_age = serializers.SerializerMethodField()
 
     class Meta:
         model = LicencePurpose
@@ -337,7 +340,20 @@ class PurposeSerializer(BasePurposeSerializer):
             'short_name',
             'renewal_application_fee',
             'amendment_application_fee',
+            'minimum_age',
+            'is_valid_age',
         )
+
+    def get_is_valid_age(self, obj):
+        '''
+        Check user dob is valid for Licence Purpose.
+        '''
+        is_valid = False
+        user = self.context.get('user')
+        licence = LicencePurposeUtil(obj)
+        is_valid = licence.is_valid_age_for(user)
+
+        return is_valid
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -356,12 +372,16 @@ class ActivitySerializer(serializers.ModelSerializer):
 
     def get_purpose(self, obj):
         purposes = self.context.get('purpose_records')
+        user = self.context.get('user')
         records = purposes if purposes else obj.purpose.all()
         serializer = PurposeSerializer(
             records.filter(
                 licence_activity_id=obj.id
             ),
             many=True,
+            context={
+                'user': user,
+            }
         )
         try:
             if purposes.target_field_name == 'licencepurpose':
@@ -414,10 +434,12 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
                 id__in=activity_ids
             ) if activity_ids else obj.activity.all()
 
+        request = self.context.get('request')
         serializer = ActivitySerializer(
             activities,
             many=True,
             context={
+                'user': request.user,
                 'purpose_records': purposes
             }
         )
