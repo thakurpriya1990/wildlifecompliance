@@ -351,7 +351,7 @@ class PurposeSerializer(BasePurposeSerializer):
         is_valid = False
         user = self.context.get('user')
         licence = LicencePurposeUtil(obj)
-        is_valid = licence.is_valid_age_for(user)
+        is_valid = licence.is_valid_age_for(user) if user else False
 
         return is_valid
 
@@ -435,11 +435,12 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
             ) if activity_ids else obj.activity.all()
 
         request = self.context.get('request')
+        user = request.user if request and request.user else None
         serializer = ActivitySerializer(
             activities,
             many=True,
             context={
-                'user': request.user,
+                'user': user,
                 'purpose_records': purposes
             }
         )
