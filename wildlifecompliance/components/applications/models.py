@@ -1168,6 +1168,7 @@ class Application(RevisionedMixin):
         to another application (renewal, admendment, reissue) and copies
         associated Form Data for the purpose to the target.
         '''
+        logger.debug('Application.copy_app_purpose_to_target_app() - start')
         if not target_application or not licence_purpose_id:
             raise ValidationError(
                 'Target application and licence_purpose_id must be specified')
@@ -1195,12 +1196,19 @@ class Application(RevisionedMixin):
             data_row.id = None
             data_row.application_id = target_application.id
 
+            # previous comments and deficiencies are cleared.
+            data_row.officer_comment = ''
+            data_row.assessor_comment = ''
+            data_row.deficiency = ''
+
             # species list is saved and needs to be rebuilt.
             TYPE = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
             if data_row.component_type == TYPE:
                 data_row.component_attribute = None
 
             data_row.save()
+
+        logger.debug('Application.copy_app_purpose_to_target_app() - end')
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
