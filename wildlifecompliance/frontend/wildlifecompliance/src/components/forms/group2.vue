@@ -5,7 +5,9 @@
         <div v-for="(n,idx) in num_groups()" class="panel panel-default">
         <div v-for="(n,idx) in 1" class="panel panel-default">
         -->
-        <div class="repeatable-group" v-for="(group, groupIdx) in repeatableGroups">
+        <div class="repeatable-group" v-for="(group, groupIdx) in repeatableGroups" 
+            :id="`repeatable_group_${component.name}_${groupIdx}`"
+            v-bind:key="`repeatable_group_${component.name}_${groupIdx}`">
             <div class="panel panel-default">
                 <div class="panel-body">
                     <!--
@@ -15,44 +17,37 @@
                     <p> children: {{component.children}} </p>
                     -->
 
-                    <!--
                     <p> {{groupIdx}} group: {{group}} </p>
                     <p> {{groupIdx}} value: {{value}} </p>
-                    -->
+                    <!--
                     <div class="row header-row">
-                        <div v-for="(subcomponent, index) in component.children"
-                            v-bind:key="`repeatable_group_${component.name}_${index}`">
-                            <!--
+                            :subcomponent="updateComponent(subcomponent_item, 'name', groupIdx)"
+                            :set="subcomponent = updateComponent(subcomponent_item, v => v + ' ****')"
+                    -->
+                    <div>
+                        <div v-for="(subcomponent_item, index) in component.children"
+                            v-bind:key="`repeatable_group_subcomponent_${subcomponent_item.name}_${index}`">
+                        <!--
+                        <div v-for="(subcomponent, index) in component.children">
+                        -->
+
                             <p> {{index}} subcomponent: {{subcomponent}} </p>
+                            <!--
 
                             <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
                                 v-on:click="toggleGroupVisibility(group)"></span>
+
+                                    :component="updateComponent(subcomponent, 'name', groupIdx)"
+                                    :instance="group"
                             -->
 
-
-                            <span v-if="subcomponent.type==='expander_table'" class="group-contents">
-                                <p> {{index}} subcomponent: {{subcomponent}} </p>
-                                <p> {{index}} subcomponent.type: {{subcomponent.type}} </p>
-                                <p> {{index}} value: {{value}} </p>
-                                <ExpanderTable
-                                    :readonly="is_readonly"
-                                    :name="subcomponent.name"
-                                    :component="subcomponent"
-                                    id=1000
-                                    :label="subcomponent.label"
-                                    :help_text="help_text"
-                                    :isRequired="subcomponent.isRequired"
-                                    :help_text_url="help_text_url"
-                                />
-                            </span>
-                            <span v-else class="group-contents">
+    			    <span class="header-contents">
                                 <renderer-block
-                                    :component="subcomponent"
+                                    :component="subcomponent_item"
                                     :json_data="value"
-                                    :instance="group"
-                                    v-bind:key="`repeatable_group_contents_${component.name}_${index}`"
+                                    v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent_item.name}_${index}`"
                                 />
-                            </span>
+			    </span>
 
                             <div>
                                 <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
@@ -79,6 +74,7 @@ import HelpTextUrl from './help_text_url.vue';
 import ExpanderTable from '@/components/forms/expander_table.vue'
 import { mapGetters, mapActions } from 'vuex';
 import '@/scss/forms/expander_table.scss';
+import {helpers,api_endpoints} from "@/utils/hooks.js"
 
 const Group2 = {
     props:{
@@ -107,6 +103,8 @@ const Group2 = {
     data(){
         return {
             expanded: {},
+            subcomponent: {},
+            component_list: [],
         };
     },
     methods: {
@@ -140,16 +138,24 @@ const Group2 = {
         },
         addNewGroup: function(params={}) {
             let { tableId } = params;
+            console.log("params: " + JSON.stringify(params)) 
             if(!tableId) {
+                console.log("1 tableId: " + JSON.stringify(tableId)) 
                 tableId = this.getTableId(this.lastTableId+1);
+                console.log("2 tableId: " + JSON.stringify(tableId)) 
             }
+            console.log("3 tableId: " + JSON.stringify(tableId)) 
             this.existingGroups.push(tableId);
+            console.log("existingGroups: " + this.existingGroups)
             this.updateVisibleGroups(
                 this.existingGroups
             );
             this.refreshApplicationFees();
+            this.subcomponent = this.updateComponent(this.component, v => v + ' ****')
+            console.log("updateComponent : " + JSON.stringify(this.subcomponent))
         },
         updateVisibleGroups: function(tableList) {
+            console.log("tableList: " + tableList)
             this.setFormValue({
                 key: this.component.name,
                 value: {
@@ -163,6 +169,76 @@ const Group2 = {
         getInstanceName: function(tableId) {
             return `__instance-${tableId}`
         },
+
+	_updateComponent: function(obj) {
+            console.log("updateComponent 1: " + JSON.stringify(obj))
+	    return Object.fromEntries(Object
+		.entries(obj)
+		.map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v) : (k==='name' ? v=>v+' ****' : v)])
+	    );
+	},
+
+	updateComponent: function(obj, fn) {
+            console.log("updateComponent 1: " + JSON.stringify(obj))
+	    return Object.fromEntries(Object
+		.entries(obj)
+		.map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v, fn) : (k==='name' ? fn(v) : v)])
+	    );
+	},
+
+	_updateComponent: (obj, key, append_str, k='') => {
+            /* search a nested JSON string for key, and append 'append_str' to the end 
+                -ridx --> repeater index
+            */ 
+
+	    Object.keys(obj).forEach(function (k) {
+		if (obj[k] && typeof obj[k] === 'object') {
+		    //return updateComponent(obj[k], key, append_str, k)
+		    updateComponent(obj[k], key, append_str, k);
+		}
+		if (k === key) {
+		    obj[k] = obj[k] + '-ridx' + append_str;
+		}
+	    });
+
+            //return obj
+	},
+
+	_updateComponent: function(obj, key, append_str, k='') {
+            /* search a nested JSON string for key, and append 'append_str' to the end 
+                -ridx --> repeater index
+            */ 
+
+            let vm = this;
+            console.log("updateComponent 1: " + JSON.stringify(obj))
+            console.log("updateComponent 3: " + key)
+            console.log("updateComponent 4: " + append_str)
+	    Object.keys(obj).forEach(function (k) {
+                console.log("updateComponent 5: " + typeof obj[k]);
+                console.log("updateComponent 6: " + obj[k]);
+		if (obj[k] && typeof obj[k] === 'object') {
+		    return vm.updateComponent(obj[k], key, append_str, k)
+		}
+		if (k === key) {
+		    obj[k] = obj[k] + '-ridx' + append_str;
+		}
+	    });
+
+            return obj
+	},
+
+
+        /*
+	clone: function(id) {
+	     var $row = $('#' + id);
+
+	     var $clone = $row.clone(); //Making the clone                      
+	     counter++; // +1 counter
+
+	     //Change the id of the cloned elements, append the counter onto the ID 
+	     $clone.find('[id]').each(function () { this.id += counter });
+	}
+        */
 
         /*
         removeLabel: function(header) {
