@@ -8,7 +8,7 @@ import os
 from django.utils.translation import ugettext_lazy as _
 
 logger = logging.getLogger(__name__)
-
+# logger = logging
 
 @python_2_unicode_compatible
 class SystemMaintenance(models.Model):
@@ -76,6 +76,7 @@ class UserAction(models.Model):
     what = models.TextField(blank=False)
 
     def __str__(self):
+        logger.debug('UserAction.__str__()')
         return "{what} ({who} at {when})".format(
             what=self.what,
             who=self.who,

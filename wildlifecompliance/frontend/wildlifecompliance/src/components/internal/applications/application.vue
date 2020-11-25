@@ -926,6 +926,8 @@ export default {
             'setIdCheckStatus',
             'setCharacterCheckStatus',
             'setReturnCheckStatus',
+            'resetUpdateFeeStatus',
+            'setAssessStatus',
         ]),
         eventListeners: function(){
             let vm = this;
@@ -1164,10 +1166,12 @@ export default {
                 await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
                     this.condition_spinner = false;   
                     $('#tabs-main li').removeClass('active');
+                    this.setAssessStatus(false);
                     this.isSendingToAssessor = !this.isSendingToAssessor;
                     this.showingApplication = false;
 
                 },(error)=>{
+                    console.log(error)
                     swal(
                         'Application Error',
                         helpers.apiVueResourceError(error),
@@ -1182,7 +1186,8 @@ export default {
             // await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
                 await this.saveFormData({ url: this.form_data_application_url }).then(response => {
-                    this.spinner = false;   
+                    this.spinner = false;
+                    this.resetUpdateFeeStatus();
                     showNotification && swal(
                         'Saved',
                         'Your application has been saved',

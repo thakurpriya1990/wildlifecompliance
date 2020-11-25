@@ -141,9 +141,9 @@ export const rendererStore = {
                 commit(REMOVE_FORM_FIELD, key);
             }
         },
-        saveFormData({ dispatch, commit, getters }, { url, draft }) {
+        saveFormData({ dispatch, commit, getters, rootGetters }, { url, draft }) {
             return new Promise((resolve, reject) => {
-                const post_data = Object.assign({'__draft': draft}, getters.renderer_form_data);
+                const post_data = Object.assign({'__draft': draft, '__update_fee': rootGetters.application.update_fee}, getters.renderer_form_data);
                 Vue.http.post(url, post_data).then(res => {
                     resolve(res);
                 },
@@ -165,9 +165,9 @@ export const rendererStore = {
                 });
             })
         },
-        assessmentData({ dispatch, commit, getters }, { url, draft }) {
+        assessmentData({ dispatch, commit, getters, rootGetters }, { url, draft }) {
             return new Promise((resolve, reject) => {
-                const post_data = Object.assign({'__draft': draft}, getters.renderer_form_data);
+                const post_data = Object.assign({'__draft': draft, '__assess': rootGetters.application.assess}, getters.renderer_form_data);
                 Vue.http.post(url, post_data).then(res => {
                     resolve(res);
                 },

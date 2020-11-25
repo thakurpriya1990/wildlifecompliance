@@ -12,8 +12,7 @@ from wildlifecompliance.components.applications.models import (
 )
 
 logger = logging.getLogger(__name__)
-logging.disable(logging.NOTSET)
-logger.setLevel(logging.DEBUG)
+# logger = logging
 
 
 class InvoiceClearable(object):
@@ -297,23 +296,26 @@ class ApplicationFeePolicy(object):
 
     @staticmethod
     def get_fee_policy_for(application):
-
+        logger.debug('ApplicationFeePolicy.get_fee_policy_for()')
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
         RENEW = Application.APPLICATION_TYPE_RENEWAL
         NEW = Application.APPLICATION_TYPE_NEW_LICENCE
         # New Activity is set for multiple activities on application.
         NEW_ACTIVITY = Application.APPLICATION_TYPE_ACTIVITY
 
-        get_policy = {
-            AMEND: ApplicationFeePolicyForAmendment(application),
-            RENEW: ApplicationFeePolicyForRenew(application),
-            NEW: ApplicationFeePolicyForNew(application),
-            NEW_ACTIVITY: ApplicationFeePolicyForNew(application),
-        }
-        policy = get_policy.get(
-            application.application_type,
-            ApplicationFeePolicyForNew(application)
-        )
+        policy = None
+
+        if application.application_type == AMEND:
+            policy = ApplicationFeePolicyForAmendment(application)
+
+        elif application.application_type == RENEW:
+            policy = ApplicationFeePolicyForRenew(application)
+
+        elif application.application_type == NEW_ACTIVITY:
+            policy = ApplicationFeePolicyForNew(application)
+
+        else:
+            policy = ApplicationFeePolicyForNew(application)
 
         return policy
 
@@ -1259,11 +1261,14 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         )
 
     def init_dynamic_attributes(self):
+        logger.debug('ApplicationFeePolicyForNew.init_dynamic_attributes()')
+
         self.is_refreshing = False
         fees = Application.calculate_base_fees(
             self.application.licence_purposes.values_list('id', flat=True))
 
-        if self.application.application_fee_paid:
+        pay_status = self.application.get_property_cache_payment_status()
+        if pay_status and pay_status == ApplicationInvoice.PAYMENT_STATUS_PAID:
             fees = {'application': 0, 'licence': 0}
 
         self.dynamic_attributes = {
