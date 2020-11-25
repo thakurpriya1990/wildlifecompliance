@@ -26,6 +26,15 @@ def is_wildlifecompliance_admin(context):
 
 
 @register.simple_tag(takes_context=True)
+def is_wildlifecompliance_payment_officer(context):
+    request = context['request']
+    is_ok = wildlifecompliance_helpers.is_wildlifecompliance_payment_officer(
+        request
+    )
+    return is_ok
+
+
+@register.simple_tag(takes_context=True)
 def is_internal(context):
     # checks if user is a departmentuser and logged in via single sign-on
     request = context['request']

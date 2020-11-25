@@ -56,6 +56,24 @@ def is_wildlifecompliance_admin(request):
            )
 
 
+def is_wildlifecompliance_payment_officer(request):
+    '''
+    Check user for request has payment officer permissions.
+
+    :return: boolean
+    '''
+    PAYMENTS_GROUP_NAME = 'Wildlife Compliance - Payment Officers'
+
+    is_payment_officer = request.user.is_authenticated() and \
+        is_model_backend(request) and \
+        in_dbca_domain(request) and \
+        (
+            request.user.groups.filter(name__in=[PAYMENTS_GROUP_NAME]).exists()
+        )
+
+    return is_payment_officer
+
+
 def in_dbca_domain(request):
     user = request.user
     domain = user.email.split('@')[1]
