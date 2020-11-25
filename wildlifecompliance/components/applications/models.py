@@ -1294,6 +1294,14 @@ class Application(RevisionedMixin):
                                 ac.standard = True
                                 ac.save()
 
+                                self.log_user_action(
+                                    ApplicationUserAction.ACTION_CREATE_CONDITION.format(
+                                        ac.condition[:256],
+                                        ac.licence_purpose.short_name,
+                                    ),
+                                    request
+                                )
+
                         '''
                         Process Selected Activity Purposes for the selected
                         Activity for amended licences. Set proposed dates to
@@ -6216,9 +6224,9 @@ class ApplicationCondition(OrderedModel):
     @property
     def condition(self):
         if self.standard:
-            return self.standard_condition.text
+            return self.standard_condition.short_description
         elif self.is_default:
-            return self.default_condition.standard_condition.text
+            return self.default_condition.standard_condition.short_description
         else:
             return self.free_condition
 
@@ -6306,8 +6314,9 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_INSPECTION_REQUEST = \
         "Inspection {} for Assessment {} was requested."
     ACTION_DECLINE = "Decline application {}"
-    ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
-    ACTION_CREATE_CONDITION_ = "Create condition {}"
+    ACTION_UPDATE_CONDITION = "Updated {0} condition {1}"
+    ACTION_CREATE_CONDITION = "Added {0} condition {1}"
+    ACTION_DELETE_CONDITION = "Deleted {0} condition {1}"
     ACTION_ORDER_CONDITION_UP = "Moved ordering higher for condition {}"
     ACTION_ORDER_CONDITION_DOWN = "Moved ordering lower for condition {}"
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity purpose {}"

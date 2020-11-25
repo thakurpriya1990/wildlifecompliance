@@ -2035,6 +2035,56 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
                 Q(application_id__in=user_applications))
         return ApplicationCondition.objects.none()
 
+    @detail_route(methods=['DELETE', ])
+    def delete(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            instance.application.log_user_action(
+                ApplicationUserAction.ACTION_DELETE_CONDITION.format(
+                    instance.licence_purpose.short_name,
+                    instance.condition[:256],
+                ),
+                request
+            )
+            instance.delete()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def update_condition(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data)
+            serializer.is_valid(raise_exception=True)
+            with transaction.atomic():
+                instance = serializer.save()
+                instance.application.log_user_action(
+                    ApplicationUserAction.ACTION_UPDATE_CONDITION.format(
+                        instance.licence_purpose.short_name,
+                        instance.condition[:256],
+                    ),
+                    request
+                )
+            return Response(serializer.data)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
@@ -2044,8 +2094,12 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
                 instance.set_source(request.user)
                 instance.submit()
                 instance.application.log_user_action(
-                    ApplicationUserAction.ACTION_ENTER_CONDITIONS.format(
-                        instance.condition[:256]), request)
+                    ApplicationUserAction.ACTION_CREATE_CONDITION.format(
+                        instance.licence_purpose.short_name,
+                        instance.condition[:256],
+                    ),
+                    request
+                )
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
