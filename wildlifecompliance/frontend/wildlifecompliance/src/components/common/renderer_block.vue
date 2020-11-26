@@ -42,22 +42,6 @@
             :help_text="help_text"
             :help_text_url="help_text_url"/>
 
-        <Group3 v-if="component.type === 'group3'"
-            :field_data="value"
-            :label="component.label"
-            :name="component_name"
-            :id="element_id()"
-            :help_text="help_text"
-            :help_text_url="help_text_url"
-            :isRepeatable="component.isRepeatable"
-            :isRemovable="true">
-                <renderer-block v-for="(subcomponent, index) in component.children"
-                    :component="subcomponent"
-                    :instance="instance"
-                    v-bind:key="`group_${index}`"
-                    />
-        </Group3>
-
         <TextField v-if="component.type === 'text'"
             type="text"
             :name="component_name"
@@ -343,7 +327,6 @@ import { strToBool } from "@/utils/helpers.js";
 import FormSection from '@/components/forms/section.vue'
 import Group from '@/components/forms/group.vue'
 import Group2 from '@/components/forms/group2.vue'
-import Group3 from '@/components/forms/group3.vue'
 import Radio from '@/components/forms/radio.vue'
 import Conditions from '@/components/forms/conditions.vue'
 import Checkbox from '@/components/forms/checkbox.vue'
@@ -372,7 +355,6 @@ const RendererBlock = {
       TextField,
       Group,
       Group2,
-      Group3,
       SelectBlock,
       HelpText,
       HelpTextUrl,

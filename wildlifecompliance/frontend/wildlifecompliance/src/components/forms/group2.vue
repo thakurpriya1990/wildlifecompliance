@@ -25,13 +25,14 @@
                             :set="subcomponent = updateComponent(subcomponent_item, v => v + ' ****')"
                     -->
                     <div>
-                        <div v-for="(subcomponent_item, index) in component.children"
-                            v-bind:key="`repeatable_group_subcomponent_${subcomponent_item.name}_${index}`">
+                        <div v-for="(subcomponent, index) in components[group].children"
+                            v-bind:key="`repeatable_group_subcomponent_${subcomponent.name}_${index}`">
                         <!--
                         <div v-for="(subcomponent, index) in component.children">
                         -->
 
                             <p> {{index}} subcomponent: {{subcomponent}} </p>
+                            <p> {{group}} component: {{components}} </p>
                             <!--
 
                             <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
@@ -41,13 +42,13 @@
                                     :instance="group"
                             -->
 
-    			    <span class="header-contents">
+                            <span class="header-contents">
                                 <renderer-block
-                                    :component="subcomponent_item"
+                                    :component="subcomponent"
                                     :json_data="value"
-                                    v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent_item.name}_${index}`"
+                                    v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent.name}_${index}`"
                                 />
-			    </span>
+                            </span>
 
                             <div>
                                 <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
@@ -101,10 +102,11 @@ const Group2 = {
         ExpanderTable,
     },
     data(){
+        console.log("DATA: " + JSON.stringify(this.component)) 
         return {
             expanded: {},
             subcomponent: {},
-            component_list: [],
+            components: {},
         };
     },
     methods: {
@@ -138,21 +140,17 @@ const Group2 = {
         },
         addNewGroup: function(params={}) {
             let { tableId } = params;
-            console.log("params: " + JSON.stringify(params)) 
             if(!tableId) {
                 console.log("1 tableId: " + JSON.stringify(tableId)) 
                 tableId = this.getTableId(this.lastTableId+1);
                 console.log("2 tableId: " + JSON.stringify(tableId)) 
             }
-            console.log("3 tableId: " + JSON.stringify(tableId)) 
             this.existingGroups.push(tableId);
-            console.log("existingGroups: " + this.existingGroups)
             this.updateVisibleGroups(
                 this.existingGroups
             );
             this.refreshApplicationFees();
-            this.subcomponent = this.updateComponent(this.component, v => v + ' ****')
-            console.log("updateComponent : " + JSON.stringify(this.subcomponent))
+            console.log("component(s) : " + JSON.stringify(this.components))
         },
         updateVisibleGroups: function(tableList) {
             console.log("tableList: " + tableList)
@@ -170,74 +168,44 @@ const Group2 = {
             return `__instance-${tableId}`
         },
 
-	_updateComponent: function(obj) {
+        updateComponent: function(obj, fn) {
+            /* search a nested JSON string for key, and recursively update the value using function fn */
             console.log("updateComponent 1: " + JSON.stringify(obj))
-	    return Object.fromEntries(Object
-		.entries(obj)
-		.map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v) : (k==='name' ? v=>v+' ****' : v)])
-	    );
-	},
+            return Object.fromEntries(Object
+                .entries(obj)
+                .map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v, fn) : (k==='name' ? fn(v) : v)])
+            );
+        },
 
-	updateComponent: function(obj, fn) {
-            console.log("updateComponent 1: " + JSON.stringify(obj))
-	    return Object.fromEntries(Object
-		.entries(obj)
-		.map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v, fn) : (k==='name' ? fn(v) : v)])
-	    );
-	},
-
-	_updateComponent: (obj, key, append_str, k='') => {
+        _updateComponent: function(obj, key, append_str, k='') {
             /* search a nested JSON string for key, and append 'append_str' to the end 
                 -ridx --> repeater index
-            */ 
-
-	    Object.keys(obj).forEach(function (k) {
-		if (obj[k] && typeof obj[k] === 'object') {
-		    //return updateComponent(obj[k], key, append_str, k)
-		    updateComponent(obj[k], key, append_str, k);
-		}
-		if (k === key) {
-		    obj[k] = obj[k] + '-ridx' + append_str;
-		}
-	    });
-
-            //return obj
-	},
-
-	_updateComponent: function(obj, key, append_str, k='') {
-            /* search a nested JSON string for key, and append 'append_str' to the end 
-                -ridx --> repeater index
-            */ 
+            */
 
             let vm = this;
-            console.log("updateComponent 1: " + JSON.stringify(obj))
-            console.log("updateComponent 3: " + key)
-            console.log("updateComponent 4: " + append_str)
-	    Object.keys(obj).forEach(function (k) {
-                console.log("updateComponent 5: " + typeof obj[k]);
-                console.log("updateComponent 6: " + obj[k]);
-		if (obj[k] && typeof obj[k] === 'object') {
-		    return vm.updateComponent(obj[k], key, append_str, k)
-		}
-		if (k === key) {
-		    obj[k] = obj[k] + '-ridx' + append_str;
-		}
-	    });
+            Object.keys(obj).forEach(function (k) {
+                if (obj[k] && typeof obj[k] === 'object') {
+                    return vm.updateComponent(obj[k], key, append_str, k)
+                }
+                if (k === key) {
+                    obj[k] = obj[k] + '-ridx' + append_str;
+                }
+            });
 
             return obj
-	},
+        },
 
 
         /*
-	clone: function(id) {
-	     var $row = $('#' + id);
+        clone: function(id) {
+             var $row = $('#' + id);
 
-	     var $clone = $row.clone(); //Making the clone                      
-	     counter++; // +1 counter
+             var $clone = $row.clone(); //Making the clone                      
+             counter++; // +1 counter
 
-	     //Change the id of the cloned elements, append the counter onto the ID 
-	     $clone.find('[id]').each(function () { this.id += counter });
-	}
+             //Change the id of the cloned elements, append the counter onto the ID 
+             $clone.find('[id]').each(function () { this.id += counter });
+        }
         */
 
         /*
@@ -276,9 +244,16 @@ const Group2 = {
             return this.getFormValue(this.component.name) || [];
         },
         repeatableGroups: function() {
+            let vm = this;
             if(!this.existingGroups.length) {
                 this.addNewGroup();
             }
+
+            //console.log("repeatGroups 3: " + this.existingGroups)
+            this.existingGroups.forEach(function (group, index) {
+                vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + index)
+                //console.log(group, index);
+            });
             return this.existingGroups;
         },
         value: function() {
