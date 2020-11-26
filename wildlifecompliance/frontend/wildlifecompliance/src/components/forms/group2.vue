@@ -31,9 +31,9 @@
                         <div v-for="(subcomponent, index) in component.children">
                         -->
 
-                            <p> {{index}} subcomponent: {{subcomponent}} </p>
-                            <p> {{group}} component: {{components}} </p>
+                            <p> {{index}} subcomponent: {{subcomponent.name}} </p>
                             <!--
+                            <p> {{group}} component: {{components.length}} </p>
 
                             <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
                                 v-on:click="toggleGroupVisibility(group)"></span>
@@ -51,6 +51,7 @@
                             </span>
 
                             <div>
+                                <p> {{ group }} </p>
                                 <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
                                     @click.prevent="removeGroup(group)">Delete group</button>
                             </div>
@@ -102,10 +103,9 @@ const Group2 = {
         ExpanderTable,
     },
     data(){
-        console.log("DATA: " + JSON.stringify(this.component)) 
+        //console.log("DATA: " + JSON.stringify(this.component)) 
         return {
             expanded: {},
-            subcomponent: {},
             components: {},
         };
     },
@@ -136,24 +136,28 @@ const Group2 = {
             this.updateVisibleGroups(
                 this.existingGroups.filter(table => table != tableId)
             );
+            //console.log("remove 1" + this.components[tableId].length)
+            delete this.components[tableId]
+            console.log("Remove: " + JSON.stringify(this.components))
+            console.log("*************************************************************")
             this.refreshApplicationFees();
         },
         addNewGroup: function(params={}) {
             let { tableId } = params;
             if(!tableId) {
-                console.log("1 tableId: " + JSON.stringify(tableId)) 
+                //console.log("1 tableId: " + JSON.stringify(tableId)) 
                 tableId = this.getTableId(this.lastTableId+1);
-                console.log("2 tableId: " + JSON.stringify(tableId)) 
+                //console.log("2 tableId: " + JSON.stringify(tableId)) 
             }
             this.existingGroups.push(tableId);
             this.updateVisibleGroups(
                 this.existingGroups
             );
             this.refreshApplicationFees();
-            console.log("component(s) : " + JSON.stringify(this.components))
+            //console.log("component(s) : " + JSON.stringify(this.components))
         },
         updateVisibleGroups: function(tableList) {
-            console.log("tableList: " + tableList)
+            //console.log("tableList: " + tableList)
             this.setFormValue({
                 key: this.component.name,
                 value: {
@@ -170,7 +174,7 @@ const Group2 = {
 
         updateComponent: function(obj, fn) {
             /* search a nested JSON string for key, and recursively update the value using function fn */
-            console.log("updateComponent 1: " + JSON.stringify(obj))
+            //console.log("updateComponent 1: " + JSON.stringify(obj))
             return Object.fromEntries(Object
                 .entries(obj)
                 .map(([k, v]) => [k, v && typeof v === 'object' ? this.updateComponent(v, fn) : (k==='name' ? fn(v) : v)])
@@ -251,9 +255,13 @@ const Group2 = {
 
             //console.log("repeatGroups 3: " + this.existingGroups)
             this.existingGroups.forEach(function (group, index) {
-                vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + index)
+                var ridx = group.split('_').slice(-1)[0];
+                vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + ridx)
                 //console.log(group, index);
             });
+
+            console.log("repeatableGroups: " + JSON.stringify(this.components))
+            console.log("*************************************************************")
             return this.existingGroups;
         },
         value: function() {

@@ -160,7 +160,7 @@ module.exports = {
       let regexSearch = '^' +
                           inputString
                               .replace(/\(/g, '\\(') // escape parentheses
-                              .replace(/\)/g, '\\)') 
+                              .replace(/\)/g, '\\)')
                           + '$';
       return regexSearch;
     },
@@ -169,20 +169,5 @@ module.exports = {
         return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
       }
       return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
-    },
-    _updateComponent: function(obj, key, append_str) {
-	/* search a nested JSON string for key, and append 'append_str' to the end 
-	 *                 -ridx --> repeater index
-	 *                             */ 
-        let vm = this;
-	Object.keys(obj).forEach(function (k) {
-	    if (obj[k] && typeof obj[k] === 'object') {
-	        return vm.updateComponent(obj[k], key, append_str)
-	    }
-	    if (k === key) {
-	        obj[k] = obj[k] + '-ridx' + append_str;
-	    }
-        });
-	return obj
     }
 };
