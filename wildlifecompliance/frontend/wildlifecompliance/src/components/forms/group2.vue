@@ -15,40 +15,28 @@
                     <p> value: {{value}} </p>
                     <p> component: {{component}} </p>
                     <p> children: {{component.children}} </p>
-                    -->
-
                     <p> {{groupIdx}} group: {{group}} </p>
                     <p> {{groupIdx}} value: {{value}} </p>
-                    <!--
-                    <div class="row header-row">
-                            :subcomponent="updateComponent(subcomponent_item, 'name', groupIdx)"
-                            :set="subcomponent = updateComponent(subcomponent_item, v => v + ' ****')"
                     -->
+
                     <div>
                         <div v-for="(subcomponent, index) in components[group].children"
                             v-bind:key="`repeatable_group_subcomponent_${subcomponent.name}_${index}`">
-                        <!--
-                        <div v-for="(subcomponent, index) in component.children">
-                        -->
 
-                            <p> {{index}} subcomponent: {{subcomponent.name}} </p>
                             <!--
-                            <p> {{group}} component: {{components.length}} </p>
-
+                            <p> {{index}} subcomponent: {{subcomponent.name}} </p>
                             <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
                                 v-on:click="toggleGroupVisibility(group)"></span>
-
-                                    :component="updateComponent(subcomponent, 'name', groupIdx)"
-                                    :instance="group"
                             -->
 
-                            <span class="header-contents">
+                            <p> components: {{components}} </p>
+
                                 <renderer-block
                                     :component="subcomponent"
                                     :json_data="value"
+                                    :instance="group"
                                     v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent.name}_${index}`"
                                 />
-                            </span>
 
                             <div>
                                 <p> {{ group }} </p>
@@ -103,7 +91,6 @@ const Group2 = {
         ExpanderTable,
     },
     data(){
-        //console.log("DATA: " + JSON.stringify(this.component)) 
         return {
             expanded: {},
             components: {},
@@ -136,28 +123,23 @@ const Group2 = {
             this.updateVisibleGroups(
                 this.existingGroups.filter(table => table != tableId)
             );
-            //console.log("remove 1" + this.components[tableId].length)
             delete this.components[tableId]
-            console.log("Remove: " + JSON.stringify(this.components))
-            console.log("*************************************************************")
+            //console.log("Remove: " + JSON.stringify(this.components))
+            //console.log("*************************************************************")
             this.refreshApplicationFees();
         },
         addNewGroup: function(params={}) {
             let { tableId } = params;
             if(!tableId) {
-                //console.log("1 tableId: " + JSON.stringify(tableId)) 
                 tableId = this.getTableId(this.lastTableId+1);
-                //console.log("2 tableId: " + JSON.stringify(tableId)) 
             }
             this.existingGroups.push(tableId);
             this.updateVisibleGroups(
                 this.existingGroups
             );
             this.refreshApplicationFees();
-            //console.log("component(s) : " + JSON.stringify(this.components))
         },
         updateVisibleGroups: function(tableList) {
-            //console.log("tableList: " + tableList)
             this.setFormValue({
                 key: this.component.name,
                 value: {
@@ -181,7 +163,7 @@ const Group2 = {
             );
         },
 
-        _updateComponent: function(obj, key, append_str, k='') {
+        updateComponent2: function(obj, append_str, key='name') {
             /* search a nested JSON string for key, and append 'append_str' to the end 
                 -ridx --> repeater index
             */
@@ -189,7 +171,7 @@ const Group2 = {
             let vm = this;
             Object.keys(obj).forEach(function (k) {
                 if (obj[k] && typeof obj[k] === 'object') {
-                    return vm.updateComponent(obj[k], key, append_str, k)
+                    return vm.updateComponent2(obj[k], append_str, 'name')
                 }
                 if (k === key) {
                     obj[k] = obj[k] + '-ridx' + append_str;
@@ -198,19 +180,6 @@ const Group2 = {
 
             return obj
         },
-
-
-        /*
-        clone: function(id) {
-             var $row = $('#' + id);
-
-             var $clone = $row.clone(); //Making the clone                      
-             counter++; // +1 counter
-
-             //Change the id of the cloned elements, append the counter onto the ID 
-             $clone.find('[id]').each(function () { this.id += counter });
-        }
-        */
 
         /*
         removeLabel: function(header) {
@@ -253,19 +222,17 @@ const Group2 = {
                 this.addNewGroup();
             }
 
-            //console.log("repeatGroups 3: " + this.existingGroups)
             this.existingGroups.forEach(function (group, index) {
                 var ridx = group.split('_').slice(-1)[0];
                 vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + ridx)
-                //console.log(group, index);
+                //vm.components[group] = vm.updateComponent2(vm.component, ridx, 'name')
             });
 
-            console.log("repeatableGroups: " + JSON.stringify(this.components))
-            console.log("*************************************************************")
+            //console.log("repeatableGroups: " + JSON.stringify(this.components))
+            //console.log("*************************************************************")
             return this.existingGroups;
         },
         value: function() {
-            //console.log('value: ' + JSON.stringify(this.field_data));
             return this.field_data;
         },
     }
@@ -273,3 +240,9 @@ const Group2 = {
 
 export default Group2;
 </script>
+
+<style lang="css">
+    .collapse-link-top,.collapse-link-bottom{
+        cursor:pointer;
+    }
+</style>
