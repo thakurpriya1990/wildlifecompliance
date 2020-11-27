@@ -27,24 +27,46 @@
                             <p> {{index}} subcomponent: {{subcomponent.name}} </p>
                             <span v-if="!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
                                 v-on:click="toggleGroupVisibility(group)"></span>
+
+                                    :instance="group"
+                            <p> components: {{components}} </p>
                             -->
 
-                            <p> components: {{components}} </p>
+                            <!--
+                            <span "!index" :class="`expand-icon ${isExpanded(group) ? 'collapse' : ''}`"
+                                v-on:click="toggleGroupVisibility(group)"></span>
+                            -->
 
-                                <renderer-block
-                                    :component="subcomponent"
-                                    :json_data="value"
-                                    :instance="group"
-                                    v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent.name}_${index}`"
-                                />
+
+                            <renderer-block
+                                :component="subcomponent"
+                                :json_data="value"
+                                v-bind:key="`repeatable_group_subcomponent_contents_${subcomponent.name}_${index}`"
+                            />
 
                             <div>
-                                <p> {{ group }} </p>
+                                <!-- <p> {{ group }} </p> -->
                                 <button v-if="groupIdx && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
                                     @click.prevent="removeGroup(group)">Delete group</button>
                             </div>
                         </div>
                     </div>
+
+                    <!--
+		    <div :class="{'hidden': !isExpanded(group)}">
+			<div class="row expander-row" v-for="(subcomponent, index) in components[group].expander" v-bind:key="`expander_row_${subcomponent.name}_${index}`">
+			    <div class="col-xs-12">
+				<renderer-block
+				    :component="subcomponent"
+				    :json_data="value"
+				    v-bind:key="`expander_contents_${subcomponent.name}_${index}`"
+				    />
+			    </div>
+			</div>
+		    </div>
+                    -->
+
+
                 </div>
             </div>
         </div>
@@ -154,7 +176,50 @@ const Group2 = {
             return `__instance-${tableId}`
         },
 
-        updateComponent: function(obj, fn) {
+        updateComponent: function(json_obj, fn, key='name') {
+            /* search a nested JSON string for key, and recursively update the value using function fn 
+               NOTE: had to use ES6 arrow function style, because the normal recursion function looped infinately inside vue instance.
+
+	       Usage: 
+                    -- the below will search all k,v pairs in JSON object and append '-ridx0' (repeatable index 0) to all values with key='name'
+                    var ridx = 0;
+  		    vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + ridx)
+
+	    */
+            return Object.fromEntries(Object
+                .entries(json_obj)
+                .map(([k, v]) => [k,
+                    Array.isArray(v)
+                        ? Array.from(v, v => this.updateComponent(v, fn))
+                    : v && typeof v === 'object'
+                        ? this.updateComponent(v, fn)
+                    : k===key
+                        ? fn(v)
+                    : v
+                ])
+            );
+        },
+
+        __updateComponent: function(obj, fn) {
+            /* search a nested JSON string for key, and recursively update the value using function fn */
+            //console.log("updateComponent 1: " + JSON.stringify(obj))
+            //return (f = identity, t = {}) =>
+            let vm = this;
+            //return (f, t) =>
+            const traverse = (f = identity, t = {}) =>
+		Array.isArray(t)
+		    ? Array.from(t, v => traverse(v, f))
+		: Object(t) === t
+		    ? Object.fromEntries(Object
+			.entries(t)
+			.map(([ k, v ]) =>  [k, v && typeof v === 'object' ? traverse(v, f) : (k==='name' ? f(v) : v)])
+		      ) 
+		: ''
+
+             return traverse(x => x + '101', obj)
+        },
+
+        _updateComponent: function(obj, fn) {
             /* search a nested JSON string for key, and recursively update the value using function fn */
             //console.log("updateComponent 1: " + JSON.stringify(obj))
             return Object.fromEntries(Object
@@ -169,7 +234,8 @@ const Group2 = {
             */
 
             let vm = this;
-            Object.keys(obj).forEach(function (k) {
+            //Object.keys(obj).forEach(function (k) {
+            Object.keys(obj).forEach(k => {
                 if (obj[k] && typeof obj[k] === 'object') {
                     return vm.updateComponent2(obj[k], append_str, 'name')
                 }
@@ -178,7 +244,7 @@ const Group2 = {
                 }
             });
 
-            return obj
+            //return obj
         },
 
         /*
@@ -197,6 +263,17 @@ const Group2 = {
         },
         */
     },
+
+//    created:{
+//        traverse = (f = identity, t = {}) =>
+//	    Array.isArray(t)                         // 1
+//	        ? Array.from(t, v => this.traverse(f, v))
+//	    : Object(t) === t                        // 2
+//	        ? Object.fromEntries(Object
+//		    .entries(t)
+//		    .map(([ k, v ]) =>  [k, v && typeof v === 'object' ? this.traverse(f, v) : (k==='name' ? f(v) : v)])
+//	          )
+//    },
 
     computed:{
         ...mapGetters([
@@ -224,6 +301,7 @@ const Group2 = {
 
             this.existingGroups.forEach(function (group, index) {
                 var ridx = group.split('_').slice(-1)[0];
+                //vm.components[group] = vm.traverse(v => v + '-ridx' + ridx, vm.component)
                 vm.components[group] = vm.updateComponent(vm.component, v => v + '-ridx' + ridx)
                 //vm.components[group] = vm.updateComponent2(vm.component, ridx, 'name')
             });

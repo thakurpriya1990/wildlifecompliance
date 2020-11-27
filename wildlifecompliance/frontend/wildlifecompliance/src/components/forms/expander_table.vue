@@ -24,8 +24,8 @@
         </div>
         <!--
         <p> expanderTables: {{expanderTables}} </p>
-        -->
         <p> expander_table component: {{component}} </p>
+        -->
         <div class="expander-table" v-for="(table, tableIdx) in expanderTables">
             <div class="row header-row">
                 <div :class="`col-xs-${Math.floor(12 / component.header.length)}`"
