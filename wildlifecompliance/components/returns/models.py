@@ -848,6 +848,15 @@ class ReturnTable(RevisionedMixin):
     class Meta:
         app_label = 'wildlifecompliance'
 
+    def __str__(self):
+        return str('ReturnTable {0}'.format(self.id))
+
+    def has_rows(self):
+        '''
+        ::return:: boolean
+        '''
+        return ReturnRow.objects.filter(return_table=self).count()
+
 
 class ReturnRow(RevisionedMixin):
     return_table = models.ForeignKey(ReturnTable)
@@ -856,6 +865,9 @@ class ReturnRow(RevisionedMixin):
 
     class Meta:
         app_label = 'wildlifecompliance'
+
+    def __str__(self):
+        return str('ReturnRow {0}'.format(self.id))
 
 
 class ReturnUserAction(UserAction):

@@ -137,7 +137,7 @@ export default {
       }
       this.setReturns(this.returns);
     }
-    this.setReturnsSpecies({species: this.returns.sheet_species_list});
+    this.setReturnsSpecies({species: this.returns.species_list});
   },
 }
 </script>
