@@ -18,6 +18,7 @@
         </FormSection>
 
         <Group v-if="component.type === 'group'"
+            :field_data="value"
             :label="component.label"
             :name="component_name"
             :id="element_id()"
@@ -30,6 +31,16 @@
                     v-bind:key="`group_${index}`"
                     />
         </Group>
+
+        <Group2 v-if="component.type === 'group2'"
+            :field_data="value"
+            :readonly="is_readonly"
+            :name="component_name"
+            :component="component"
+            :id="element_id()"
+            :label="component.label"
+            :help_text="help_text"
+            :help_text_url="help_text_url"/>
 
         <TextField v-if="component.type === 'text'"
             type="text"
@@ -134,6 +145,14 @@
             :isRequired="component.isRequired"
             :help_text_url="help_text_url"/>
 
+        <!-- <span v-if="component.type === 'expander_table'"> -->
+        <!--
+        <span v-if="component.type === 'group' || component.type === 'group2' ">
+            <p> renderer_block: value: {{value}} </p>
+            <p> renderer_block: name: {{component_name}} </p>
+            <p> renderer_block: component: {{component}} </p>
+        </span>
+        -->
         <ExpanderTable v-if="component.type === 'expander_table'"
             :field_data="value"
             :readonly="is_readonly"
@@ -305,9 +324,9 @@ import Vue from 'vue';
 import { mapActions, mapGetters } from 'vuex';
 import { helpers, api_endpoints } from "@/utils/hooks.js"
 import { strToBool } from "@/utils/helpers.js";
-
 import FormSection from '@/components/forms/section.vue'
 import Group from '@/components/forms/group.vue'
+import Group2 from '@/components/forms/group2.vue'
 import Radio from '@/components/forms/radio.vue'
 import Conditions from '@/components/forms/conditions.vue'
 import Checkbox from '@/components/forms/checkbox.vue'
@@ -335,6 +354,7 @@ const RendererBlock = {
       FormSection,
       TextField,
       Group,
+      Group2,
       SelectBlock,
       HelpText,
       HelpTextUrl,
@@ -418,6 +438,7 @@ const RendererBlock = {
     },
     value: {
         get: function() {
+            //console.log('formDataRecord: ' + JSON.stringify(this.formDataRecord));
             return this.formDataRecord;
         },
         set: function(value) {
@@ -454,7 +475,6 @@ const RendererBlock = {
     replaceSitePlaceholders: function(text_string) {
         if(text_string && text_string.includes("site_url:/")) {
             text_string = text_string.replace('site_url:/', this.site_url);
-
             if (text_string.includes("anchor=")) {
                 text_string = text_string.replace('anchor=', "#");
             }
@@ -497,6 +517,5 @@ const RendererBlock = {
     },
   }
 }
-
 export default RendererBlock;
 </script>

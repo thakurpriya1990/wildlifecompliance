@@ -160,7 +160,7 @@ module.exports = {
       let regexSearch = '^' +
                           inputString
                               .replace(/\(/g, '\\(') // escape parentheses
-                              .replace(/\)/g, '\\)') 
+                              .replace(/\)/g, '\\)')
                           + '$';
       return regexSearch;
     },
