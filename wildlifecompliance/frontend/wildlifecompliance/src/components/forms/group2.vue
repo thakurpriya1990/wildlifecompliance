@@ -13,6 +13,14 @@
             :id="`repeatable_group_${component.name}_${groupIdx}`"
             v-bind:key="`repeatable_group_${component.name}_${groupIdx}`">
             <div class="panel panel-default">
+                <div class="panel-heading">
+                    <label :id="`${id}_${groupIdx}`" class="inline">{{label}} {{add_1(groupIdx)}}</label>
+                    <a class="collapse-link-top pull-right" @click.prevent="toggleGroupVisibility(group)">
+                        <span v-if="isExpanded(group)" class="glyphicon glyphicon-chevron-down"></span>
+                        <span v-else class="glyphicon glyphicon-chevron-up"></span>
+                    </a>
+                </div>
+
                 <div class="panel-body">
                     <!-- DEBUGGING
                     <p> name: {{name}} </p>
@@ -23,16 +31,6 @@
                     <p> {{groupIdx}} value: {{value}} </p>
                     <p> Expanded: {{ !isExpanded(group) }} </p>
                     -->
-
-                    <div class="panel panel-default">
-                        <div class="panel-heading">
-                            <label :id="`${id}_${groupIdx}`" class="inline">{{label}} {{add_1(groupIdx)}}</label>
-                            <a class="collapse-link-top pull-right" @click.prevent="toggleGroupVisibility(group)">
-                                <span v-if="isExpanded(group)" class="glyphicon glyphicon-chevron-down"></span>
-                                <span v-else class="glyphicon glyphicon-chevron-up"></span>
-                            </a>
-                        </div>
-                    </div>
 
                     <div :class="{'collapse':true, 'in':!isExpanded(group)}" style="margin-top:10px;" >
 
@@ -46,7 +44,7 @@
                             />
 
                             <div>
-                                <button v-if="repeatableGroups.length > 1 && !readonly" type="button" class="btn btn-danger"
+                                <button v-if="num_groups() > 1 && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
                                     @click.prevent="removeGroup(group)">Delete group</button>
                             </div>
                         </div>
@@ -217,6 +215,9 @@ const Group2 = {
             });
 
             //return obj
+        },
+        num_groups: function() {
+            return Object.keys(this.components).length
         },
 
         /*
