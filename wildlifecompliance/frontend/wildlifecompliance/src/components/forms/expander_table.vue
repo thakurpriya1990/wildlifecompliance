@@ -22,10 +22,6 @@
                     {{ header.label }}
             </div>
         </div>
-        <!--
-        <p> expanderTables: {{expanderTables}} </p>
-        <p> expander_table component: {{component}} </p>
-        -->
         <div class="expander-table" v-for="(table, tableIdx) in expanderTables">
             <div class="row header-row">
                 <div :class="`col-xs-${Math.floor(12 / component.header.length)}`"
@@ -34,12 +30,6 @@
                         <span v-if="index>1" :class="`expand-icon ${isExpanded(table) ? 'collapse' : ''}`"
                             v-on:click="toggleTableVisibility(table)"></span>
 
-                        <!--
-                        <p> {{index}} value: {{value}} </p>
-                        <p> {{index}} table: {{table}} </p>
-                        <p> {{index}} key: {{`expander_header_contents_${component.name}_${index}`}} </p>
-                        <p> {{index}} header: {{header}} </p>
-                        -->
                         <span class="header-contents">
                             <renderer-block
                             :component="removeLabel(header)"

@@ -1110,7 +1110,6 @@ def do_process_form(
             'You are not authorised to perform this action!')
 
     is_draft = form_data.pop('__draft', False)
-    #import ipdb; ipdb.set_trace()
     visible_data_tree = application.get_visible_form_data_tree(
         form_data.items())
     required_fields = application.required_fields

@@ -145,14 +145,6 @@
             :isRequired="component.isRequired"
             :help_text_url="help_text_url"/>
 
-        <!-- <span v-if="component.type === 'expander_table'"> -->
-        <!--
-        <span v-if="component.type === 'group' || component.type === 'group2' ">
-            <p> renderer_block: value: {{value}} </p>
-            <p> renderer_block: name: {{component_name}} </p>
-            <p> renderer_block: component: {{component}} </p>
-        </span>
-        -->
         <ExpanderTable v-if="component.type === 'expander_table'"
             :field_data="value"
             :readonly="is_readonly"
@@ -438,7 +430,6 @@ const RendererBlock = {
     },
     value: {
         get: function() {
-            //console.log('formDataRecord: ' + JSON.stringify(this.formDataRecord));
             return this.formDataRecord;
         },
         set: function(value) {
