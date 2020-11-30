@@ -7,6 +7,7 @@ from django.db.models import Max
 from django.db.models import Q
 from django.forms.models import model_to_dict
 import json
+import reversion
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
@@ -1462,12 +1463,56 @@ class WildlifeLicenceReceptionEmail(models.Model):
 '''
 NOTE: REGISTER MODELS FOR REVERSION HERE.
 '''
-import reversion
-reversion.register(WildlifeLicence, follow=[
-    'licence_document'])
-reversion.register(DefaultActivity)
-reversion.register(DefaultPurpose)
-reversion.register(LicenceActivity)
-reversion.register(LicenceCategory)
+reversion.register(
+    WildlifeLicence,
+    follow=[
+        'licence_document',
+        'replaced_by',
+        'licence_category',
+        'current_application',
+    ]
+)
+reversion.register(
+    LicencePurpose,
+    follow=[
+        'licence_category',
+        'licence_activity',
+    ]
+)
+reversion.register(
+    PurposeSpecies,
+    follow=[
+        'licence_purpose',
+    ]
+)
+reversion.register(
+    LicenceActivity,
+    follow=[
+        'licence_category',
+        'purpose',
+    ]
+)
+reversion.register(
+    LicenceCategory,
+    follow=[
+        'activity',
+    ]
+)
+reversion.register(
+    DefaultActivity,
+    follow=[
+        'activity',
+        'licence_category',
+    ]
+)
+reversion.register(
+    DefaultPurpose,
+    follow=[
+        'purpose',
+        'activity',
+    ]
+)
+reversion.register(LicenceSpecies)
 reversion.register(LicenceDocument)
-reversion.register(LicencePurpose)
+reversion.register(WildlifeLicenceReceptionEmail)
+reversion.register(LicenceInspection)

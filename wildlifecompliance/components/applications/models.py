@@ -6113,9 +6113,9 @@ class ApplicationFormDataRecord(models.Model):
 
     def __str__(self):
         logger.debug('ApplicationFormDataRecord.__str__()')
-        return "Application {id} record {field}".format(
-            id=self.application_id,
-            field=self.field_name
+        return "FieldID: {field} Value: {value}".format(
+            field=self.field_name,
+            value=self.value,
         )
 
     class Meta:
@@ -6366,6 +6366,13 @@ reversion.register(
         'invoices',
         'form_data_records',
         'conditions',
+        'previous_application',
+        'licence_document',
+        'licence',
+        'submitter',
+        'org_applicant',
+        'proxy_applicant',
+        'licence_purposes',
         # 'action_logs',
         # 'comms_logs',
         ]
@@ -6375,20 +6382,105 @@ reversion.register(
     follow=[
         'proposed_purposes',
         'activity_invoices',
+        'assigned_approver',
+        'assigned_officer',
+        'updated_by',
+        'licence_activity',
         ]
     )
-reversion.register(ApplicationSelectedActivityPurpose)
-reversion.register(ApplicationCondition)
-reversion.register(ApplicationInvoice)
-reversion.register(ApplicationInvoiceLine)
-reversion.register(ApplicationDocument)
-reversion.register(ApplicationStandardCondition)
-reversion.register(ApplicationFormDataRecord)
+reversion.register(
+    ApplicationFormDataRecord,
+    follow=[
+        'application',
+        'licence_purpose',
+        'licence_activity',
+        ]
+    )
+reversion.register(
+    Assessment,
+    follow=[
+        'assessor_group',
+        'licence_activity',
+        'actioned_by',
+        'assigned_assessor',
+        ]
+    )
+reversion.register(
+    AssessmentInspection,
+    follow=[
+        'assessment',
+        'inspection',
+        ]
+    )
+reversion.register(
+    ApplicationSelectedActivityPurpose,
+    follow=[
+        'selected_activity',
+        'purpose',
+        ]
+    )
+reversion.register(
+    ApplicationCondition,
+    follow=[
+        'standard_condition',
+        'default_condition',
+        'application',
+        'licence_activity',
+        'return_type',
+        'licence_purpose',
+        'source_group',
+        ]
+    )
+reversion.register(
+    ApplicationDocument,
+    follow=[
+        'application'
+    ]
+)
+reversion.register(
+    ApplicationStandardCondition,
+    follow=[
+        'return_type',
+    ],
+)
+reversion.register(
+    ApplicationInvoice,
+    follow=[
+        'application'
+    ]
+)
+reversion.register(
+    ApplicationInvoiceLine,
+    follow=[
+        'invoice',
+        'licence_activity',
+        ]
+)
+reversion.register(
+    ApplicationRequest,
+    follow=[
+        'licence_activity',
+    ]
+)
+reversion.register(
+    ActivityInvoice,
+    follow=[
+        'activity',
+    ]
+)
+reversion.register(
+    ActivityInvoiceLine,
+    follow=[
+        'invoice',
+        'licence_activity',
+        'licence_purpose',
+    ]
+)
+reversion.register(
+    ActivityPermissionGroup,
+    follow=[
+        'licence_activities',
+    ]
+)
 reversion.register(ApplicationLogEntry)
 reversion.register(ApplicationUserAction)
-reversion.register(AmendmentRequest)
-reversion.register(ActivityPermissionGroup)
-reversion.register(ActivityInvoice)
-reversion.register(ActivityInvoiceLine)
-reversion.register(Assessment)
-reversion.register(AssessmentInspection)

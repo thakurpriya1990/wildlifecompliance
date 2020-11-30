@@ -963,6 +963,42 @@ class ReturnInvoice(models.Model):
 '''
 NOTE: REGISTER MODELS FOR REVERSION HERE.
 '''
-reversion.register(Return)
-reversion.register(ReturnTable)
-reversion.register(ReturnRow)
+reversion.register(
+    Return,
+    follow=[
+        'application',
+        'submitter',
+        'assigned_to',
+        'condition',
+        'licence',
+        'return_type',
+        ]
+    )
+reversion.register(
+    ReturnType,
+    follow=[
+        'application',
+        'submitter',
+        'assigned_to',
+        'condition',
+        'licence',
+        ]
+    )
+reversion.register(
+    ReturnTable,
+    follow=[
+        'ret',
+        ]
+    )
+reversion.register(
+    ReturnRow,
+    follow=[
+        'return_table',
+        ]
+    )
+reversion.register(
+    ReturnInvoice,
+    follow=[
+        'invoice_return',
+        ]
+    )
