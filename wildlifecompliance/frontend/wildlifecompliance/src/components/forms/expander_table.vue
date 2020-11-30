@@ -29,6 +29,7 @@
                     v-bind:key="`expander_header_${component.name}_${index}`">
                         <span v-if="index>1" :class="`expand-icon ${isExpanded(table) ? 'collapse' : ''}`"
                             v-on:click="toggleTableVisibility(table)"></span>
+
                         <span class="header-contents">
                             <renderer-block
                             :component="removeLabel(header)"
