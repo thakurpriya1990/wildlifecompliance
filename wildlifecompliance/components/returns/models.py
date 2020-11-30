@@ -977,11 +977,7 @@ reversion.register(
 reversion.register(
     ReturnType,
     follow=[
-        'application',
-        'submitter',
-        'assigned_to',
-        'condition',
-        'licence',
+        'replaced_by',
         ]
     )
 reversion.register(
