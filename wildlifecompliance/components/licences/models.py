@@ -279,6 +279,17 @@ class LicenceCategory(LicenceType):
         else:
             return '{} (V{})'.format(result, self.version)
 
+    def get_activities(self):
+        '''
+        Getter for activities associated with category.
+
+        NOTE: activity attribute not working correctly.
+        '''
+        _activities = LicenceActivity.objects.filter(
+            licence_category_id=self.id
+        )
+        return _activities
+
 
 class LicenceSpecies(models.Model):
     """

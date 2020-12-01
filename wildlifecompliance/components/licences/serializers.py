@@ -425,14 +425,19 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
         # If purpose_records context is set but is empty, force display of zero
         # activities otherwise, assume we want to retrieve all activities for
         # the Licence Category.
-        if self.context.has_key('purpose_records'):
-            activities = obj.activity.filter(
-                id__in=activity_ids
-            )
+        if purposes:
+            activities = [
+                a for a in obj.get_activities() if a.id in activity_ids
+            ]
         else:
-            activities = obj.activity.filter(
-                id__in=activity_ids
-            ) if activity_ids else obj.activity.all()
+            if activity_ids:
+                activities = [
+                    a for a in obj.get_activities() if a.id in activity_ids
+                ]
+            else:
+                activities = [
+                    a for a in obj.get_activities()
+                ]
 
         request = self.context.get('request')
         user = request.user if request and request.user else None
