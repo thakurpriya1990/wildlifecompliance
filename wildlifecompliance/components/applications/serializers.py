@@ -1198,9 +1198,18 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """
         import decimal
         licence_fee = decimal.Decimal(obj.get_property_cache_licence_fee() * 1)
+        adj_application_fee = obj.application_fee
+        adj_licence_fee = licence_fee
+
+        if obj.total_paid_amount == (obj.application_fee + licence_fee):
+            # force zero amounts for submitted applications without subsequent
+            # changes to form questions (no recalculation occur).
+            adj_application_fee = 0
+            adj_licence_fee = 0
+
         adjusted = {
-            'application_fee': obj.application_fee,
-            'licence_fee': licence_fee
+            'application_fee': adj_application_fee,
+            'licence_fee': adj_licence_fee
         }
 
         return adjusted
