@@ -1,7 +1,7 @@
 <template lang="html">
     <div class="top-buffer bottom-buffer">
 
-        <label :id="id" class="inline">{{label}}</label>
+        <!-- <label :id="id" class="inline">{{label}}</label> -->
         <template v-if="help_text">
             <HelpText :help_text="help_text" /> 
         </template>
@@ -45,7 +45,7 @@
 
                             <div>
                                 <button v-if="num_groups() > 1 && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
-                                    @click.prevent="removeGroup(group)">Delete group</button>
+                                    @click.prevent="removeGroup(group)">Delete {{name}}</button>
                             </div>
                         </div>
 
@@ -55,8 +55,8 @@
         </div>
 
         <div class="row" v-if="component.isRepeatable && !readonly">
-            <input type="button" value="Add Group" class="btn btn-primary add-new-button"
-                @click.prevent="addNewGroup">
+            <button type="button" class="btn btn-primary add-new-button"
+                @click.prevent="addNewGroup">Add {{name}}</button>
         </div>
 
     </div>
