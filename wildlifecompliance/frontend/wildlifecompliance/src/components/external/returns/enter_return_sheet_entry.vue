@@ -204,6 +204,9 @@ export default {
             this.entryTotal = parseInt(this.currentStock)
         };
       },
+      addToList: function() {
+
+      },
       update:function () {
         const self = this;
 
@@ -235,6 +238,10 @@ export default {
               self.row_of_data.row.add(_data).node().id = newRowId;
               self.row_of_data.draw();
               self.species_cache[self.returns.sheet_species] = self.return_table.data();
+              let species_name = '[NOT SAVED] ' + self.returns.species_list[self.returns.sheet_species]
+              self.returns.species_saved[self.returns.sheet_species] = species_name
+              self.returns.species = self.returns.sheet_species
+
               self.close();
           }
 

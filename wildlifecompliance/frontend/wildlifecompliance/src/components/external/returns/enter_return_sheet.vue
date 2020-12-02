@@ -28,7 +28,7 @@
                 <div class="col-md-12">
                     <div class="form-group">
                         <label for="">Species already added for this Return:</label>
-                        <div v-for="(specie, a_idx) in returns.species_saved" v-bind:key="`selected_${a_idx}`" >
+                        <div v-show="true" v-for="(specie, a_idx) in returns.species_saved" v-bind:key="`selected_${a_idx}`" >
                           <span v-if='a_idx === returns.species'>&nbsp;&nbsp;&nbsp;{{specie}}</span>
                           <button v-else class="btn btn-link" :name="`specie_link_${a_idx}`" @click.prevent="getSheetSpecies(a_idx)" >{{specie}}</button>
                         </div>
