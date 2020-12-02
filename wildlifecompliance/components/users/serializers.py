@@ -1,3 +1,4 @@
+import os
 from django.conf import settings
 from ledger.accounts.models import EmailUser, Address, Profile, EmailIdentity, EmailUserAction, Document
 from wildlifecompliance.components.organisations.models import (
@@ -332,12 +333,13 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
     wildlifecompliance_organisations = serializers.SerializerMethodField()
-    identification = DocumentSerializer()
+    # identification = DocumentSerializer()
     is_customer = serializers.SerializerMethodField()
     is_internal = serializers.SerializerMethodField()
     prefer_compliance_management = serializers.SerializerMethodField()
     is_reception = serializers.SerializerMethodField()
     dob = serializers.SerializerMethodField(read_only=True)
+    identification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -362,6 +364,15 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             'prefer_compliance_management',
             'is_reception',
         )
+
+    def get_identification(self, obj):
+        uid = None
+        if obj.identification:
+            id_file = 'media/' + str(obj.identification.file)
+            if os.path.exists(id_file):
+                uid = DocumentSerializer(obj.identification).data
+
+        return uid
 
     def get_dob(self, obj):
         formatted_date = obj.dob.strftime(
