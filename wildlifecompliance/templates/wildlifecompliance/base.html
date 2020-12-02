@@ -136,7 +136,7 @@
                                                     <li role="separator" class="divider"></li>
                                                 {% endif %}
 
-                                                {% if is_wildlifecompliance_admin_login or request.user.is_superuser or is_payment_officer %}
+                                                {% if is_payment_officer %}
                                                     <li><a href="/internal/reports">Reports</a></li>
                                                 {% endif %}
 
