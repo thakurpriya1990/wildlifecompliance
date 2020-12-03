@@ -161,7 +161,7 @@
                                   <div class="panel-body collapse in" :id="cdBody">
                                       <form class="form-horizontal" action="index.html" method="post">
                                           <div class="form-group">
-                                            <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                            <label for="" class="col-sm-3 control-label">Phone</label>
                                             <div class="col-sm-6">
                                                 <input type="text" class="form-control" name="phone" placeholder="" v-model="user.phone_number">
                                             </div>

@@ -136,7 +136,7 @@
                                 <div class="panel-body collapse in" :id="cdBody">
                                     <form class="form-horizontal" action="index.html" method="post">
                                         <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                        <label for="" class="col-sm-3 control-label">Phone</label>
                                         <div class="col-sm-6">
                                             <div v-if="call_email.email_user">
                                                 <input :readonly="!isEditable" type="text" class="form-control" name="phone" placeholder="" v-model="call_email.email_user.phone_number" v-bind:key="call_email.email_user.id">

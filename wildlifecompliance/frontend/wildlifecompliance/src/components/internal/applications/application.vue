@@ -409,7 +409,7 @@
                                 <div v-if="applicantType == 'proxy'" class="panel-body panel-collapse collapse" :id="contactsBody">
                                   <form class="form-horizontal">
                                       <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                        <label for="" class="col-sm-3 control-label">Phone</label>
                                         <div class="col-sm-6">
                                             <input disabled type="text" class="form-control" name="applicantPhoneNumber" placeholder="" v-model="application.proxy_applicant.phone_number">
                                         </div>
@@ -431,7 +431,7 @@
                                 <div v-if="applicantType == 'submitter'" class="panel-body panel-collapse collapse" :id="contactsBody">
                                   <form class="form-horizontal">
                                       <div class="form-group">
-                                        <label for="" class="col-sm-3 control-label">Phone (work)</label>
+                                        <label for="" class="col-sm-3 control-label">Phone</label>
                                         <div class="col-sm-6">
                                             <input disabled type="text" class="form-control" name="applicantPhoneNumber" placeholder="" v-model="application.submitter.phone_number">
                                         </div>
