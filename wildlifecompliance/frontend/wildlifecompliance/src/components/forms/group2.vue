@@ -45,7 +45,7 @@
 
                             <div>
                                 <button v-if="num_groups() > 1 && index == component.children.length-1 && !readonly" type="button" class="btn btn-danger"
-                                    @click.prevent="removeGroup(group)">Delete {{name}}</button>
+                                    @click.prevent="removeGroup(group)">Delete {{label}}</button>
                             </div>
                         </div>
 
@@ -56,7 +56,7 @@
 
         <div class="row" v-if="component.isRepeatable && !readonly">
             <button type="button" class="btn btn-primary add-new-button"
-                @click.prevent="addNewGroup">Add {{name}}</button>
+                @click.prevent="addNewGroup">Add {{label}}</button>
         </div>
 
     </div>
