@@ -3,7 +3,9 @@ from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.applications.models import ReturnRequest
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.returns.services import (
-    ReturnService,
+    ReturnData,
+    ReturnQuestion,
+    ReturnSheet,
 )
 from wildlifecompliance.components.returns.models import (
     Return,
@@ -78,6 +80,7 @@ class EmailUserSerializer(serializers.ModelSerializer):
 
 
 class ReturnSerializer(serializers.ModelSerializer):
+    child = None        # Sub Return (Data/Question/Sheet) associated.
     # activity = serializers.CharField(source='application.activity')
     processing_status = serializers.CharField(
         source='get_processing_status_display')
@@ -85,7 +88,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     submitter = EmailUserSerializer()
     lodgement_number = serializers.SerializerMethodField()
     sheet_activity_list = serializers.SerializerMethodField()
-    sheet_species_list = serializers.SerializerMethodField()
+    # sheet_species_list = serializers.SerializerMethodField()
     sheet_species = serializers.SerializerMethodField()
     licence = serializers.SerializerMethodField()
     condition = ReturnConditionSerializer(read_only=True)
@@ -103,6 +106,7 @@ class ReturnSerializer(serializers.ModelSerializer):
     can_current_user_edit = serializers.SerializerMethodField(read_only=True)
     apply_fee_field = serializers.SerializerMethodField(read_only=True)
     species_list = serializers.SerializerMethodField(read_only=True)
+    species_saved = serializers.SerializerMethodField(read_only=True)
     species = serializers.SerializerMethodField(read_only=True)
     has_species = serializers.SerializerMethodField(read_only=True)
 
@@ -127,7 +131,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'template',
             'has_payment',
             'sheet_activity_list',
-            'sheet_species_list',
+            # 'sheet_species_list',
             'sheet_species',
             'return_fee',
             'return_fee_paid',
@@ -144,6 +148,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'can_current_user_edit',
             'apply_fee_field',
             'species_list',
+            'species_saved',
             'species',
             'has_species',
         )
@@ -154,6 +159,21 @@ class ReturnSerializer(serializers.ModelSerializer):
         # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
 
+    def get_child_return(self, _return):
+
+        self.child = None
+
+        if _return.has_sheet:
+            self.child = ReturnSheet(_return)
+
+        if _return.has_data:
+            self.child = ReturnData(_return)
+
+        if _return.has_question:
+            self.child = ReturnQuestion(_return)
+
+        return self.child
+
     def get_customer_status(self, _return):
         '''
         Get displayable custom choice for customer status.
@@ -163,7 +183,11 @@ class ReturnSerializer(serializers.ModelSerializer):
     def get_table(self, _return):
         '''
         '''
-        return ReturnService.get_details_for(_return)
+        child_return = self.child if self.child else self.get_child_return(
+            _return
+        )
+
+        return child_return.table
 
     def get_lodgement_number(self, _return):
         """
@@ -179,17 +203,21 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: List of available activities.
         """
-        # return _return.sheet.activity_list if _return.has_sheet else None
-        return ReturnService.get_sheet_activity_list_for(_return)
+        child_return = self.child if self.child else self.get_child_return(
+            _return
+        )
+        return child_return.activity_list if _return.has_sheet else None
 
-    def get_sheet_species_list(self, _return):
-        """
-        Gets the list of Species available for a Return Running Sheet.
-        :param _return: Return instance.
-        :return: List of species for a Return Running Sheet.
-        """
-        # return _return.sheet.species_list if _return.has_sheet else None
-        return ReturnService.get_sheet_species_list_for(_return)
+    # def get_sheet_species_list(self, _return):
+    #     """
+    #     Gets the list of Species available for a Return Running Sheet.
+    #     :param _return: Return instance.
+    #     :return: List of species for a Return Running Sheet.
+    #     """
+    #     child_return = self.child if self.child else self.get_child_return(
+    #         _return
+    #     )
+    #     return child_return.species_list if _return.has_sheet else None
 
     def get_sheet_species(self, _return):
         """
@@ -197,8 +225,10 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: species identifier for a Return Running Sheet.
         """
-        # return _return.sheet.species if _return.has_sheet else None
-        return ReturnService.get_sheet_species_for(_return)
+        child_return = self.child if self.child else self.get_child_return(
+            _return
+        )
+        return child_return.species if _return.has_sheet else None
 
     def get_licence(self, _return):
         """
@@ -336,13 +366,27 @@ class ReturnSerializer(serializers.ModelSerializer):
 
         return for_apply_fee_fields.get_field_name()
 
-    def get_species_list(self, _return):
+    def get_species_list(self, obj):
         """
         Gets the list of Species available for a Return Running Sheet.
-        :param _return: Return instance.
+        :param obj: Return instance.
         :return: List of species for a Return Running Sheet.
         """
-        return ReturnService.get_species_list_for(_return)
+        child = self.child if self.child else self.get_child_return(obj)
+        s_list = child.get_species_list() if not obj.has_question else None
+
+        return s_list
+
+    def get_species_saved(self, obj):
+        """
+        Gets the list of Species saved for a Return Running Sheet.
+        :param obj: Return instance.
+        :return: List of saved species for a Return Running Sheet.
+        """
+        child = self.child if self.child else self.get_child_return(obj)
+        s_list = child.get_species_saved() if not obj.has_question else None
+
+        return s_list
 
     def get_species(self, _return):
         """
@@ -350,7 +394,10 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: species identifier for a Return Running Sheet.
         """
-        return ReturnService.get_species_for(_return)
+        child_return = self.child if self.child else self.get_child_return(
+            _return
+        )
+        return child_return.species if not _return.has_question else None
 
     def get_has_species(self, _return):
         """

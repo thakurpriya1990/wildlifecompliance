@@ -78,6 +78,8 @@
 import datatable from '@/utils/vue/datatable.vue'
 require("select2/dist/css/select2.min.css");
 require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+import Vue from 'vue';
+import { mapActions, mapGetters } from 'vuex'
 import {
     api_endpoints,
     helpers
@@ -188,14 +190,14 @@ export default {
                             `<a href='/internal/application/${full.id}'>Process</a><br/>` :
                             `<a href='/${!vm.is_external ? 'internal' : 'external'}/application/${full.id}'>View</a><br/>`;
                     }
-                    if (!vm.is_external && ['paid','partially_paid'].includes(full.payment_status)){
+                    if (!vm.is_external && vm.canViewPayments && ['paid','partially_paid'].includes(full.payment_status)){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >View Payment</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='under_paid'){
+                    if (!vm.is_external && vm.canViewPayments && full.payment_status=='under_paid'){
                         links = ''
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >Record Payment</a><br/>`;
                     }
-                    if (!vm.is_external && full.payment_status=='over_paid'){
+                    if (!vm.is_external && vm.canViewPayments && full.payment_status=='over_paid'){
                         links +=  `<a href='${full.all_payments_url}' target='_blank' >Refund Payment</a><br/>`;
                     }
                     if (vm.is_external){
@@ -519,6 +521,9 @@ export default {
         },
     },
     computed: {
+        ...mapGetters([
+            'canViewPayments',
+        ]),
         visibleHeaders: function() {
             return this.is_external ? this.application_ex_headers : this.application_headers;
         },
@@ -530,6 +535,9 @@ export default {
         },
     },
     methods:{
+        ...mapActions([
+            'loadCurrentUser',
+        ]),
         canDiscardApplication: function(application) {
             return application.processing_status.id === 'draft';
         },
@@ -810,6 +818,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
+        vm.loadCurrentUser({ url: `/api/my_user_details` });
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
             window.setTimeout( function () {

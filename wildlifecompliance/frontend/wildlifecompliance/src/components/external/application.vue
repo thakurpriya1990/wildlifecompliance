@@ -439,7 +439,7 @@ export default {
   beforeRouteEnter: function(to, from, next) {
     next(vm => {
       vm.reloadApplication(to.params.application_id);
-      vm.refreshApplicationFees();
+      // vm.refreshApplicationFees();
     });
   },
   updated: function(){

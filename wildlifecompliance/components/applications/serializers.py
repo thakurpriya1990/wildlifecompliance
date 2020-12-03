@@ -1,3 +1,4 @@
+import os
 import datetime
 from django.urls import reverse
 from ledger.accounts.models import EmailUser
@@ -706,8 +707,9 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
-    identification = DocumentSerializer()
+    # identification = DocumentSerializer()
     dob = serializers.SerializerMethodField(read_only=True)
+    identification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -723,6 +725,15 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
+
+    def get_identification(self, obj):
+        uid = None
+        if obj.identification:
+            id_file = 'media/' + str(obj.identification.file)
+            if os.path.exists(id_file):
+                uid = DocumentSerializer(obj.identification).data
+
+        return uid
 
     def get_dob(self, obj):
 
@@ -1198,9 +1209,18 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """
         import decimal
         licence_fee = decimal.Decimal(obj.get_property_cache_licence_fee() * 1)
+        adj_application_fee = obj.application_fee
+        adj_licence_fee = licence_fee
+
+        if obj.total_paid_amount == (obj.application_fee + licence_fee):
+            # force zero amounts for submitted applications without subsequent
+            # changes to form questions (no recalculation occur).
+            adj_application_fee = 0
+            adj_licence_fee = 0
+
         adjusted = {
-            'application_fee': obj.application_fee,
-            'licence_fee': licence_fee
+            'application_fee': adj_application_fee,
+            'licence_fee': adj_licence_fee
         }
 
         return adjusted

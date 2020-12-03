@@ -7,6 +7,7 @@ from django.db.models import Max
 from django.db.models import Q
 from django.forms.models import model_to_dict
 import json
+import reversion
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
@@ -43,6 +44,7 @@ class LicencePurpose(models.Model):
         max_digits=8, decimal_places=2, default='0')
     amendment_application_fee = models.DecimalField(
         max_digits=8, decimal_places=2, default='0')
+    minimum_age = models.SmallIntegerField(default=18, blank=False, null=False)
     regulation = models.CharField(max_length=100)
     fields = JSONField(default=list)
     licence_category = models.ForeignKey(
@@ -276,6 +278,17 @@ class LicenceCategory(LicenceType):
             return result
         else:
             return '{} (V{})'.format(result, self.version)
+
+    def get_activities(self):
+        '''
+        Getter for activities associated with category.
+
+        NOTE: activity attribute not working correctly.
+        '''
+        _activities = LicenceActivity.objects.filter(
+            licence_category_id=self.id
+        )
+        return _activities
 
 
 class LicenceSpecies(models.Model):
@@ -1461,12 +1474,56 @@ class WildlifeLicenceReceptionEmail(models.Model):
 '''
 NOTE: REGISTER MODELS FOR REVERSION HERE.
 '''
-import reversion
-reversion.register(WildlifeLicence, follow=[
-    'licence_document'])
-reversion.register(DefaultActivity)
-reversion.register(DefaultPurpose)
-reversion.register(LicenceActivity)
-reversion.register(LicenceCategory)
+reversion.register(
+    WildlifeLicence,
+    follow=[
+        'licence_document',
+        'replaced_by',
+        'licence_category',
+        'current_application',
+    ]
+)
+reversion.register(
+    LicencePurpose,
+    follow=[
+        'licence_category',
+        'licence_activity',
+    ]
+)
+reversion.register(
+    PurposeSpecies,
+    follow=[
+        'licence_purpose',
+    ]
+)
+reversion.register(
+    LicenceActivity,
+    follow=[
+        'licence_category',
+        'purpose',
+    ]
+)
+reversion.register(
+    LicenceCategory,
+    follow=[
+        'activity',
+    ]
+)
+reversion.register(
+    DefaultActivity,
+    follow=[
+        'activity',
+        'licence_category',
+    ]
+)
+reversion.register(
+    DefaultPurpose,
+    follow=[
+        'purpose',
+        'activity',
+    ]
+)
+reversion.register(LicenceSpecies)
 reversion.register(LicenceDocument)
-reversion.register(LicencePurpose)
+reversion.register(WildlifeLicenceReceptionEmail)
+reversion.register(LicenceInspection)

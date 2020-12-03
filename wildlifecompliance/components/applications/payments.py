@@ -491,6 +491,9 @@ class ApplicationFeePolicy(object):
         Set the fee attributes on this policy to licence activity purposes
         saved against the application.
         '''
+        logger.debug(
+            'ApplicationFeePolicy.set_dyn_attr_from_purpose_fees() - start'
+        )
         has_purpose = False     # No purposes will exist with pre-submission.
         fees_app_tot = 0
         fees_lic_tot = 0
@@ -534,6 +537,10 @@ class ApplicationFeePolicy(object):
         if self.has_fee_exemption:
             self.dynamic_attributes['fees']['application'] = 0
             self.dynamic_attributes['fees']['licence'] = 0
+
+        logger.debug(
+            'ApplicationFeePolicy.set_dyn_attr_from_purpose_fees() - end'
+        )
 
     @transaction.atomic
     def set_application_fee_on_purpose_for(self, activity):
@@ -1281,6 +1288,7 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
         Set Application fee from the saved fees. Required when presentation is
         refreshed and no attributes are passed.
         '''
+        logger.debug('ApplicationFeePolicyForNew.set_application_fee()')
         self.is_refreshing = True
         self.set_dynamic_attributes_from_purpose_fees()
 

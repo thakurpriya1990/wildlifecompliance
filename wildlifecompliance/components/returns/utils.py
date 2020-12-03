@@ -477,7 +477,7 @@ class ReturnSpeciesUtility(ReturnUtility):
         Get string name of species from underscored species identifier.
         '''
         name = ''
-        name = species_id.replace('_', ' ')
+        name = species_id.replace('_', ' ') if species_id else ''
 
         return name
 
