@@ -128,7 +128,7 @@ export default {
                     }).then((response)=>{
                       let species_id = self.returns.sheet_species;
                       self.setReturns(response.body);
-                      self.returns.sheet_species = species_id;
+                      // self.returns.sheet_species = species_id;
 
                       if (andContinue) { 
 
