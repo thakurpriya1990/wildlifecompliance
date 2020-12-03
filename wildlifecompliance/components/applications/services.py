@@ -216,6 +216,10 @@ class ApplicationService(object):
 
         if update_fee or application.processing_status not in process_status:
             do_update_dynamic_attributes(application)
+        # 
+        # else:
+        #     updated_app = Application.objects.get(id=application.id)
+        #     updated_app.save()      # save for reversion log on form.
 
         logger.debug('ApplicationService.process_form() - end')
 

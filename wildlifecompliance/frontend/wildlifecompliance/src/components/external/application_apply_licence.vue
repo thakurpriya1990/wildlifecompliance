@@ -54,7 +54,7 @@
                                                         <div v-if="type.selected">
                                                             <div v-for="(purpose,index2) in type.purpose" class="checkbox purpose-clear-left">
 
-                                                                <div class ="col-sm-12">
+                                                                <div v-if="purpose.is_valid_age" class ="col-sm-12">
                                                                     <input type="checkbox"
                                                                         :value="purpose.id"
                                                                         :id="purpose.id"
@@ -62,6 +62,12 @@
                                                                         @change="handlePurposeCheckboxChange(index,$event)">
                                                                             {{purpose.name}}
                                                                             <span> ({{parseFloat(purpose.base_application_fee) | toCurrency}} + {{parseFloat(purpose.base_licence_fee) | toCurrency}})</span>
+                                                                </div>
+
+                                                                <div v-else class ="col-sm-12">
+                                                                    <input type="checkbox" disabled :value="purpose.id" :id="purpose.id" v-model="type.purpose[index2].selected" >
+                                                                    {{purpose.name}}
+                                                                    <span> (Minimum age {{purpose.minimum_age}} years)</span>
                                                                 </div>
 
                                                             </div>

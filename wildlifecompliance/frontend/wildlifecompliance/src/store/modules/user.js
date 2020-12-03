@@ -89,6 +89,9 @@ export const userStore = {
         canViewComments: (state, getters) => {
             return getters.hasRole('licensing_officer') || getters.hasRole('assessor');
         },
+        canViewPayments: (state, getters) => {
+            return getters.current_user.is_payment_officer;
+        },
         canAssignApproverFor: (state, getters, rootState, rootGetters) => (activity_id) => {
             // This function also checks authorisation.
             return rootGetters.application.activities.find(activity => {

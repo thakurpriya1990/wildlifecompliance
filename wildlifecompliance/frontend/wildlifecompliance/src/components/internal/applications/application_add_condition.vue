@@ -278,7 +278,7 @@ export default {
             }
             if (vm.condition.id){
                 vm.updatingCondition = true;
-                vm.$http.put(helpers.add_endpoint_json(api_endpoints.application_conditions,condition.id),JSON.stringify(condition),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.application_conditions,condition.id+'/update_condition'),JSON.stringify(condition),{
                         emulateJSON:true,
                     }).then((response)=>{
                         vm.updatingCondition = false;

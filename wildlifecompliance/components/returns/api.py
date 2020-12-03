@@ -1,4 +1,5 @@
 import traceback
+import logging
 from datetime import datetime, timedelta
 from django.urls import reverse
 from django.db.models import Q
@@ -52,6 +53,9 @@ from wildlifecompliance.components.returns.services import (
     ReturnService,
     ReturnData,
 )
+
+logger = logging.getLogger(__name__)
+# logger = logging
 
 
 class ReturnFilterBackend(DatatablesFilterBackend):
@@ -203,10 +207,13 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST', ])
     def accept(self, request, *args, **kwargs):
         try:
+            logger.debug('ReturnViewSet.accept() - start')
             instance = self.get_object()
             # instance.accept(request)
             ReturnService.accept_return_request(request, instance)
             serializer = self.get_serializer(instance)
+            logger.debug('ReturnViewSet.accept() - end')
+
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -221,6 +228,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST', ])
     def upload_details(self, request, *args, **kwargs):
         try:
+            logger.debug('ReturnViewSet.upload_details() - start')
             instance = self.get_object()
             if not instance.has_data:
                 return Response(
@@ -237,6 +245,7 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
                 )
             data = ReturnData(instance)
             table = data.build_table(spreadsheet.rows_list)
+            logger.debug('ReturnViewSet.upload_details() - end')
 
             return Response(table)
         except serializers.ValidationError:
@@ -259,13 +268,13 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
 
     @list_route(methods=['GET', ])
     def sheet_details(self, request, *args, **kwargs):
+        logger.debug('ReturnViewSet.sheet_details() - start')
         return_id = self.request.query_params.get('return_id')
         species_id = self.request.query_params.get('species_id')
-        # instance = Return.objects.get(id=return_id).sheet
-        # instance.set_species(species_id)
         instance = Return.objects.get(id=return_id)
         sheet = ReturnService.set_species_for(instance, species_id)
-        # return Response(instance.table)
+        logger.debug('ReturnViewSet.sheet_details() - end')
+
         return Response(sheet.table)
 
     @detail_route(methods=['POST', ])
@@ -371,12 +380,14 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST', ])
     def save(self, request, *args, **kwargs):
         try:
+            logger.debug('ReturnViewSet.save() - start')
             instance = self.get_object()
 
             with transaction.atomic():
                 ReturnService.store_request_details_for(instance, request)
                 instance.save()
                 serializer = self.get_serializer(instance)
+            logger.debug('ReturnViewSet.save() - end')
 
             return Response(serializer.data)
         except serializers.ValidationError:
@@ -393,11 +404,13 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     def submit(self, request, *args, **kwargs):
         try:
             with transaction.atomic:
+                logger.debug('ReturnViewSet.submit() - start')
                 instance = self.get_object()
                 instance.set_submitted(request)
                 instance.submitter = request.user
                 instance.save()
                 serializer = self.get_serializer(instance)
+                logger.debug('ReturnViewSet.submit() - end')
 
             return Response(serializer.data)
 

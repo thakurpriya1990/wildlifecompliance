@@ -13,8 +13,8 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Species Available:</label>
-                        <select class="form-control" ref="species_selector" name="species_selector">
-                            <option class="change-species" v-for="(specie, s_idx) in returns.sheet_species_list" :value="s_idx" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
+                        <select v-if="returns.species" class="form-control" ref="species_selector" name="species_selector" >
+                            <option class="change-species" v-for="(specie, s_idx) in returns.species_list" :value="s_idx" :selected="s_idx === returns.species" :species_id="s_idx" v-bind:key="`specie_${s_idx}`" >{{specie}}</option>
                         </select>
                     </div>
                 </div>
@@ -24,7 +24,18 @@
                     </div>
                 </div>
             </div>
-             <div class="row">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="">Species already added for this Return:</label>
+                        <div v-show="true" v-for="(specie, a_idx) in returns.species_saved" v-bind:key="`selected_${a_idx}`" >
+                          <span v-if='a_idx === returns.species'>&nbsp;&nbsp;&nbsp;{{specie}}</span>
+                          <button v-else class="btn btn-link" :name="`specie_link_${a_idx}`" @click.prevent="getSheetSpecies(a_idx)" >{{specie}}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="">Activity Type:</label>
@@ -415,6 +426,13 @@ export default {
       value = value != 'All' ? value : ''
       table.column(2).search(value).draw();
     },
+    getSheetSpecies: function(selected_species) {
+      const self = this
+      self.setSheetSpecies(selected_species)
+      self.returns.species = selected_species
+      $(self.$refs.species_selector).val(selected_species);
+      $(self.$refs.species_selector).trigger('change');
+    },
     setSheetSpecies: function(selected_species) {
       let vm = this;
       let selected_id = selected_species;
@@ -446,6 +464,8 @@ export default {
             placeholder:"Select Species..."
         }).
         on("select2:select",function (e) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
             var selected = $(e.currentTarget);
             var selected_species = selected.val();
             vm.setSheetSpecies(selected_species)

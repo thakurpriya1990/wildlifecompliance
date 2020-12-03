@@ -1168,6 +1168,7 @@ class Application(RevisionedMixin):
         to another application (renewal, admendment, reissue) and copies
         associated Form Data for the purpose to the target.
         '''
+        logger.debug('Application.copy_app_purpose_to_target_app() - start')
         if not target_application or not licence_purpose_id:
             raise ValidationError(
                 'Target application and licence_purpose_id must be specified')
@@ -1195,12 +1196,19 @@ class Application(RevisionedMixin):
             data_row.id = None
             data_row.application_id = target_application.id
 
+            # previous comments and deficiencies are cleared.
+            data_row.officer_comment = ''
+            data_row.assessor_comment = ''
+            data_row.deficiency = ''
+
             # species list is saved and needs to be rebuilt.
             TYPE = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
             if data_row.component_type == TYPE:
                 data_row.component_attribute = None
 
             data_row.save()
+
+        logger.debug('Application.copy_app_purpose_to_target_app() - end')
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
@@ -1285,6 +1293,14 @@ class Application(RevisionedMixin):
                                 ac.is_default = True
                                 ac.standard = True
                                 ac.save()
+
+                                self.log_user_action(
+                                    ApplicationUserAction.ACTION_CREATE_CONDITION.format(
+                                        ac.condition[:256],
+                                        ac.licence_purpose.short_name,
+                                    ),
+                                    request
+                                )
 
                         '''
                         Process Selected Activity Purposes for the selected
@@ -6097,9 +6113,9 @@ class ApplicationFormDataRecord(models.Model):
 
     def __str__(self):
         logger.debug('ApplicationFormDataRecord.__str__()')
-        return "Application {id} record {field}".format(
-            id=self.application_id,
-            field=self.field_name
+        return "FieldID: {field} Value: {value}".format(
+            field=self.field_name,
+            value=self.value,
         )
 
     class Meta:
@@ -6208,9 +6224,9 @@ class ApplicationCondition(OrderedModel):
     @property
     def condition(self):
         if self.standard:
-            return self.standard_condition.text
+            return self.standard_condition.short_description
         elif self.is_default:
-            return self.default_condition.standard_condition.text
+            return self.default_condition.standard_condition.short_description
         else:
             return self.free_condition
 
@@ -6298,8 +6314,9 @@ class ApplicationUserAction(UserAction):
     ACTION_ASSESSMENT_INSPECTION_REQUEST = \
         "Inspection {} for Assessment {} was requested."
     ACTION_DECLINE = "Decline application {}"
-    ACTION_ENTER_CONDITIONS = "Entered condition for activity {}"
-    ACTION_CREATE_CONDITION_ = "Create condition {}"
+    ACTION_UPDATE_CONDITION = "Updated {0} condition {1}"
+    ACTION_CREATE_CONDITION = "Added {0} condition {1}"
+    ACTION_DELETE_CONDITION = "Deleted {0} condition {1}"
     ACTION_ORDER_CONDITION_UP = "Moved ordering higher for condition {}"
     ACTION_ORDER_CONDITION_DOWN = "Moved ordering lower for condition {}"
     ACTION_ISSUE_LICENCE_ = "Issue Licence for activity purpose {}"
@@ -6349,6 +6366,13 @@ reversion.register(
         'invoices',
         'form_data_records',
         'conditions',
+        'previous_application',
+        'licence_document',
+        'licence',
+        'submitter',
+        'org_applicant',
+        'proxy_applicant',
+        'licence_purposes',
         # 'action_logs',
         # 'comms_logs',
         ]
@@ -6358,20 +6382,105 @@ reversion.register(
     follow=[
         'proposed_purposes',
         'activity_invoices',
+        'assigned_approver',
+        'assigned_officer',
+        'updated_by',
+        'licence_activity',
         ]
     )
-reversion.register(ApplicationSelectedActivityPurpose)
-reversion.register(ApplicationCondition)
-reversion.register(ApplicationInvoice)
-reversion.register(ApplicationInvoiceLine)
-reversion.register(ApplicationDocument)
-reversion.register(ApplicationStandardCondition)
-reversion.register(ApplicationFormDataRecord)
+reversion.register(
+    ApplicationFormDataRecord,
+    follow=[
+        'application',
+        'licence_purpose',
+        'licence_activity',
+        ]
+    )
+reversion.register(
+    Assessment,
+    follow=[
+        'assessor_group',
+        'licence_activity',
+        'actioned_by',
+        'assigned_assessor',
+        ]
+    )
+reversion.register(
+    AssessmentInspection,
+    follow=[
+        'assessment',
+        'inspection',
+        ]
+    )
+reversion.register(
+    ApplicationSelectedActivityPurpose,
+    follow=[
+        'selected_activity',
+        'purpose',
+        ]
+    )
+reversion.register(
+    ApplicationCondition,
+    follow=[
+        'standard_condition',
+        'default_condition',
+        'application',
+        'licence_activity',
+        'return_type',
+        'licence_purpose',
+        'source_group',
+        ]
+    )
+reversion.register(
+    ApplicationDocument,
+    follow=[
+        'application'
+    ]
+)
+reversion.register(
+    ApplicationStandardCondition,
+    follow=[
+        'return_type',
+    ],
+)
+reversion.register(
+    ApplicationInvoice,
+    follow=[
+        'application'
+    ]
+)
+reversion.register(
+    ApplicationInvoiceLine,
+    follow=[
+        'invoice',
+        'licence_activity',
+        ]
+)
+reversion.register(
+    ApplicationRequest,
+    follow=[
+        'licence_activity',
+    ]
+)
+reversion.register(
+    ActivityInvoice,
+    follow=[
+        'activity',
+    ]
+)
+reversion.register(
+    ActivityInvoiceLine,
+    follow=[
+        'invoice',
+        'licence_activity',
+        'licence_purpose',
+    ]
+)
+reversion.register(
+    ActivityPermissionGroup,
+    follow=[
+        'licence_activities',
+    ]
+)
 reversion.register(ApplicationLogEntry)
 reversion.register(ApplicationUserAction)
-reversion.register(AmendmentRequest)
-reversion.register(ActivityPermissionGroup)
-reversion.register(ActivityInvoice)
-reversion.register(ActivityInvoiceLine)
-reversion.register(Assessment)
-reversion.register(AssessmentInspection)
