@@ -6230,6 +6230,15 @@ class ApplicationCondition(OrderedModel):
         else:
             return self.free_condition
 
+    @property
+    def condition_text(self):
+        if self.standard:
+            return self.standard_condition.text
+        elif self.is_default:
+            return self.default_condition.standard_condition.text
+        else:
+            return self.free_condition
+
     def set_source(self, user):
         """
         Sets the users permission group as the source for this condition.
