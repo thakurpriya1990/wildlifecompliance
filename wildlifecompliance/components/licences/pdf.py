@@ -467,7 +467,7 @@ def _create_licence(licence_buffer, licence, application):
             conditionList = []
             for s in activity_conditions.order_by('order'):
                 #_conditionList, listcounter += html_to_rl(s.condition, styles)
-                _conditionList, listcounter = html_to_rl(s.condition, styles, listcounter)
+                _conditionList, listcounter = html_to_rl(s.condition_text, styles, listcounter)
                 conditionList += _conditionList
 
             for info_item in conditionList:
