@@ -2303,7 +2303,7 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                print e
+                logger.error('AssessmentViewSet.create(): {0}'.format(e))
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
@@ -2375,7 +2375,9 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                print e
+                logger.error(
+                    'AssessmentViewSet.update_assessment(): {0}'.format(e)
+                )
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
@@ -2475,7 +2477,9 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                print e
+                logger.error(
+                    'AmendmentRequestViewSet.create(): {0}'.format(e)
+                )
                 raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
