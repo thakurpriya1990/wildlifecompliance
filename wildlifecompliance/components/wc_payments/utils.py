@@ -133,7 +133,7 @@ def create_other_invoice(request, sanction_outcome):
             #                                                                     invoice_reference=invoice_ref)
             # return fee_inv
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Failed to create OTHER invoice for sanction outcome: {}'.format(sanction_outcome.lodgement_number))
             logger.error('{}'.format(e))
 

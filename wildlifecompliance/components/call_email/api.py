@@ -89,7 +89,7 @@ from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,    
 )
 from django.contrib.auth.models import Permission, ContentType
-from utils import SchemaParser
+# from utils import SchemaParser
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
