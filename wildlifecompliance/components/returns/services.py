@@ -842,6 +842,20 @@ class ReturnData(object):
         """
         return self._species
 
+    def get_species_saved(self):
+        '''
+        Getter for saved species on the Return for this Return Data.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+        :return: list of species saved on the return.
+        '''
+        logger.debug('ReturnData.get_species_saved() - start')
+        new_list = {}
+
+        return new_list
+
     def __str__(self):
         return self._return.lodgement_number
 
