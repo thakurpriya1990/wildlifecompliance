@@ -403,14 +403,15 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
     @detail_route(methods=['POST', ])
     def submit(self, request, *args, **kwargs):
         try:
-            with transaction.atomic:
-                logger.debug('ReturnViewSet.submit() - start')
-                instance = self.get_object()
+            logger.debug('ReturnViewSet.submit() - start')
+            instance = self.get_object()
+
+            with transaction.atomic():
                 instance.set_submitted(request)
                 instance.submitter = request.user
                 instance.save()
                 serializer = self.get_serializer(instance)
-                logger.debug('ReturnViewSet.submit() - end')
+            logger.debug('ReturnViewSet.submit() - end')
 
             return Response(serializer.data)
 
