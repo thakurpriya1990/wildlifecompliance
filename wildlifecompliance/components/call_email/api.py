@@ -338,7 +338,8 @@ class CallEmailViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -361,7 +362,8 @@ class CallEmailViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -900,7 +902,8 @@ class LocationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

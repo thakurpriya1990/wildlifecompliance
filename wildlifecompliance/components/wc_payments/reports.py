@@ -65,7 +65,8 @@ def booking_bpoint_settlement_report(_date):
                         settlement_date,
                         # booking.admission_number,
                         sanction_outcome.lodgement_number,
-                        b_name.encode('utf-8'),
+                        # b_name.encode('utf-8'),
+                        b_name,
                         invoice.get_payment_method_display(),
                         invoice.amount,
                         invoice.reference
