@@ -473,7 +473,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -639,7 +640,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -750,7 +752,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             delete_session_application(request.session)
             print(traceback.print_exc())
@@ -790,7 +793,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -845,7 +849,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1003,7 +1008,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1429,7 +1435,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1459,7 +1466,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1479,7 +1487,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1504,7 +1513,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1523,7 +1533,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1615,7 +1626,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -1637,7 +1649,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2181,7 +2194,8 @@ class ApplicationSelectedActivityViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2304,7 +2318,8 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
                 logger.error('AssessmentViewSet.create(): {0}'.format(e))
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2378,7 +2393,8 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 logger.error(
                     'AssessmentViewSet.update_assessment(): {0}'.format(e)
                 )
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -2480,7 +2496,8 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
                 logger.error(
                     'AmendmentRequestViewSet.create(): {0}'.format(e)
                 )
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
