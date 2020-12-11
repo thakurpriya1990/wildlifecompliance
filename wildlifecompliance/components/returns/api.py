@@ -402,6 +402,41 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
+    def save_and_submit(self, request, *args, **kwargs):
+        try:
+            logger.debug('ReturnViewSet.save_and_submit() - start')
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                ReturnService.store_request_details_for(instance, request)
+                instance.set_submitted(request)
+                instance.submitter = request.user
+                instance.save()
+
+            logger.debug('ReturnViewSet.save_and_submit() - end')
+
+            return Response(
+                {'return_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError:
+            delete_session_return(request.session)
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            delete_session_return(request.session)
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
     def submit(self, request, *args, **kwargs):
         try:
             logger.debug('ReturnViewSet.submit() - start')
