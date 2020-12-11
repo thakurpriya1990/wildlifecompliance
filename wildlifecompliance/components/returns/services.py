@@ -561,6 +561,9 @@ class ReturnData(object):
         :param request:
         :return:
         """
+        if not request.data.get('table_name'):
+            return
+
         returns_tables = request.data.get('table_name')
         table_deficiency = returns_tables + '-deficiency-field'
 

@@ -670,7 +670,8 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
         return ReturnRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
-        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+        # DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+        DUE = Return.RETURN_PROCESSING_STATUS_DUE
         try:
 
             with transaction.atomic():
@@ -680,7 +681,7 @@ class ReturnAmendmentRequestViewSet(viewsets.ModelViewSet):
                 text = amend_data.pop('text')
 
                 returns = Return.objects.get(id=a_return['id'])
-                returns.processing_status = DRAFT
+                returns.processing_status = DUE
                 returns.save()
                 application = a_return['application']
                 licence = a_return['licence']
