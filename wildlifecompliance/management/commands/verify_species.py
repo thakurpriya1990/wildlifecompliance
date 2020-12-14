@@ -21,5 +21,6 @@ class Command(BaseCommand):
             logger.info('Command {} finished'.format(__name__))
 
         except Exception as e:
-            print e
-            logger.error('Error command {}'.format(__name__))
+            logger.error('Error command {0} : {1}'.format(
+                __name__, e)
+

@@ -82,8 +82,9 @@ class EmailUserSerializer(serializers.ModelSerializer):
 class ReturnSerializer(serializers.ModelSerializer):
     child = None        # Sub Return (Data/Question/Sheet) associated.
     # activity = serializers.CharField(source='application.activity')
-    processing_status = serializers.CharField(
-        source='get_processing_status_display')
+    # processing_status = serializers.CharField(
+    #     source='get_processing_status_display')
+    processing_status = serializers.SerializerMethodField()
     customer_status = serializers.SerializerMethodField()
     submitter = EmailUserSerializer()
     lodgement_number = serializers.SerializerMethodField()
@@ -179,6 +180,12 @@ class ReturnSerializer(serializers.ModelSerializer):
         Get displayable custom choice for customer status.
         '''
         return _return.get_customer_status()
+
+    def get_processing_status(self, _return):
+        '''
+        Get displayable custom choice for customer status.
+        '''
+        return _return.get_processing_status_display()
 
     def get_table(self, _return):
         '''

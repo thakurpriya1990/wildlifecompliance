@@ -1,7 +1,10 @@
 import sys
+import logging
 from collections import OrderedDict
 from wildlifecompliance.components.licences.models import DefaultPurpose
 
+logger = logging.getLogger(__name__)
+# logger = logging
 
 class ActivityPurposeMap():
     activity_purpose_map = {}
@@ -208,7 +211,7 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
                             {search_item2: j[key_label], search_item1: i[key]})
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            logger.error('utils.search_key(): {0}'.format(e))
 
     return help_list
 
@@ -266,7 +269,7 @@ def search_multiple_keys(
 
         except Exception as e:
             #import ipdb; ipdb.set_trace()
-            print e
+            logger.error('utils.search_multiple_keys(): {0}'.format(e))
 
     return help_list
 

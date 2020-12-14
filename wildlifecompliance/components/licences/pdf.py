@@ -427,7 +427,7 @@ def _create_licence(licence_buffer, licence, application):
 #                    elements.append(KeepTogether(info_item))
 
         for s in purpose.purpose_species_json:
-            if s.has_key('is_additional_info') and s['is_additional_info']:
+            if 'is_additional_info' in s and s['is_additional_info']:
                 continue
 
             if s['details']:
@@ -517,7 +517,7 @@ def _create_licence(licence_buffer, licence, application):
 
         # additional information
         for s in purpose.purpose_species_json:
-            if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
+            if 'is_additional_info' in s and s['is_additional_info'] and s['details']:
                 # Get and Display Purpose Species Header
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 purposeSpeciesInfoList, listcounter = html_to_rl(s['details'], styles)
