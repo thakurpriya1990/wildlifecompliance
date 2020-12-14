@@ -177,6 +177,7 @@ export default {
       if (this.species_cache[specie_id] != null) {
         // species json previously loaded from ajax
         this.returns.table[0]['data'] = this.species_cache[specie_id]
+        this.setGridDate(specie_id)
 
       } else {
         // load species json from ajax
@@ -201,6 +202,17 @@ export default {
       this.returns.species = specie_id;
       this.refresh_grid = true
       return
+    },
+    setGridDate: function(_id){
+        let specie_id = _id
+        for (let r=0; r<this.species_cache[specie_id].length; r++){
+          let val = 'date' + '::' + r;
+          if ($(`[id='${val}']`)[0]){
+            $(`[id='${val}']`)[0].value = this.species_cache[specie_id][r]['date']['value']
+          } else {
+            break;
+          }
+        } 
     },
     initialiseSpeciesSelect: function(reinit=false){
       var vm = this;

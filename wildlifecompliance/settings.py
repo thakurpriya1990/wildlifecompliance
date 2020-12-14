@@ -120,6 +120,7 @@ TEMPLATES[0]['DIRS'].append(
         'components',
         'emails',
         'templates'))
+# del BOOTSTRAP3['css_url']
 BOOTSTRAP3 = {
     'jquery_url': '//static.dbca.wa.gov.au/static/libs/jquery/2.2.1/jquery.min.js',
     'base_url': '//static.dbca.wa.gov.au/static/libs/twitter-bootstrap/3.3.6/',

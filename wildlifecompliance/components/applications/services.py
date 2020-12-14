@@ -1313,7 +1313,10 @@ class TSCSpecieService():
             return search_data
 
         except BaseException:
-            print "{} error: {}".format(self._strategy, sys.exc_info()[0])
+            logger.error(
+                'TSCSpecieService.search_taxon(): {0}'.format(
+                    self._strategy, sys.exc_info()[0]
+                ))
             raise
 
     def __str__(self):
@@ -1377,8 +1380,9 @@ class HerbieSpecieKMICall(TSCSpecieCallStrategy):
         (common name)'
         '''
         import sys
-        reload(sys)
-        sys.setdefaultencoding('utf8')
+        # from importlib import reload
+        # reload(sys)
+        # sys.setdefaultencoding('utf8')
         filtered_species = {}
         results = []
         params = {
@@ -1427,7 +1431,8 @@ class HerbieSpecieKMICall(TSCSpecieCallStrategy):
                 ]['vernacular'] if 'vernacular' in f['properties'] else None
 
                 if common_name:
-                    name += ' ({0})'.format(common_name.encode("utf-8"))
+                    # name += ' ({0})'.format(common_name.encode("utf-8"))
+                    name += ' ({0})'.format(common_name)
 
                 specie['text'] = name
                 specie['id'] = name

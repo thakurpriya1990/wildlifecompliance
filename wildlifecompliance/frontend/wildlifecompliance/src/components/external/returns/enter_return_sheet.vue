@@ -232,7 +232,10 @@ export default {
       var rows = self.$refs.return_datatable.vmDataTable
       self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[0];
       if (rows.data().length<1) {
-        self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list)[5];
+        for (const [key, value] of Object.entries(self.returns.sheet_activity_list)) {
+          self.$refs.sheet_entry.entryActivity = key === 'stock' ? key :  self.$refs.sheet_entry.entryActivity
+        }
+        // self.$refs.sheet_entry.entryActivity = Object.keys(self.returns.sheet_activity_list);
       }
       self.$refs.sheet_entry.isAddEntry = true;
       self.$refs.sheet_entry.return_table = rows;

@@ -561,6 +561,9 @@ class ReturnData(object):
         :param request:
         :return:
         """
+        if not request.data.get('table_name'):
+            return
+
         returns_tables = request.data.get('table_name')
         table_deficiency = returns_tables + '-deficiency-field'
 
@@ -576,12 +579,14 @@ class ReturnData(object):
             elif key == "nilNo":
                 # Not submitting a Nil return so save data.
                 is_valid_data = self._is_post_data_valid(
-                    returns_tables.encode('utf-8'),
+                    # returns_tables.encode('utf-8'),
+                    returns_tables,
                     data
                 )
                 if is_valid_data:
 
-                    table_info = returns_tables.encode('utf-8')
+                    # table_info = returns_tables.encode('utf-8')
+                    table_info = returns_tables
                     if self._return.return_type.with_no_species:
                         table_rows = self._get_table_rows(table_info, data)
                         if table_rows:
@@ -611,7 +616,8 @@ class ReturnData(object):
                     raise FieldError('Enter data in correct format.')
 
             elif key == table_deficiency:
-                table_info = returns_tables.encode('utf-8')
+                # table_info = returns_tables.encode('utf-8')
+                table_info = returns_tables
                 table_rows = self._get_table_rows(
                     table_info, data)
                 if self.requires_species():
@@ -841,6 +847,20 @@ class ReturnData(object):
         :return:
         """
         return self._species
+
+    def get_species_saved(self):
+        '''
+        Getter for saved species on the Return for this Return Data.
+        {
+         'S000001': 'Western Grey Kangaroo', 'S000002': 'Western Red Kangaroo',
+         'S000003': 'Blue Banded Bee', 'S000004': 'Orange-Browed Resin Bee'
+        }
+        :return: list of species saved on the return.
+        '''
+        logger.debug('ReturnData.get_species_saved() - start')
+        new_list = {}
+
+        return new_list
 
     def __str__(self):
         return self._return.lodgement_number
@@ -1418,14 +1438,21 @@ class ReturnSheet(object):
         :return:
         """
         for species in self.species_list:
+            _data = request.data.get(species)
+
+            if not _data:
+                continue
+
             try:
-                _data = request.data.get(species).encode('utf-8')
+                # _data = request.data.get(species).encode('utf-8')
                 _data = ast.literal_eval(_data)  # ast should convert to tuple.
                 table_rows = self._get_table_rows(_data)
                 self._return.save_return_table(species, table_rows, request)
 
             except AttributeError as e:
-                print(e)
+                logger.info('ReturnSheet.store() ID: {0} {1} - {2}'.format(
+                    self._return.id, species, e
+                ))
                 continue
 
         self._add_transfer_activity(request)
@@ -1540,7 +1567,8 @@ class ReturnSheet(object):
         if not req.data.get('transfer'):
             return False
 
-        _data = req.data.get('transfer').encode('utf-8')
+        # _data = req.data.get('transfer').encode('utf-8')
+        _data = req.data.get('transfer')
         _transfers = ast.literal_eval(_data)
         _lic = _transfers['licence']
 
@@ -1677,7 +1705,8 @@ class ReturnSheet(object):
         """
         if not request.data.get('transfer'):
             return False
-        _data = request.data.get('transfer').encode('utf-8')
+        # _data = request.data.get('transfer').encode('utf-8')
+        _data = request.data.get('transfer')
         _transfers = ast.literal_eval(_data)
         if isinstance(_transfers, tuple):
             for transfer in _transfers:
@@ -1705,7 +1734,8 @@ class ReturnSheet(object):
         # TODO: This validation is not completed.
         if not request.data.get('transfer'):
             return False
-        data = request.data.get('transfer').encode('utf-8')
+        # data = request.data.get('transfer').encode('utf-8')
+        data = request.data.get('transfer')
         ast.literal_eval(data)
         # quantity = transfers['qty']
         # species_id = transfers['transfer']

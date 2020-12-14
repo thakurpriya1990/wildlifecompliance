@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import logging
+
 from django.contrib.auth.models import Group
 from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
@@ -12,6 +14,9 @@ from confy import env
 
 DEBUG = env('DEBUG', False)
 BASIC_AUTH = env('BASIC_AUTH', False)
+
+logger = logging.getLogger(__name__)
+# logger = logging
 
 def belongs_to(user, group_name):
     """
@@ -35,7 +40,10 @@ def belongs_to_list(user, group_names):
 
 def is_model_backend(request):
     # Return True if user logged in via single sign-on (i.e. an internal)
-    print request.session.get('_auth_user_backend')
+    logger.info(
+        'helpers.is_model_backend(): {0}'.format(
+            request.session.get('_auth_user_backend')
+        ))
     return 'ModelBackend' in request.session.get('_auth_user_backend')
 
 

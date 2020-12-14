@@ -2380,7 +2380,7 @@ class Application(RevisionedMixin):
             data_tree[instance][schema_name] = item['value']
 
         for instance, schemas in data_tree.items():
-            for schema_name, item in schemas.items():
+            for schema_name, item in list(schemas.items()):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
@@ -2908,7 +2908,7 @@ class Application(RevisionedMixin):
                 try:
                     data = json.loads(
                         request.POST.get('formData')
-                    ) if request.POST.has_key('formData') else request.data
+                    ) if 'formData' in request.POST else request.data
 
                 except ValueError as e:
                     # Throw exception if html fields are not created correctly.
