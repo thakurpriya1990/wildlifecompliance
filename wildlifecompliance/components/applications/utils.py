@@ -216,7 +216,7 @@ class SchemaParser(object):
             repetition,
             suffix, **kwargs):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 # print(child_item)
@@ -303,7 +303,7 @@ class CommentDataSearch(object):
             repetition,
             suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(
@@ -384,7 +384,7 @@ class SpecialFieldsSearch(object):
             repetition,
             suffix):
         item_data_list = []
-        for rep in xrange(0, repetition):
+        for rep in range(0, repetition):
             child_data = {}
             for child_item in item.get('children'):
                 child_data.update(self.extract_special_fields(
