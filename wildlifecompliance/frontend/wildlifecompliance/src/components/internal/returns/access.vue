@@ -129,10 +129,10 @@ export default {
             'canAssignOfficerFor',
         ]),
         showActionButtons: function(){
-            return this.returns.can_be_processed
+            return this.returns.can_be_processed && this.returns.user_in_officers
         },
         showAssignToList: function(){
-            return this.canAssignOfficerFor(this.returns.condition.licence_activity_id)
+            return this.canAssignOfficerFor(this.returns.condition.licence_activity_id) && !this.returns.is_accepted && !this.returns.is_draft
         },
     },
     methods: {
@@ -303,6 +303,7 @@ export default {
             }).then((response)=>{
 
                 // Return to dashboard.
+                this.$router.push({name:"internal-dash"});
 
             },(error)=>{
                 console.log(error);
