@@ -71,6 +71,7 @@ export default {
       disable_submit: false,
       disable_exit: false,
       disable_continue: false,
+      panelClickersInitialised : false,
     }
   },
   components: {
@@ -319,6 +320,22 @@ export default {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });
        vm.setReturnsExternal({'external': true});
      });  // User and Return Store loaded.
+  },
+  updated: function(){
+    const self = this;
+    if (!self.panelClickersInitialised){
+        $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+            var chev = $(this).children()[0];
+            window.setTimeout(function () {
+                $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+            },100);
+        }); 
+        self.panelClickersInitialised = true;
+    }
+  },
+  mounted: function() {
+    console.log('mounted')
+      // 
   },
 }
 </script>
