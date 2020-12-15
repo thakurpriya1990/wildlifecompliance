@@ -109,7 +109,8 @@ export default {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
     },
     isReadOnly: function() {
-      return this.readonly || !this.is_external;
+      this.readonly = this.is_external && this.returns.is_draft ? false : true;
+      return this.readonly;
     },
     refreshGrid: function() {
       this.setReturnsEstimateFee()
