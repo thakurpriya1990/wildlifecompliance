@@ -685,7 +685,7 @@ class Application(RevisionedMixin):
         """
         Property defining the total amount already paid for the Application.
         """
-        logger.debug('Application.total_paid_amount()')
+        logger.debug('Application.total_paid_amount() - start')
         amount = 0
         if self.invoices.count() > 0:
             invoices = ApplicationInvoice.objects.filter(
@@ -695,6 +695,7 @@ class Application(RevisionedMixin):
                     reference=invoice.invoice_reference)
                 # payment_amount includes refund payment adjustments.
                 amount += detail.payment_amount
+        logger.debug('Application.total_paid_amount() - end')
 
         return amount
 
@@ -720,11 +721,14 @@ class Application(RevisionedMixin):
 
     @property
     def licence_approvers(self):
-        logger.debug('Application.licence_approvers()')
+        logger.debug('Application.licence_approvers() - start')
         groups = self.get_permission_groups('issuing_officer')\
             .values_list('id', flat=True)
 
-        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+        approvers = EmailUser.objects.filter(groups__id__in=groups).distinct()
+        logger.debug('Application.licence_approvers() - end')
+
+        return approvers
 
     @property
     def officers_and_assessors(self):
@@ -2147,8 +2151,9 @@ class Application(RevisionedMixin):
 
     @property
     def assessments(self):
-        logger.debug('Application.assessments()')
+        logger.debug('Application.assessments() - start')
         qs = Assessment.objects.filter(application=self)
+        logger.debug('Application.assessments() - end')
         return qs
 
     @property

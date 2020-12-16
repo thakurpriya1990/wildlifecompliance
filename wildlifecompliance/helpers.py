@@ -40,7 +40,7 @@ def belongs_to_list(user, group_names):
 
 def is_model_backend(request):
     # Return True if user logged in via single sign-on (i.e. an internal)
-    logger.info(
+    logger.debug(
         'helpers.is_model_backend(): {0}'.format(
             request.session.get('_auth_user_backend')
         ))
