@@ -857,6 +857,8 @@ class ApplicationFormDataRecordSerializer(serializers.ModelSerializer):
 
 
 class BaseApplicationSerializer(serializers.ModelSerializer):
+    base_activities = None
+
     org_applicant = OrganisationSerializer()
     proxy_applicant = EmailUserAppViewSerializer()
     readonly = serializers.SerializerMethodField(read_only=True)
@@ -1031,19 +1033,22 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
         ]
 
+        if not self.base_activities:
+            self.base_activities = obj.activities
+
         assigned_officer = [
-            a for a in obj.activities
+            a for a in self.base_activities
             if a.processing_status in with_officer and a.assigned_officer
             and not a.assigned_officer == self.context['request'].user
         ]
         assigned_approver = [
-            a for a in obj.activities
+            a for a in self.base_activities
             if a.processing_status in with_approver and a.assigned_approver
             and not a.assigned_approver == self.context['request'].user
         ]
         is_assigned = len(assigned_officer) or len(assigned_approver)
 
-        can_be_processed = obj.activities.exclude(
+        can_be_processed = self.base_activities.exclude(
             processing_status__in=exclude,
         ).exists()
         logger.debug('BaseApplicationSerializer.can_process() - end')
@@ -1054,7 +1059,10 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         """ check if any activities have been processed (i.e. licence issued)"""
         logger.debug('BaseApplicationSerializer.get_processed() - start')
 
-        processed = True if obj.activities.filter(processing_status__in=[
+        if not self.base_activities:
+            self.base_activities = obj.activities
+
+        processed = True if self.base_activities.filter(processing_status__in=[
             ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
             ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
         ]).first() else False
@@ -1701,10 +1709,15 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
         """ check if any activities have been processed """
         logger.debug('InternalApplicationSerializer.get_processed() - start')
 
-        is_processed = True if obj.activities.filter(processing_status__in=[
-            ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
-            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
-        ]).first() else False
+        if not self.base_activities:
+            self.base_activities = obj.activities
+
+        is_processed = True if self.base_activities.filter(
+            processing_status__in=[
+                ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
+            ]
+        ).first() else False
 
         logger.debug('InternalApplicationSerializer.get_processed() - end')
         return is_processed
