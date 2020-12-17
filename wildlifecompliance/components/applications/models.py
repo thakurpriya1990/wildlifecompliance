@@ -2749,7 +2749,7 @@ class Application(RevisionedMixin):
 
     def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False):
 
-        if not selected_activity.licence_fee_paid:
+        if not selected_activity.is_licence_fee_paid:
             raise Exception("Cannot issue activity: licence fee has not been paid!")
 
         if parent_licence is None:
@@ -4392,6 +4392,21 @@ class ApplicationSelectedActivity(models.Model):
             ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
         ]
 
+    def is_licence_fee_paid(self):
+        '''
+        Check (re-calculate) payment status to determine if licence fee paid.
+ 
+        :return: boolean
+        '''
+        logger.debug('ApplicationSelectedActivity.is_licence_fee_paid()')
+        _status = self.payment_status
+        return _status in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]
+
     @property
     def payment_status(self):
         """
@@ -4949,7 +4964,7 @@ class ApplicationSelectedActivity(models.Model):
             ApplicationFeePolicy
         )
 
-        if self.licence_fee_paid:
+        if self.is_licence_fee_paid:
             return True
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
