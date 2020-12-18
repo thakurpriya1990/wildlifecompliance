@@ -20,9 +20,9 @@
         <div class="col-sm-12">
             <div class="row">
                 <label style="width:70%;" class="col-sm-4">Do you want to Lodge a nil Return?</label>
-                <input type="radio" id="nilYes" name="nilYes" value="yes" v-model='nilReturn' :disabled='isReadOnly'>
+                <input type="radio" id="nilYes" name="nilYes" value="yes" v-model='returns.nil_return' :disabled='isReadOnly'>
                 <label style="width:10%;" for="nilYes">Yes</label>
-                <input type="radio" id="nilNo" name="nilNo" value="no" v-model='nilReturn' :disabled='isReadOnly'>
+                <input type="radio" id="nilNo" name="nilNo" value="no" v-model='returns.nil_return' :disabled='isReadOnly'>
                 <label style="width:10%;" for="nilNo">No</label>
             </div>
             <div v-if="nilReturn === 'yes'" class="row">
@@ -109,7 +109,8 @@ export default {
       return this.spreadsheet != null ? this.spreadsheet.name: '';
     },
     isReadOnly: function() {
-      return this.readonly || !this.is_external;
+      this.readonly = this.is_external && this.returns.is_draft ? false : true;
+      return this.readonly;
     },
     refreshGrid: function() {
       this.setReturnsEstimateFee()

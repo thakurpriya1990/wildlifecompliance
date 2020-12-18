@@ -110,6 +110,8 @@ class ReturnSerializer(serializers.ModelSerializer):
     species_saved = serializers.SerializerMethodField(read_only=True)
     species = serializers.SerializerMethodField(read_only=True)
     has_species = serializers.SerializerMethodField(read_only=True)
+    nil_return = serializers.SerializerMethodField(read_only=True)
+    is_accepted = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Return
@@ -152,6 +154,7 @@ class ReturnSerializer(serializers.ModelSerializer):
             'species_saved',
             'species',
             'has_species',
+            'is_accepted',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -159,6 +162,22 @@ class ReturnSerializer(serializers.ModelSerializer):
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_is_accepted(self, _return):
+        ACCEPTED = Return.RETURN_PROCESSING_STATUS_ACCEPTED
+        accepted = True if _return.processing_status == ACCEPTED else False
+
+        return accepted
+
+    def get_nil_return(self, _return):
+        '''
+        Get 'yes' or 'no' to indicate data has been included for Return.
+        :param _return: Return instance.
+        :return: string
+        '''
+        nil_return = 'yes' if _return.nil_return else 'no'
+
+        return nil_return
 
     def get_child_return(self, _return):
 

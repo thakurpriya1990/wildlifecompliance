@@ -685,7 +685,7 @@ class Application(RevisionedMixin):
         """
         Property defining the total amount already paid for the Application.
         """
-        logger.debug('Application.total_paid_amount()')
+        logger.debug('Application.total_paid_amount() - start')
         amount = 0
         if self.invoices.count() > 0:
             invoices = ApplicationInvoice.objects.filter(
@@ -695,6 +695,7 @@ class Application(RevisionedMixin):
                     reference=invoice.invoice_reference)
                 # payment_amount includes refund payment adjustments.
                 amount += detail.payment_amount
+        logger.debug('Application.total_paid_amount() - end')
 
         return amount
 
@@ -720,11 +721,14 @@ class Application(RevisionedMixin):
 
     @property
     def licence_approvers(self):
-        logger.debug('Application.licence_approvers()')
+        logger.debug('Application.licence_approvers() - start')
         groups = self.get_permission_groups('issuing_officer')\
             .values_list('id', flat=True)
 
-        return EmailUser.objects.filter(groups__id__in=groups).distinct()
+        approvers = EmailUser.objects.filter(groups__id__in=groups).distinct()
+        logger.debug('Application.licence_approvers() - end')
+
+        return approvers
 
     @property
     def officers_and_assessors(self):
@@ -2147,8 +2151,9 @@ class Application(RevisionedMixin):
 
     @property
     def assessments(self):
-        logger.debug('Application.assessments()')
+        logger.debug('Application.assessments() - start')
         qs = Assessment.objects.filter(application=self)
+        logger.debug('Application.assessments() - end')
         return qs
 
     @property
@@ -2749,7 +2754,7 @@ class Application(RevisionedMixin):
 
     def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False):
 
-        if not selected_activity.licence_fee_paid:
+        if not selected_activity.is_licence_fee_paid():
             raise Exception("Cannot issue activity: licence fee has not been paid!")
 
         if parent_licence is None:
@@ -4392,6 +4397,21 @@ class ApplicationSelectedActivity(models.Model):
             ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
         ]
 
+    def is_licence_fee_paid(self):
+        logger.debug('SelectedActivity.is_licence_fee_paid() - start')
+        _status = self.payment_status
+        _fee_paid = _status in [
+            ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED,
+            ActivityInvoice.PAYMENT_STATUS_PAID,
+            ActivityInvoice.PAYMENT_STATUS_OVERPAID,
+            ActivityInvoice.PAYMENT_STATUS_PARTIALLY_PAID,  # Record Payment
+        ]
+
+        logger.debug('SelectedActivity.is_licence_fee_paid() - {0}'.format(
+            _fee_paid))
+
+        return _fee_paid
+
     @property
     def payment_status(self):
         """
@@ -4949,7 +4969,7 @@ class ApplicationSelectedActivity(models.Model):
             ApplicationFeePolicy
         )
 
-        if self.licence_fee_paid:
+        if self.is_licence_fee_paid():
             return True
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
