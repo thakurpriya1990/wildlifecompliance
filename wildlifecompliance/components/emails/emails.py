@@ -5,7 +5,7 @@ import six
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
-from django.template import loader, Template, Context
+from django.template import loader, Template
 from django.utils.html import strip_tags
 
 from ledger.accounts.models import Document
@@ -15,7 +15,7 @@ logger = logging.getLogger('log')
 
 def _render(template, context):
     if isinstance(context, dict):
-        context = Context(context)
+        context = context
     if isinstance(template, six.string_types):
         template = Template(template)
     return template.render(context)
