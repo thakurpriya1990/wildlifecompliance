@@ -407,7 +407,8 @@ def pdflatex(request):
         return error_response
 
     with open(directory + texname, "w") as f:
-        f.write(output.encode('utf-8'))
+        # f.write(output.encode('utf-8'))
+        f.write(output)
         logger.debug("Writing to {}".format(directory + texname))
 
     #import ipdb; ipdb.set_trace()

@@ -5,6 +5,7 @@ import traceback
 import os
 import base64
 import geojson
+import logging
 from django.db.models import Q, Min, Max
 from django.db import transaction
 from django.http import HttpResponse
@@ -80,7 +81,7 @@ from wildlifecompliance.components.organisations.models import (
     Organisation,    
 )
 from django.contrib.auth.models import Permission, ContentType
-from utils import SchemaParser
+# from utils import SchemaParser
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -89,6 +90,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from wildlifecompliance.components.inspection.email import (
     send_mail)
 
+logger = logging.getLogger(__name__)
 
 class InspectionFilterBackend(DatatablesFilterBackend):
 
@@ -479,7 +481,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
             date_to = datetime.strptime(filter_date_to, '%d/%m/%Y')
             q_list.append(Q(planned_for_date__lte=date_to))
 
-        print q_list
+        logger.info(q_list)
 
         queryset = queryset.filter(reduce(operator.and_, q_list)) if len(q_list) else queryset
 
@@ -625,7 +627,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -652,7 +655,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -689,7 +693,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -731,7 +736,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
@@ -883,7 +889,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))

@@ -1,3 +1,5 @@
+import logging
+
 from django.http import Http404, HttpResponse, JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
@@ -18,6 +20,8 @@ from wildlifecompliance.components.main import utils
 from wildlifecompliance.exceptions import BindApplicationException
 from django.core.management import call_command
 
+logger = logging.getLogger(__name__)
+# logger = logging
 
 class ApplicationView(DetailView):
     model = Application
@@ -131,11 +135,46 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
     template_name = 'wildlifecompliance/mgt-commands.html'
 
     def post(self, request):
+        from wildlifecompliance.components.returns.services import (
+            ReturnService)
+        from wildlifecompliance.components.licences.services import (
+            LicenceService)
+        from wildlifecompliance.components.applications.services import (
+            ApplicationService)
+
         data = {}
         command_script = request.POST.get('script', None)
         if command_script:
-            print 'running {}'.format(command_script)
-            call_command(command_script)
-            data.update({command_script: 'true'})
+            logger.info(
+                'ManagementCommandsView(): running - {0}'.format(
+                    command_script
+                ))
+
+            # FIXME: call_command causes an unexpected EOF error with call to
+            # internal routine _bootsrap._gcd_import(name[level:], package).
+            # Temporary solution is to by-pass call_command, calling scripts
+            # directly.
+
+            # call_command(command_script)
+            # data.update({command_script: 'true'})
+
+            # call('python manage_wc.py verify_due_returns', shell=True)
+            if command_script == 'verify_due_returns':
+                ReturnService.verify_due_returns()
+
+            # call('python manage_wc.py verify_expired_licences', shell=True)
+            elif command_script == 'verify_expired_licences':
+                LicenceService.verify_expired_licences()
+
+            # call('python manage_wc.py verify_licence_renewals', shell=True)
+            elif command_script == 'verify_licence_renewals':
+                LicenceService.verify_expired_licences()
+
+            # call('python manage_wc.py verify_species', shell=True)
+            elif command_script == 'verify_licence_renewals':
+                ApplicationService.verify_licence_species()
+
+            else:
+                pass
 
         return render(request, self.template_name, data)

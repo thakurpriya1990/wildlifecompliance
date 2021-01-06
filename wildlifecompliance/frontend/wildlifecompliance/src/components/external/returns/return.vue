@@ -18,10 +18,16 @@
                         <div class="container">
                             <p class="pull-right" style="margin-top:5px;">
                                 <strong style="font-size: 18px;" v-if="isPayable">Return submission fee: {{returns_estimate_fee | toCurrency}}</strong><br>
-                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="!isPayable && isSubmittable" @click.prevent="submit()" name="submit">Submit</button>
-                                <button style="width:150px;" class="btn btn-primary btn-md" v-if="isPayable && isSubmittable" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>                                
+                                  <button v-if="false" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Saving</button>
+                                  <button v-if="spinner_save && disable_exit" disabled style="width:150px;" class="btn btn-primary btn-md" name="save_exit">Save and Exit</button>
+                                  <button v-else style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(false)" name="save_exit">Save and Exit</button>
+                                  <button v-if="spinner_save && disable_continue" disabled style="width:150px;" class="btn btn-primary btn-md" name="save_continue">Save and Continue</button>
+                                  <button v-else style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save(true)" name="save_continue">Save and Continue</button>
+                                  <button v-if="!isPayable && isSubmittable && !spinner_submit && !disable_submit" style="width:150px;" class="btn btn-primary btn-md" @click.prevent="save_and_submit()" name="submit">Submit</button>
+                                  <button v-else-if="!isPayable && isSubmittable && !spinner_submit && disable_submit" disabled style="width:150px;" class="btn btn-primary btn-md" name="submit">Submit</button>
+                                  <button v-else-if="spinner_submit" disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Submitting</button>
+                                  <button v-else-if="isPayable && isSubmittable && !spinner_submit && !disable_submit" style="width:150px;" class="btn btn-primary btn-md" @click.prevent="submit_and_checkout()" name="submit">Pay and Submit</button>
+                                  <button v-else-if="disable_submit" disabled style="width:150px;" class="btn btn-primary btn-md" name="submit">Pay and Submit</button>                           
                             </p>
                         </div>
                     </div>
@@ -54,6 +60,11 @@ export default {
     return {
       pdBody: 'pdBody' + self._uid,
       estimated_fee: 0,
+      spinner_save: false,
+      spinner_submit: false,
+      disable_submit: false,
+      disable_exit: false,
+      disable_continue: false,
     }
   },
   components: {
@@ -101,8 +112,38 @@ export default {
         'setReturnsExternal',
         'setReturnsEstimateFee',
     ]),
-    save: function(andContinue) {
+    get_table_data: async function() {
       const self = this;
+      self.is_saving = true
+      self.form=document.forms.external_returns_form;
+      var data = new FormData(self.form);
+      // cache only used in Returns sheets
+      for (const speciesID in self.species_cache) { // Running Sheet Cache
+        let speciesJSON = []
+        for (let i=0;i<self.species_cache[speciesID].length;i++){
+          // speciesJSON[i] = JSON.stringify(self.species_cache[speciesID][i])
+          speciesJSON[i] = self.species_cache[speciesID][i]
+        }
+        data.append(speciesID, JSON.stringify(speciesJSON))
+      };
+      var speciesJSON = []
+      let cnt = 0;
+      for (const speciesID in self.species_transfer) { // Running Sheet Transfers
+        Object.keys(self.species_transfer[speciesID]).forEach(function(key) {
+          speciesJSON[cnt] = JSON.stringify(self.species_transfer[speciesID][key])
+          cnt++;
+        });
+        data.append('transfer', speciesJSON);
+      }
+      return data;
+    },
+    save: async function(andContinue) {
+      const self = this;
+      self.is_saving = true
+      self.disable_submit = true;
+      self.disable_exit = true;
+      self.disable_continue = true;
+      self.spinner_save = true
       self.form=document.forms.external_returns_form;
       var data = new FormData(self.form);
       // cache only used in Returns sheets
@@ -123,14 +164,18 @@ export default {
         });
         data.append('transfer', speciesJSON)
       }
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save'),data,{
+      await self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save'),data,{
                       emulateJSON:true,
                     }).then((response)=>{
                       let species_id = self.returns.sheet_species;
                       self.setReturns(response.body);
                       self.returns.sheet_species = species_id;
                       self.returns.species = species_id;
-
+                      self.is_saving = false
+                      self.disable_submit = false;
+                      self.disable_exit = false;
+                      self.disable_continue = false;
+                      self.spinner_save = false;
                       if (andContinue) { 
 
                         swal( 'Save', 
@@ -144,6 +189,11 @@ export default {
 
                       }
                     },(error)=>{
+                      self.is_saving = false
+                      self.disable_submit = false;
+                      self.disable_exit = false;
+                      self.disable_continue = false;
+                      self.spinner_save = false;
                       console.log(error);
                       swal('Error',
                            'There was an error saving your return details.<br/>' + error.body,
@@ -151,8 +201,43 @@ export default {
                       )
                     });
     },
-    submit: function(e) {
+    save_and_submit: async function(e) {
       const self = this;
+      self.is_submitting = true;
+      self.disable_continue = true;
+      self.disable_exit = true;
+      self.disable_submit = true;
+      self.spinner_save = true;
+      var data = await self.get_table_data()
+
+      await self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/save_and_submit'),data,{
+                      emulateJSON:true,
+                    }).then((response)=>{
+                      self.is_submitting = false;
+                      self.disable_submit = false;
+                      self.disable_exit = false;
+                      self.disable_continue = false;
+                      self.spinner_save = false;
+                      this.$router.push({name:"external-applications-dash"});
+
+                    },(error)=>{
+                      self.is_submitting = false
+                      self.disable_exit = false;
+                      self.disable_submit = false;
+                      self.disable_continue = false;
+                      self.spinner_save = false;
+                      console.log(error);
+                      swal('Error',
+                           'There was an error saving and submitting your return details.<br/>' + error.body,
+                           'error'
+                      )
+                    });
+    },
+    submit: async function(e) {
+      const self = this;
+      self.is_submitting = true
+      self.disable_save = true;
+      self.disable_continue = true;
       self.form=document.forms.external_returns_form;
       self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/submit'),{
                       emulateJSON:true,
@@ -160,11 +245,16 @@ export default {
                        let species_id = self.returns.sheet_species;
                        self.setReturns(response.body);
                        self.returns.sheet_species = species_id;
-                       swal('Save',
-                            'Return Submitted',
-                            'success'
-                       );
+                       self.is_submitting = false
+                       self.disable_save = false;
+                       self.disable_continue = false;
+                      //  swal('Save',
+                      //       'Return Submitted',
+                      //       'success'
+                      //  );
+                       this.$router.push({name:"external-applications-dash"});
                     },(error)=>{
+                        self.is_submitting = false
                         console.log(error);
                         swal('Error',
                              'There was an error submitting your return details.<br/>' + error.body,
@@ -173,13 +263,15 @@ export default {
                     });
 
     },
-    submit_and_checkout: function(e) {
+    submit_and_checkout: async function(e) {
       const self = this;
+      self.is_submitting = true
       self.form=document.forms.external_returns_form;
-      self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/submit_and_checkout'),{
+      await self.$http.post(helpers.add_endpoint_json(api_endpoints.returns,self.returns.id+'/submit_and_checkout'),{
                       emulateJSON:true,
                     }).then((response)=>{
-                             window.location.href = "/ledger/checkout/checkout/payment-details/";
+                            self.is_submitting = false
+                            window.location.href = "/ledger/checkout/checkout/payment-details/";
                        //let species_id = self.returns.sheet_species;
                        //self.setReturns(response.body);
                        //self.returns.sheet_species = species_id;

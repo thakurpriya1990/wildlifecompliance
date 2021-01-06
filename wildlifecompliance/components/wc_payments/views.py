@@ -51,7 +51,7 @@ class InfringementPenaltyView(TemplateView):
                 logger.info('{} built payment line item {} for Infringement and handing over to payment gateway'.format('User {} with id {}'.format(request.user.get_full_name(), request.user.id), sanction_outcome.id))
                 return checkout_response
 
-        except Exception, e:
+        except Exception as e:
             logger.error('Error Creating Infringement Penalty: {}'.format(e))
             if sanction_outcome.infringement_penalty:
                 sanction_outcome.infringement_penalty = None
@@ -286,7 +286,7 @@ class DeferredInvoicingView(TemplateView):
                         else:
                             raise PermissionDenied
 
-            except Exception, e:
+            except Exception as e:
                 logger.error('Error Creating record payment: {}'.format(e))
                 # if booking:
                 #     booking.delete()
