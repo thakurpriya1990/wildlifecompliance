@@ -529,12 +529,18 @@ class LicenceActioner(LicenceActionable):
         if not activity.is_in_latest_licence:
             return can_action
 
+        # FIXME: Needs to allow for multiple activity purposes.
         # No action should be available if all of an activity's purposes are in
         # open applications check if there are any purposes in open
         # applications (i.e. can action) return false for all actions if no
         # purposes are still actionable.
-        activity_purposes = activity.purposes.values_list('id', flat=True)
-        if not len(list((set(activity_purposes) - set(purpose_list)))) > 0:
+        # activity_purposes = activity.purposes.values_list('id', flat=True)
+        # if not len(list((set(activity_purposes) - set(purpose_list)))) > 0:
+        #     return can_action
+
+        # multiple activity purposes can exist. No action is available if
+        # an open licence amendment application for activity purpose exist.
+        if activity.has_licence_amendment():
             return can_action
 
         # can_amend is true if the activity can be included in a Amendment
@@ -632,7 +638,8 @@ class LicenceActioner(LicenceActionable):
         # get_current_activities_for_application_type intentionally not
         # excluding these as part of the default queryset disable if there are
         # any open applications to maintain licence sequence data integrity.
-        if not purpose_list:
+        # if not purpose_list:
+        if not activity.has_licence_amendment():
             current = self.get_current_activities_for_application_type(
                 Application.APPLICATION_TYPE_REISSUE,
                 activity_ids=[activity.id]
@@ -668,7 +675,22 @@ class LicenceActioner(LicenceActionable):
 
         :return a list of actionable current selected licence activities.
         '''
-        latest_activities = self.licence.latest_activities
+        # latest_activities = self.licence.latest_activities
+
+        # include = [
+        #     ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
+        #     ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        #     ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
+        # ]
+
+        licence_purposes = [
+            p for p in self.licence.get_purposes_in_sequence()
+            if p.is_issued
+            # if p.purpose_status in include and p.is_issued
+        ]
+        latest_activities = []
+        for purpose in licence_purposes:
+            latest_activities.append(purpose.selected_activity)
 
         # new_activities = [
         #     a for a in latest_activities
@@ -697,6 +719,7 @@ class LicenceActioner(LicenceActionable):
         else:
             purposes_in_open_applications = None
 
+        sequence = 0
         for activity in latest_activities:
 
             if purposes_in_open_applications or\
@@ -718,6 +741,8 @@ class LicenceActioner(LicenceActionable):
                     'can_reissue': False,
                     'can_reinstate': False,
                 }
+
+            sequence = sequence + 1
 
             # Check if a record for the licence_activity_id already exists, if
             # not, add.
@@ -758,7 +783,8 @@ class LicenceActioner(LicenceActionable):
                             'can_reissue': activity_can_action['can_reissue'],
                             'can_reinstate':
                                 activity_can_action['can_reinstate'],
-                        }
+                        },
+                    'sequence': sequence,
                 }
 
         merged_activities_list = merged_activities.values()
