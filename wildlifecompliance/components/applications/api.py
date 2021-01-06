@@ -725,10 +725,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET', ])
     def internal_application(self, request, *args, **kwargs):
+        logger.debug('ApplicationViewSet.internal_application() - start')
         instance = self.get_object()
         serializer = InternalApplicationSerializer(
             instance, context={'request': request})
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        logger.debug('ApplicationViewSet.internal_application() - end')
+
+        return response
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))

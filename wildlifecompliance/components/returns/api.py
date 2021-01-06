@@ -211,10 +211,14 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
             instance = self.get_object()
             # instance.accept(request)
             ReturnService.accept_return_request(request, instance)
-            serializer = self.get_serializer(instance)
+            # serializer = self.get_serializer(instance)
             logger.debug('ReturnViewSet.accept() - end')
 
-            return Response(serializer.data)
+            return Response(
+                {'return_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

@@ -90,7 +90,7 @@ export default {
     let vm = this;
     return {
         pdBody: 'pdBody' + vm._uid,
-
+        panelClickersInitialised: false,
         // TODO: check if still required.
         assignTo: false,
         loading: [],
@@ -122,7 +122,7 @@ export default {
         return this.spinner
     },
     showSaveButton: function() {
-        return !this.returns.is_draft
+        return !this.returns.is_draft && this.returns.can_be_processed && this.returns.user_in_officers;
     },
   },
   methods: {
@@ -165,6 +165,21 @@ export default {
      next(vm => {
        vm.load({ url: `/api/returns/${to.params.return_id}.json` });
      });  // Return Store loaded.
+  },
+  updated: function(){
+      const self = this;
+      if (!self.panelClickersInitialised){
+          $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+              var chev = $(this).children()[0];
+              window.setTimeout(function () {
+                  $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+              },100);
+          }); 
+          self.panelClickersInitialised = true;
+      }
+  },
+  mounted: function() {
+      // 
   },
 }
 
