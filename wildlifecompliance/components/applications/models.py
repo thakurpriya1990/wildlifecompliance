@@ -2760,8 +2760,21 @@ class Application(RevisionedMixin):
 
         latest_application_in_function = self
         application_selected_purpose_ids = self.licence_purposes.all().values_list('id', flat=True)
-        licence_latest_activities_for_licence_activity_id = parent_licence.latest_activities.filter(
-            licence_activity_id=selected_activity.licence_activity_id)
+        # FIXME: need to all for multiple activities of same licence purpose
+        # when issuing licence amendments. Causing all to be replaced.
+        # licence_latest_activities_for_licence_activity_id = \
+        #     parent_licence.latest_activities.filter(
+        #         licence_activity_id=selected_activity.licence_activity_id
+        #     )
+
+        # Set previous activity if selected_activity is replacing. Required
+        # when issuing activity for licence amendments.
+        licence_latest_activities_for_licence_activity_id = []
+        replace_activity = selected_activity.get_activity_to_replace()
+        if replace_activity:
+            licence_latest_activities_for_licence_activity_id = [
+                replace_activity
+            ]
 
         with transaction.atomic():
             try:
@@ -5297,6 +5310,39 @@ class ApplicationSelectedActivity(models.Model):
 
             except BaseException:
                 raise
+
+    def has_licence_amendment(self):
+
+        valid_status = [
+            # Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_UNDER_REVIEW,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+            Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        ]
+
+        has_amendment = Application.objects.filter(
+            previous_application_id=self.application.id,
+            customer_status__in=valid_status,
+        ).first()
+
+        return has_amendment
+
+    def get_activity_to_replace(self):
+
+        valid_status = [
+            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        ]
+
+        replace = ApplicationSelectedActivity.objects.filter(
+            application_id=self.application.previous_application,
+            activity_status__in=valid_status,
+        ).first()
+
+        return replace
+
 
     def get_activity_from_previous(self):
         '''

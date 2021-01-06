@@ -846,7 +846,7 @@ export default {
                         activity_rows += `
                             <tr>
                                 <td>${activity['activity_name_str']}</td>
-                                <td>${activity['activity_purpose_names_and_status'].
+                                <td>${activity['sequence']}. ${activity['activity_purpose_names_and_status'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
                                 <td>${activity['expiry_date'].replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
                                 <td>`;
