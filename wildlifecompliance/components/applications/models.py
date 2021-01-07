@@ -1931,6 +1931,22 @@ class Application(RevisionedMixin):
         # return len(additional_fees)
         return has_adjustment
 
+    def has_payable_fees_at_finalisation(self):
+        '''
+        Check for payable amount at application finalisation. Outstanding
+        amount can occur when there is a form change by internal officer.
+        '''
+        logger.debug('Application.has_payable_fees() - start')
+        fees = 0
+
+        for activity in self.activities:
+            for p in activity.proposed_purposes.all():
+                if p.is_payable:
+                    fees += p.get_payable_application_fee
+
+        logger.debug('Application.has_payable_fees() - end')       
+        return fees
+
     @property
     def has_additional_fees(self):
         """
@@ -2752,9 +2768,9 @@ class Application(RevisionedMixin):
                 print(Exception)
                 raise
 
-    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False):
+    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False):
 
-        if not selected_activity.is_licence_fee_paid():
+        if not preview and not selected_activity.is_licence_fee_paid():
             raise Exception("Cannot issue activity: licence fee has not been paid!")
 
         if parent_licence is None:
@@ -3104,15 +3120,19 @@ class Application(RevisionedMixin):
                                 selected_activity.process_licence_fee_payment(
                                     request, self
                             )
-                            if not payment_successful:
+                            if not preview and not payment_successful:
                                 failed_payment_activities.append(
                                     selected_activity
                                 )
                             else:
                                 issued_activities.append(selected_activity)
+                                generate_licence = False
                                 self.issue_activity(
                                     request, selected_activity,
-                                    parent_licence, generate_licence=False)
+                                    parent_licence,
+                                    generate_licence,
+                                    preview,
+                                )
 
                         else :
                              declined_activities.append(selected_activity)
@@ -3222,7 +3242,7 @@ class Application(RevisionedMixin):
                         generate_invoice = False
                         for activity in issued_activities:
                             # if activity.additional_fee > 0 \
-                            if activity.has_adjusted_application_fee:
+                            if activity.has_payable_fees_at_issue:
                                 generate_invoice = True
                                 break
 
@@ -4602,6 +4622,21 @@ class ApplicationSelectedActivity(models.Model):
 
         return adjusted
 
+    def has_payable_fees_at_issue(self):
+        '''
+        Check for payable amount at Activity issuance. Outstanding amount can
+        occur when there is a form change by internal officer.
+        '''
+        logger.debug('ApplicationSelectedActivity.has_payable_fees() - start')
+        fees = 0
+
+        for p in self.proposed_purposes.all():
+            if p.is_payable:
+                fees += p.get_payable_application_fee
+
+        logger.debug('ApplicationSelectedActivity.has_payable_fees() - end')    
+        return fees
+
     @property
     def has_adjusted_licence_fee(self):
         '''
@@ -5833,6 +5868,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
             ]
             for line in inv_lines:
                 amount += line.amount
+
+            # exclude the refunds
+            detail = Invoice.objects.get(
+                reference=a_inv.invoice_reference)
+            amount -= detail.refund_amount
 
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
         if self.selected_activity.application.application_type == AMEND:
