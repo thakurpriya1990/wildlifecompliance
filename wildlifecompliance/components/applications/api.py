@@ -725,10 +725,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['GET', ])
     def internal_application(self, request, *args, **kwargs):
+        logger.debug('ApplicationViewSet.internal_application() - start')
         instance = self.get_object()
         serializer = InternalApplicationSerializer(
             instance, context={'request': request})
-        return Response(serializer.data)
+        response = Response(serializer.data)
+        logger.debug('ApplicationViewSet.internal_application() - end')
+
+        return response
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
@@ -878,7 +882,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             set_session_activity(request.session, activities[0])
 
             # Adjustments occuring only to the application fee.
-            if instance.has_adjusted_fees or instance.has_additional_fees:
+            # if instance.has_adjusted_fees or instance.has_additional_fees \
+            if instance.has_additional_fees \
+                or instance.has_payable_fees_at_finalisation:
 
                 # activities = instance.amended_activities
                 # only fees awaiting payment
@@ -888,7 +894,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 # only fees with adjustments or additional fee.
                 activities_adj = [
                    a for a in activities_pay
-                   if a.has_adjusted_application_fee
+                #    if a.has_adjusted_application_fee
+                if a.has_payable_fees_at_issue
                    or a.has_adjusted_licence_fee
                    or a.has_additional_fee
                 ]
