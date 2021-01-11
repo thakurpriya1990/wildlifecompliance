@@ -401,9 +401,9 @@ def pdflatex(request):
     except Exception as e:
         import traceback
         err_msg = u"PDF tex template render failed (might be missing attachments):"
-        logger.debug(err_msg + "\n{}".format(e))
+        logger.error(err_msg + "\n\n{0}\n\n".format(e, traceback.format_exc()))
 
-        error_response.write(err_msg + "\n\n{0}\n\n{1}".format(e,traceback.format_exc()))
+        error_response.write(err_msg + "\n{0}".format(e))
         return error_response
 
     with open(directory + texname, "w") as f:
