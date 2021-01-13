@@ -1033,8 +1033,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
         ]
 
-        if not self.base_activities:
-            self.base_activities = obj.activities
+        # if not self.base_activities:
+        self.base_activities = obj.activities
 
         assigned_officer = [
             a for a in self.base_activities
