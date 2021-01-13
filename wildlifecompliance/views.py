@@ -150,31 +150,7 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
                     command_script
                 ))
 
-            # FIXME: call_command causes an unexpected EOF error with call to
-            # internal routine _bootsrap._gcd_import(name[level:], package).
-            # Temporary solution is to by-pass call_command, calling scripts
-            # directly.
-
             call_command(command_script)
             data.update({command_script: 'true'})
-
-            # call('python manage_wc.py verify_due_returns', shell=True)
-            # if command_script == 'verify_due_returns':
-            #     ReturnService.verify_due_returns()
-
-            # call('python manage_wc.py verify_expired_licences', shell=True)
-            # elif command_script == 'verify_expired_licences':
-            #     LicenceService.verify_expired_licences()
-
-            # call('python manage_wc.py verify_licence_renewals', shell=True)
-            # elif command_script == 'verify_licence_renewals':
-            #     LicenceService.verify_expired_licences()
-
-            # call('python manage_wc.py verify_species', shell=True)
-            # elif command_script == 'verify_licence_renewals':
-            #     ApplicationService.verify_licence_species()
-
-            # else:
-            #     pass
 
         return render(request, self.template_name, data)
