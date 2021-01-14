@@ -37,7 +37,7 @@
         </div>
         <div class="row">
             <div class="col-sm-12">
-                <div class="panel panel-default">
+                <!-- <div class="panel panel-default">
                   <div class="panel-heading">
                     <h3 class="panel-title">Identification<small> Upload organisation ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
@@ -55,18 +55,18 @@
                           </div>
                           <div class="form-group">
                             <div class="col-sm-12">
-                                <!-- output order in reverse due to pull-right at runtime -->
+                                output order in reverse due to pull-right at runtime 
                                 <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
                                 <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
                                 <span class="btn btn-primary btn-file pull-right">
                                     Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                </span>
-                            </div>
+                                </span> -->
+                            <!-- </div>
                           </div>
                        </form>
-                  </div>
-                </div>
+                  </div> -->
+                <!-- </div> -->
             </div>
         </div>
         <div class="row">
@@ -406,6 +406,7 @@ export default {
                 },
                 columns: [
                     {
+                        data:'last_name',
                         mRender:function (data,type,full) {
                             return full.first_name + " " + full.last_name;
                         }
@@ -415,6 +416,7 @@ export default {
                     {data:'fax_number'},
                     {data:'email'},
                     {
+                        data:'user_status',
                         mRender:function (data,type,full) {
                             let links = '';
                             let name = full.first_name + ' ' + full.last_name;
@@ -442,22 +444,26 @@ export default {
                 },
                 columns: [
                     {
+                        data:'last_name',
                         mRender:function (data,type,full) {
                             return full.first_name + " " + full.last_name;
                         }
                     },
                     {
+                        data:'user_role',
                         mRender:function (data,type,full) {
                             return full.user_role.name;
                         }
                     },
                     {data:'email'},
                     {
+                        data:'user_status',
                         mRender:function (data,type,full) {
                             return full.user_status.name;
                         }
                     },
                     {
+                        data:'id',
                         mRender:function (data,type,full) {
                             let links = '';
                             if (vm.myorgperms.is_admin){
