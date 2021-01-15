@@ -195,6 +195,11 @@
         {% endblock %}
         {% block modals %}
         {% endblock %}
+
+        <!-- npm install ckeditor4-vue
+            cp node_modules/ckeditor4-vue/dist/ckeditor.js ../../static/wildlifecompliance/js/ -->
+        <script type="text/javascript" src="{% static 'wildlifecompliance/js/ckeditor.js' %}"></script>
+
         {% if not dev %}
             <script type="text/javascript" src="https://static.dbca.wa.gov.au/static/libs/jquery/3.3.1/jquery.min.js"></script>
             <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/manifest.js' %}"></script>

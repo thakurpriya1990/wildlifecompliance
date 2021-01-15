@@ -85,6 +85,7 @@
 
                                                                         <!-- Activity Purpose Free Text -->        
                                                                         <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
+                                                                            <br/>
 
                                                                             <!--
                                                                             <div class="col-sm-12">
@@ -101,13 +102,16 @@
                                                                             </div>
                                                                             -->
                                                                             <div class="col-sm-12">
-                                                                                <div class="col-sm-3">
-                                                                                    <label class="control-label pull-left" for="Name">Details</label>
+                                                                                <div class="col-sm-2">
+                                                                                    <label class="control-label pull-left" for="Name">Details (app)</label>
                                                                                 </div>
-                                                                                <div class="col-sm-6">
+                                                                                <div class="col-sm-8">
+                                                                                    <!--
                                                                                     <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
+                                                                                    -->
+                                                                                    <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
                                                                                 </div>
-                                                                                <div v-show="free_text.is_additional_info" class="col-sm-3">
+                                                                                <div v-show="free_text.is_additional_info" class="col-sm-2">
                                                                                     <input type="checkbox" checked disabled/>
                                                                                     <label>Is additional info</label>
                                                                                 </div>
@@ -269,6 +273,9 @@ from '@/utils/hooks'
 import { mapGetters, mapActions } from 'vuex'
 import filefield from '@/components/common/compliance_file.vue'
 
+import Vue from 'vue';
+Vue.use( CKEditor  );
+
 export default {
     name: 'InternalApplicationIssuance',
     components:{
@@ -302,6 +309,17 @@ export default {
             },
             pickedPurposes: [],
             spinner:false,
+            //editorData: '<p>Content of the editor.</p>',
+            editorConfig: {
+                // The configuration of the editor.
+                toolbar: [
+                    [ 'Source', '-', 'Bold', 'Italic'  ],
+                    [ 'Format' ],
+                    [ 'NumberedList', 'BulletedList' ],
+                    [ 'Table' ],
+                ],
+                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+            },
         }
     },
     watch:{
@@ -777,5 +795,9 @@ export default {
 <style scoped>
     .confirmation-checkbox {
         margin-top: 10px;
+    },
+
+    br {
+        padding-bottom: 5px;
     }
 </style>
