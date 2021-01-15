@@ -988,6 +988,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
         mode = ""
         buffer = ""
         listcounter = 0
+        li_tag_counter = 0
         listtype = ""
         prev_listtype = ""
 
@@ -1009,11 +1010,41 @@ def html_to_rl(html, styleSheet, start_counter=0):
 
             return rows
 
+        def _parse_nested_list(self):
+            soup = BeautifulSoup(ul)
+            ol=soup.body.ol
+            ol_dict = dictify(ol)
+            print_nested(ol_dict)
+
+            def dictify(ul):
+                result = {}
+                for li in ul.find_all("li", recursive=False):
+                    key = next(li.stripped_strings)
+                    ul = li.find("ul")
+                    if ul:
+                        result[key] = dictify(ul)
+                    else:
+                        result[key] = None
+                return result
+
+            def print_nested(val, nesting = -5):
+                if type(val) == dict: 
+                    nesting += 5 
+                    for k in val: 
+                        #print(nesting * ' ' + k) 
+                        if nesting == 0:
+                            elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % seef.listcounter))
+                            self.listcounter += 1
+                        else:
+                            elements.append(Paragraph(self.buffer, styleSheet["ListNestedLeftIndent"], bulletText=u"" + nesting*' ' + "\u2022"))
+
+                        print_nested(val[k],nesting)
+
         def _clear(self):
             self.buffer = ""
 
         def startElement(self, name, attrs):
-            if name in ["strong", "em", "i", "b"]:
+            if name in ["strong", "em", "i", "b", "li"]:
                 self.mode = name
             elif name == "ol":
                 self.listcounter = 1 if self.start_counter==0 else self.start_counter
@@ -1022,6 +1053,13 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 if self.listtype == "ol":
                     self.prev_listtype = "ol"
                 self.listtype = "ul"
+
+            elif name == "_li":
+                self.mode = name
+                #elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % self.listcounter))
+                #self.listcounter += 1
+                #self.li_tag_counter += 1
+
             elif name == "hr":
                 elements.append(PageBreak())
             elif name == "br":
@@ -1036,7 +1074,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 self.mode = ""
             elif name == "p":
                 elements.append(Paragraph(self.buffer, styleSheet["BodyText"]))
-            elif name == "li":
+            elif name == "_li":
                 if self.listtype == "ul":
                     #elements.append(Paragraph(self.buffer, styleSheet["BodyText"], bulletText="-"))
                     elements.append(Paragraph(self.buffer, styleSheet["ListNestedLeftIndent"], bulletText=u"    \u2022"))
@@ -1061,11 +1099,16 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 self._clear()
 
+            elif name == "ol":
+                self._parse_nested_list()
+                self._clear()
+
             if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li"]:
                 self._clear()
 
         def characters(self, chars):
             surrounding = None
+            li_surrounding = None
 
             if self.mode in ["strong", "em", "i", "b"]:
                 if self.mode in ["strong", "b"]:
@@ -1073,8 +1116,14 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 else:
                     surrounding = "i"
 
+            #if self.mode in ["li"]:
+            #    #import ipdb; ipdb.set_trace()
+            #    li_surrounding = "li"
+
             if surrounding:
                 chars = u"<%s>%s</%s>" % (surrounding, chars, surrounding)
+            #elif li_surrounding:
+            #    chars = u"%s</%s>" % (chars, li_surrounding)
 
             self.buffer += chars
 
