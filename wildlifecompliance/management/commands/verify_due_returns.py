@@ -22,4 +22,4 @@ class Command(BaseCommand):
 
         except Exception as e:
             logger.error('Error command {0} : {1}'.format(
-                __name__, e)
+                __name__, e))

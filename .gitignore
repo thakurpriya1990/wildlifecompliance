@@ -102,14 +102,14 @@ uwsgi*.ini
 *.djcache
 
 # wildlifecompliance build static files
-wildlifecompliance/static/wildlifecompliance_vue/static/*
+# wildlifecompliance/static/wildlifecompliance_vue/static/*
 
 # npm locks
-*-lock.json
+# *-lock.json
 
-wildlifecompliance/static/wildlifecompliance_vue/css/app.css
-wildlifecompliance/static/wildlifecompliance_vue/js/app.js
-wildlifecompliance/static/wildlifecompliance_vue/js/manifest.js
-wildlifecompliance/static/wildlifecompliance_vue/js/vendor.js
-wildlifecompliance/static/wildlifecompliance_vue/static/js/babel-polyfill.js
+# wildlifecompliance/static/wildlifecompliance_vue/css/app.css
+# wildlifecompliance/static/wildlifecompliance_vue/js/app.js
+# wildlifecompliance/static/wildlifecompliance_vue/js/manifest.js
+# wildlifecompliance/static/wildlifecompliance_vue/js/vendor.js
+# wildlifecompliance/static/wildlifecompliance_vue/static/js/babel-polyfill.js
 

@@ -1050,3 +1050,18 @@ class OrganisationRequestLogEntry(CommunicationsLogEntry):
     class Meta:
         app_label = 'wildlifecompliance'
         ordering = ['-created']
+
+'''
+NOTE: REGISTER MODELS FOR REVERSION HERE.
+'''
+import reversion
+reversion.register(Organisation)
+reversion.register(OrganisationAction)
+reversion.register(OrganisationContact)
+reversion.register(OrganisationContactAction)
+reversion.register(OrganisationContactDeclinedDetails)
+reversion.register(OrganisationLogEntry)
+reversion.register(OrganisationRequest)
+reversion.register(OrganisationRequestDeclinedDetails)
+reversion.register(OrganisationRequestLogEntry)
+reversion.register(OrganisationRequestUserAction)
