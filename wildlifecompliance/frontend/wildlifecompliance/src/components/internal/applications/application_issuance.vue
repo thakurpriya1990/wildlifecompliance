@@ -304,6 +304,7 @@ export default {
                 [ 'Table' ],
             ]
 	}
+
         return {
             panelBody: "application-issuance-"+vm._uid,
             purposeBody: `purposeBody${vm._uid}`,

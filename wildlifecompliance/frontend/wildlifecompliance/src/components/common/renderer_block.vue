@@ -42,6 +42,16 @@
             :help_text="help_text"
             :help_text_url="help_text_url"/>
 
+        <RichTextField v-if="component.type === 'richtext'"
+            :readonly="is_readonly"
+            :name="component_name"
+            :field_data="value"
+            :id="element_id()"
+            :label="component.label"
+            :help_text="help_text"
+            :isRequired="component.isRequired"
+            :help_text_url="help_text_url"/>
+
         <TextField v-if="component.type === 'text'"
             type="text"
             :name="component_name"
@@ -327,6 +337,7 @@ import File from '@/components/forms/file.vue'
 import SelectBlock from '@/components/forms/select.vue'
 import DateField from '@/components/forms/date-field.vue'
 import TextField from '@/components/forms/text.vue'
+import RichTextField from '@/components/forms/richtext.vue'
 import TextAreaBlock from '@/components/forms/text-area.vue'
 import LabelBlock from '@/components/forms/label.vue'
 import AssessorText from '@/components/forms/readonly_text.vue'
@@ -345,6 +356,7 @@ const RendererBlock = {
   components: {
       FormSection,
       TextField,
+      RichTextField,
       Group,
       Group2,
       SelectBlock,
