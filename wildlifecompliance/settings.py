@@ -71,7 +71,32 @@ INSTALLED_APPS += [
     'rest_framework_gis',
     'rest_framework_datatables',
     'smart_selects',
+    'ckeditor',
 ]
+
+CKEDITOR_BASEPATH = '/static/ckeditor/ckeditor/'
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            ['Bold', 'Italic', 'Underline'],
+            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
+            ['Link', 'Unlink'],
+            ['RemoveFormat', 'Source']
+        ]
+    },
+    'pdf_config': {
+        'toolbar': 'Custom',
+        'toolbar_Custom': [
+            [ '-', 'Bold', 'Italic' ],
+            [ 'Format' ],
+            [ 'NumberedList', 'BulletedList' ],
+            [ 'Table' ],
+            [ 'Source']
+        ]
+    },
+}
 
 ADD_REVERSION_ADMIN = True
 

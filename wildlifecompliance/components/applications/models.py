@@ -22,6 +22,7 @@ from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 
 from smart_selects.db_fields import ChainedForeignKey
+from ckeditor.fields import RichTextField
 
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.invoice.models import Invoice
@@ -6307,13 +6308,15 @@ class ApplicationFormDataRecord(models.Model):
 @python_2_unicode_compatible
 class ApplicationStandardCondition(RevisionedMixin):
     short_description = models.CharField(max_length=100, null=True, blank=True)
-    text = models.TextField()
+    #text = models.TextField()
+    text = RichTextField(config_name='pdf_config')
     code = models.CharField(max_length=10, unique=True)
     obsolete = models.BooleanField(default=False)
     return_type = models.ForeignKey(
         'wildlifecompliance.ReturnType', null=True, blank=True)
-    additional_information = models.TextField(
-        max_length=1024, null=True, blank=True)
+    #additional_information = models.TextField(max_length=1024, null=True, blank=True)
+    additional_information = RichTextField(config_name='pdf_config', null=True, blank=True)
+        
 
     def __str__(self):
         return self.code
