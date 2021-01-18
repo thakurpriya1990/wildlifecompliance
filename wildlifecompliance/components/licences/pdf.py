@@ -900,7 +900,8 @@ def html_to_rl(html, styleSheet, start_counter=0):
     html = html.replace('<br>', '<br/>')
     html = html.replace('<hr>', '<hr/>')
     html = html.replace('&nbsp;', '')
-    soup = BeautifulSoup(html, "html.parser")
+    #soup = BeautifulSoup(html, "html.parser")
+    soup = BeautifulSoup(html)
     elements = list()
 
     box_table_style_hdrbold = TableStyle([
@@ -957,33 +958,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
             <br>
 
             <h2>This is a H2 tag Title - (ol) ordered-list</h2>
-            <ol>
-                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
-                <li>Tea</li>
-                <li>Milk</li>
-            </ol>
-            <br>
 
-            <h2>This is a H2 tag Title - (ul) un-ordered-list (Bullet Points)</h2>
-            <ul>
-                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
-                <li>Tea</li>
-                <li>Milk</li>
-            </ul>
-            <br>
-
-            <h3>The list below is an ordered (ol) list Example, with a nested (nested once) inner (ul) list</h3>
-            <ol>
-                <li>Coffee  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd</li>
-                <li>Tea</li>
-                    <ul>
-                        <li>Black tea</li>
-                        <li>Green tea  ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd ddd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd dd  </li>
-                        <li>Blue tea</li>
-                    </ul>
-                <li>Milk</li>
-            </ol>
-            <br>
         '''
         mode = ""
         buffer = ""
@@ -1011,48 +986,72 @@ def html_to_rl(html, styleSheet, start_counter=0):
             return rows
 
         def _parse_nested_list(self):
-            soup = BeautifulSoup(ul)
-            ol=soup.body.ol
-            ol_dict = dictify(ol)
-            print_nested(ol_dict)
+            def __dictify(ul):
+                """ 
+                    html = 
+                    '''<ol>
+                         <li>Subject to the terms and Conditions of this Licence -
+                           <ul>
+                             <li>Import fauna of the quantities and species specified in Fauna Activity Details.</li>
+                           </ul>
+                         </li>
+                       </ol>i
+                    '''
+                    from bs4 import BeautifulSoup
+                    soup = BeautifulSoup(html)
+                    ol = soup.body.ol
 
-            def dictify(ul):
+                    ol_dict = __dictify(ol) --> creates a nested dictionary
+                    __print_nested(ol_dict) --> prints the nested dictionary
+
+                """
                 result = {}
                 for li in ul.find_all("li", recursive=False):
                     key = next(li.stripped_strings)
                     ul = li.find("ul")
                     if ul:
-                        result[key] = dictify(ul)
+                        result[key] = __dictify(ul)
                     else:
                         result[key] = None
                 return result
 
-            def print_nested(val, nesting = -5):
+            def __print_nested(val, nesting = -5):
                 if type(val) == dict: 
                     nesting += 5 
                     for k in val: 
                         #print(nesting * ' ' + k) 
                         if nesting == 0:
-                            elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % seef.listcounter))
+                            #elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % self.listcounter))
+                            elements.append(Paragraph(k, styleSheet["ListLeftIndent"], bulletText="%s." % self.listcounter))
                             self.listcounter += 1
+                        elif nesting == 5:
+                            elements.append(Paragraph(k, styleSheet["ListNestedLeftIndent"], bulletText=u"" + nesting*' ' + "\u2022"))
                         else:
-                            elements.append(Paragraph(self.buffer, styleSheet["ListNestedLeftIndent"], bulletText=u"" + nesting*' ' + "\u2022"))
+                            elements.append(Paragraph(k, styleSheet["ListNestedLeftIndent"], bulletText=u"" + nesting*' ' + "-"))
 
-                        print_nested(val[k],nesting)
+                        __print_nested(val[k],nesting)
+
+            ol=soup.body.ol
+            ol_dict = __dictify(ol)
+            __print_nested(ol_dict)
 
         def _clear(self):
             self.buffer = ""
 
         def startElement(self, name, attrs):
-            if name in ["strong", "em", "i", "b", "li"]:
+            #if name in ["strong", "em", "i", "b", "li"]:
+            if name in ["strong", "em", "i", "b"]:
                 self.mode = name
             elif name == "ol":
                 self.listcounter = 1 if self.start_counter==0 else self.start_counter
                 self.listtype = "ol"
-            elif name == "ul":
-                if self.listtype == "ol":
-                    self.prev_listtype = "ol"
-                self.listtype = "ul"
+#            elif name == "ul":
+#                if self.listtype == "ol":
+#                    self.prev_listtype = "ol"
+#                self.listtype = "ul"
+
+            #elif name == "li":
+            #    self.listcounter += 1
 
             elif name == "_li":
                 self.mode = name
@@ -1074,6 +1073,8 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 self.mode = ""
             elif name == "p":
                 elements.append(Paragraph(self.buffer, styleSheet["BodyText"]))
+            #elif name == "li":
+            #    self.listcounter += 1
             elif name == "_li":
                 if self.listtype == "ul":
                     #elements.append(Paragraph(self.buffer, styleSheet["BodyText"], bulletText="-"))
@@ -1082,11 +1083,15 @@ def html_to_rl(html, styleSheet, start_counter=0):
                     elements.append(Paragraph(self.buffer, styleSheet["ListLeftIndent"], bulletText="%s." % self.listcounter))
                     self.listcounter += 1
             #elif name in ["ol", "ul"]:
-            elif name in ["ul"]:
-                self.listtype = "ol" if self.prev_listtype == "ol" else ""
+            #elif name in ["ul"]:
+            #    self.listtype = "ol" if self.prev_listtype == "ol" else ""
             elif name in ["ol"]:
+                #self.listcounter = 1
                 self.listtype = ""
                 self.prev_listtype = ""
+
+                self._parse_nested_list()
+                self._clear()
 
             elif name == "table":
                 elements.append(
@@ -1099,11 +1104,8 @@ def html_to_rl(html, styleSheet, start_counter=0):
                 elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
                 self._clear()
 
-            elif name == "ol":
-                self._parse_nested_list()
-                self._clear()
-
-            if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li"]:
+            #if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p", "li"]:
+            if name in ["h1", "h2", "h3", "h4", "h5", "h6", "p"]:
                 self._clear()
 
         def characters(self, chars):
