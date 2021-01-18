@@ -253,7 +253,8 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     can_action = ApplicationSelectedActivityCanActionSerializer(read_only=True)
     licence_fee = serializers.DecimalField(
         max_digits=8, decimal_places=2, coerce_to_string=False, read_only=True)
-    payment_status = serializers.CharField(read_only=True)
+    # payment_status = serializers.CharField(read_only=True)
+    payment_status = serializers.SerializerMethodField()
     can_pay_licence_fee = serializers.SerializerMethodField()
     officer_name = serializers.SerializerMethodField(read_only=True)
     licensing_officers = EmailUserSerializer(many=True)
@@ -266,6 +267,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = ApplicationSelectedActivity
         fields = '__all__'
+
+    def get_payment_status(self, obj):
+        return obj.get_property_cache_payment_status()
 
     def get_activity_name_str(self, obj):
         return obj.licence_activity.name if obj.licence_activity else ''
@@ -1179,7 +1183,13 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         adj_application_fee = obj.application_fee
         adj_licence_fee = licence_fee
 
-        if obj.total_paid_amount == (obj.application_fee + licence_fee):
+        total_paid = obj.get_property_cache_key('total_paid_amount')[
+            'total_paid_amount'
+        ]
+        total_paid = decimal.Decimal(total_paid)
+
+        # if obj.total_paid_amount == (obj.application_fee + licence_fee):
+        if total_paid == (obj.application_fee + licence_fee):
             # force zero amounts for submitted applications without subsequent
             # changes to form questions (no recalculation occur).
             adj_application_fee = 0
