@@ -1001,7 +1001,7 @@ def html_to_rl(html, styleSheet, start_counter=0):
                     soup = BeautifulSoup(html)
                     ol = soup.body.ol
 
-                    ol_dict = __dictify(ol) --> creates a nested dictionary
+                    ol_dict = __dictify(ol) --> creates a nested dictionary from a nested html list
                     __print_nested(ol_dict) --> prints the nested dictionary
 
                 """

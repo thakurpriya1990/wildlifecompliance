@@ -287,6 +287,23 @@ export default {
     },
     data: function() {
         let vm = this;
+        if (vm.application.can_view_richtext_src) {
+            var toolbar_options = [
+                [ 'Source' ],
+                [ '-', 'Bold', 'Italic' ],
+                [ 'Format' ],
+                [ 'NumberedList', 'BulletedList' ],
+                //[ 'Indent', 'Outdent' ],
+                [ 'Table' ],
+            ]
+	} else {
+            var toolbar_options = [
+                [ '-', 'Bold', 'Italic' ],
+                [ 'Format' ],
+                [ 'NumberedList', 'BulletedList' ],
+                [ 'Table' ],
+            ]
+	}
         return {
             panelBody: "application-issuance-"+vm._uid,
             purposeBody: `purposeBody${vm._uid}`,
@@ -312,12 +329,7 @@ export default {
             //editorData: '<p>Content of the editor.</p>',
             editorConfig: {
                 // The configuration of the editor.
-                toolbar: [
-                    [ 'Source', '-', 'Bold', 'Italic'  ],
-                    [ 'Format' ],
-                    [ 'NumberedList', 'BulletedList' ],
-                    [ 'Table' ],
-                ],
+                toolbar: toolbar_options,
                 format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
             },
         }

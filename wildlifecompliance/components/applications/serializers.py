@@ -1322,6 +1322,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
         return value['payment_status']
 
 
+
 #class DTInternalApplicationDashboardSerializer(BaseApplicationSerializer):
 #    submitter = EmailUserSerializer()
 #    applicant = serializers.CharField(read_only=True)
@@ -1620,6 +1621,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     licences = serializers.SerializerMethodField(read_only=True)
     payment_status = serializers.SerializerMethodField(read_only=True)
     can_be_processed = serializers.SerializerMethodField(read_only=True)
+    can_view_richtext_src = serializers.SerializerMethodField(read_only=True)
     activities = serializers.SerializerMethodField()
     processed = serializers.SerializerMethodField()
     licence_officers = EmailUserAppViewSerializer(many=True)
@@ -1664,6 +1666,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'permit',
             'payment_status',
             'can_be_processed',
+            'can_view_richtext_src',
             'licence_category',
             'activities',
             'processed',
@@ -1677,6 +1680,10 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'is_return_check_accept',
         )
         read_only_fields = ('documents', 'conditions')
+
+    def get_can_view_richtext_src(self, obj):
+        #import ipdb; ipdb.set_trace()
+        return self.context['request'].user.is_superuser
 
     def get_activities(self, obj):
         logger.debug('InternalApplicationSerializer.get_activities() - start')
