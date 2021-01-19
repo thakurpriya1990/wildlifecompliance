@@ -231,7 +231,7 @@ export default {
     },
     data:function () {
         let vm = this;
-        if (vm.application.can_view_richtext_src) {
+        if (vm.canViewRichTextSrc) {
             var toolbar_options = [
                 [ 'Source' ],
                 [ '-', 'Bold', 'Italic' ],
@@ -298,6 +298,9 @@ export default {
             'canAssignOfficerFor',
             'selected_activity_tab_id',
         ]),
+        canViewRichTextSrc: function() {
+            return this.application.can_view_richtext_src;
+        },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },
