@@ -501,16 +501,21 @@ def send_application_issue_notification(
         licence.licence_document._file.read(),
         'application/pdf'
     ))
+    copy_emails = None
     for activity in activities:
         for document in activity.issuance_documents.all():
             content = document._file.read()
             mime = mimetypes.guess_type(document.name)[0]
             documents.append((document.name, content, mime))
+        
+        if not copy_emails:
+            copy_emails = activity.cc_email.split(',')
 
     msg = email.send(
         application.submitter.email,
         context=context, attachments=documents,
-        bcc=[activities[0].cc_email] if activities[0].cc_email else None
+        bcc=copy_emails
+        # bcc=[activities[0].cc_email] if activities[0].cc_email else None
     )
 
     sender = request.user if request else settings.DEFAULT_FROM_EMAIL
