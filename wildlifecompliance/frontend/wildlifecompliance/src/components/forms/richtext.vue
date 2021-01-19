@@ -1,6 +1,5 @@
 <template lang="html">
-    <div>
-        <div class="form-group">
+    <div class="top-buffer bottom-buffer">
             <label :id="id" for="label" class="inline" >{{ label }}</label>
             <template v-if="help_text">
                 <HelpText :help_text="help_text" />
@@ -21,8 +20,7 @@
 		<ckeditor v-model="value" :config="editorConfig" :readonly="readonly" class="form-control" :name="name" :required="isRequired" ></ckeditor>
                 <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired" v-model="value"></textarea><br/>
                 -->
-		<ckeditor v-model="value" :config="editorConfig" :readonly="readonly" class="form-control" :name="name" :required="isRequired" ></ckeditor>
-        </div>
+		<ckeditor v-model="field_data.value" :config="editorConfig" :read-only="readonly" :name="name" :required="isRequired" ></ckeditor>
     </div>
 </template>
 
@@ -32,25 +30,15 @@ import HelpText from './help_text.vue';
 import HelpTextUrl from './help_text_url.vue';
 import { mapActions } from 'vuex';
 
-import Vue from 'vue';
-Vue.use( CKEditor  );
-
 export default {
     props:["type","name","id", "field_data","isRequired","help_text","label","readonly", "help_text_url"],
     components: {CommentBlock, HelpText, HelpTextUrl},
     data(){
         let vm = this;
         return {
-            //editorData: '<p>Content of the editor.</p>',
             editorConfig: {
                 // The configuration of the editor.
-                toolbar: [
-                    [ '-', 'Bold', 'Italic' ],
-                    [ 'Format' ],
-                    [ 'NumberedList', 'BulletedList' ],
-                    [ 'Table' ],
-                ],
-                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+                removeButtons: 'Source,About' 
             },
         }
     },
@@ -65,7 +53,7 @@ export default {
 </script>
 
 <style lang="css">
-    input {
-        box-shadow:none;
+    .collapse-link-top,.collapse-link-bottom{
+        cursor:pointer;
     }
 </style>

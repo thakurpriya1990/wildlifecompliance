@@ -220,9 +220,6 @@ import {helpers,api_endpoints} from "@/utils/hooks.js"
 import { mapGetters } from 'vuex'
 import filefield from '@/components/common/compliance_file.vue'
 
-import Vue from 'vue';
-Vue.use( CKEditor  );
-
 export default {
     name:'Proposed-Licence',
     components:{

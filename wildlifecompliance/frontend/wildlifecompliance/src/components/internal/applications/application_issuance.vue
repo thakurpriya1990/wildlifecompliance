@@ -273,9 +273,6 @@ from '@/utils/hooks'
 import { mapGetters, mapActions } from 'vuex'
 import filefield from '@/components/common/compliance_file.vue'
 
-import Vue from 'vue';
-Vue.use( CKEditor  );
-
 export default {
     name: 'InternalApplicationIssuance',
     components:{
