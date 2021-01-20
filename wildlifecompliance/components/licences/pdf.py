@@ -1031,8 +1031,8 @@ def html_to_rl(html, styleSheet, start_counter=0):
 
                         __print_nested(val[k],nesting)
 
-            ol=soup.body.ol
-            ol_dict = __dictify(ol)
+            #ol=soup.body.ol
+            ol_dict = __dictify(soup.ol)
             __print_nested(ol_dict)
 
         def _clear(self):

@@ -8,6 +8,8 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 import json
 import reversion
+from ckeditor.fields import RichTextField
+
 from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
@@ -211,7 +213,8 @@ class PurposeSpecies(models.Model):
     licence_purpose = models.ForeignKey(LicencePurpose, related_name='purpose_species')
     order = models.IntegerField(default=1)
     header = models.CharField(max_length=255)
-    details = models.TextField()
+    #details = models.TextField()
+    details = RichTextField(config_name='pdf_config')
     species = models.NullBooleanField()
     is_additional_info = models.BooleanField(default=False)
 
