@@ -65,4 +65,10 @@ class ApplicationAdmin(VersionAdmin):
 
 @admin.register(models.ApplicationStandardCondition)
 class ApplicationStandardConditionAdmin(admin.ModelAdmin):
-    list_display = ['code', 'short_description', 'obsolete']
+    list_display = ['id', 'code', 'short_description', 'obsolete']
+
+
+@admin.register(models.ApplicationSelectedActivityPurpose)
+class ApplicationSelectedActivityPurposeAdmin(admin.ModelAdmin):
+    list_display = ['id', 'purpose', 'purpose_status']
+

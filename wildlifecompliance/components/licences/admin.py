@@ -49,6 +49,9 @@ class LicencePurposeAdmin(admin.ModelAdmin):
     ]
     #pass
 
+#@admin.register(models.PurposeSpecies)
+#class PurposeSpeciesAdmin(admin.ModelAdmin):
+#    list_display = ['id', 'header']
 
 @admin.register(models.LicenceSpecies)
 class LicenceSpeciesAdmin(admin.ModelAdmin):
