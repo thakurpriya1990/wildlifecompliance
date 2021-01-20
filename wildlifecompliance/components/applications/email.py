@@ -508,7 +508,7 @@ def send_application_issue_notification(
             mime = mimetypes.guess_type(document.name)[0]
             documents.append((document.name, content, mime))
         
-        if not copy_emails:
+        if not copy_emails and activity.cc_email:
             copy_emails = activity.cc_email.split(',')
 
     msg = email.send(
