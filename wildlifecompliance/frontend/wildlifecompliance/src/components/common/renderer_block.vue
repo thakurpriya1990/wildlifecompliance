@@ -50,6 +50,7 @@
             :label="component.label"
             :help_text="help_text"
             :isRequired="component.isRequired"
+            :can_view_richtext_src="can_view_richtext_src"
             :help_text_url="help_text_url"/>
 
         <TextField v-if="component.type === 'text'"
@@ -399,6 +400,9 @@ const RendererBlock = {
         'isComponentVisible',
         'isComponentEditableForOfficer',
     ]),
+    can_view_richtext_src: function() {
+        return this.application.can_view_richtext_src ? this.application.can_view_richtext_src : false;
+    },
     is_readonly: function() {
         return this.component.readonly ? this.component.readonly : this.application.readonly ? !this.isComponentEditableForOfficer : this.application.readonly;
     },

@@ -23,14 +23,27 @@ import HelpTextUrl from './help_text_url.vue';
 import { mapActions } from 'vuex';
 
 export default {
-    props:["type","name","id", "field_data","isRequired","help_text","label","readonly", "help_text_url"],
+    props:["type","name","id", "field_data","isRequired","help_text","label","readonly", "help_text_url", "can_view_richtext_src"],
     components: {CommentBlock, HelpText, HelpTextUrl},
     data(){
         let vm = this;
+        if (vm.can_view_richtext_src) {
+            var remove_buttons = ''
+	} else {
+            var remove_buttons = 'Source,About'
+	}
+
         return {
             editorConfig: {
                 // The configuration of the editor.
-                removeButtons: 'Source,About' 
+                removeButtons: remove_buttons,
+
+		// below line removes toolbar 
+                //toolbar: [],
+
+                // remove bottom bar
+                removePlugins: 'elementspath',
+                resize_enabled: false, 
             },
         }
     },

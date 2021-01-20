@@ -899,6 +899,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
     can_pay_application = serializers.SerializerMethodField(read_only=True)
     can_pay_licence = serializers.SerializerMethodField(read_only=True)
     licence_type_name = serializers.SerializerMethodField(read_only=True)
+    can_view_richtext_src = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -954,8 +955,12 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'is_return_check_accept',
             'can_pay_licence',
             'can_pay_application',
+            'can_view_richtext_src',
         )
         read_only_fields = ('documents',)
+
+    def get_can_view_richtext_src(self, obj):
+        return self.context['request'].user.is_superuser
 
     def get_documents_url(self, obj):
         return '/media/applications/{}/documents/'.format(obj.id)
@@ -1275,6 +1280,7 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
     #activities = ApplicationSelectedActivitySerializer(many=True, read_only=True)
     payment_url = serializers.SerializerMethodField(read_only=True)
     all_payments_url = serializers.SerializerMethodField(read_only=True)                                   # 1.7s
+    can_view_richtext_src = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
@@ -1303,11 +1309,15 @@ class DTInternalApplicationSerializer(BaseApplicationSerializer):
             'invoice_url',
             'payment_url',
             'all_payments_url',
+            'can_view_richtext_src',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data'
         # defined are requested from the serializer. Use datatables_always_serialize to force render
         # of fields that are not listed as 'data' in the datatable columns
         datatables_always_serialize = fields
+
+    def get_can_view_richtext_src(self, obj):
+        return self.context['request'].user.is_superuser
 
     def get_user_in_officers(self, obj):
         groups = obj.get_permission_groups(['licensing_officer','issuing_officer']).values_list('id', flat=True)
