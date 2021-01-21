@@ -130,7 +130,8 @@ export default {
                         data: "licence",
                         mRender:function (data,type,full) {
                             return full.licence;
-                        }
+                        },
+                        searchable: false
                     },
                     {
                         data: "can_be_processed",
@@ -149,11 +150,19 @@ export default {
                                     `<a href='/external/return/${full.id}'>Continue</a><br/>` : `<a href='/external/return/${full.id}'>View</a><br/>`;                
                             }
                             return links;
-                        }
+                        },
+                        searchable: false
                     },
                 ],
                 processing: true,
                 initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.$refs.return_datatable.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
                     // Grab Status from the data in the table
                     var titleColumn = vm.$refs.return_datatable.vmDataTable.columns(2);
                     titleColumn.data().unique().sort().each( function ( d, j ) {
@@ -213,6 +222,16 @@ export default {
                  }
              });
              // End of Due Date Filters
+        },
+        delay(callback, ms) {
+            var timer = 0;
+            return function () {
+                var context = this, args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    callback.apply(context, args);
+                }, ms || 0);
+            };
         },
         initialiseSearch:function(){
             this.dateSearch();

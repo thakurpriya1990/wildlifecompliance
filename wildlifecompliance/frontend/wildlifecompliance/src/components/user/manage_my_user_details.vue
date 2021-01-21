@@ -79,7 +79,7 @@
                   <div class="panel-body collapse" :id="idBody">
                       <form class="form-horizontal" name="id_form" method="post">
                           <div class="form-group">
-                            <span class="col-sm-12" >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Attach a scan of the photo page of your passport or the photo side of your drivers licence.</span>
+                            <span class="col-sm-12" >&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Attach a scan of the complete photo page of your passport or the complete photo side of your driver’s licence showing full name, date of birth and photo.</span>
                           </div>
                           <div class="form-group">
                             <label class="col-sm-3 control-label">Identification</label>
