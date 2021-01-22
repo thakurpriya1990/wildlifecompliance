@@ -16,6 +16,7 @@ SYSTEM_MAINTENANCE_WARNING = env('SYSTEM_MAINTENANCE_WARNING', 24)  # hours
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles_wc')
 SHOW_DEBUG_TOOLBAR = env('SHOW_DEBUG_TOOLBAR', False)
+APPEND_SOURCE_TO_RICHTEXT_ADMIN = env('APPEND_SOURCE_TO_RICHTEXT_ADMIN', False)
 
 if SHOW_DEBUG_TOOLBAR:
 #    def get_ip():
@@ -83,7 +84,8 @@ CKEDITOR_CONFIGS = {
             ['Bold', 'Italic', 'Underline'],
             ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
             ['Link', 'Unlink'],
-            ['RemoveFormat', 'Source']
+            ['RemoveFormat'],
+            #[ 'Source']
         ]
     },
     'pdf_config': {
@@ -93,10 +95,14 @@ CKEDITOR_CONFIGS = {
             [ 'Format' ],
             [ 'NumberedList', 'BulletedList' ],
             [ 'Table' ],
-            [ 'Source']
+            #[ 'Source']
         ]
     },
 }
+
+if APPEND_SOURCE_TO_RICHTEXT_ADMIN:
+    CKEDITOR_CONFIGS['pdf_config']['toolbar_Custom'].append(['Source'])
+
 
 ADD_REVERSION_ADMIN = True
 
