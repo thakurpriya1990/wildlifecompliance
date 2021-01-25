@@ -13,6 +13,7 @@
             <CommentBlock :label="label" :name="name" :field_data="field_data" />
 
 	    <ckeditor v-model="field_data.value" :config="editorConfig" :read-only="readonly" :name="name" :required="isRequired" ></ckeditor>
+        </div>
     </div>
 </template>
 
