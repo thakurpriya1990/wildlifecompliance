@@ -2976,7 +2976,7 @@ class Application(RevisionedMixin):
                         = parent_licence.licence_document
                     latest_application_in_function.save()
 
-            except BaseException as e:
+            except Exception as e:
                 logger.error('issue_activity() ID {} - {}'.format(
                     self.id, e))
                 raise
@@ -3338,8 +3338,8 @@ class Application(RevisionedMixin):
                 # Send out any refund notifications.
                 self.alert_for_refund(request)
 
-            except BaseException:
-                raise
+            except Exception as e:
+                raise Exception("Final decision error: {}".format(e))
 
         if self.submit_type == Application.SUBMIT_TYPE_ONLINE \
           and failed_payment_activities:

@@ -297,8 +297,8 @@ class ReturnSpeciesUtility(ReturnUtility):
 
                 self.set_species_list(a_species_list)
 
-        except BaseException as e:
-            logger.error('{0} ReturnID: {1} - {2}'.format(
+        except Exception as e:
+            raise Exception('{0} ReturnID: {1} - {2}'.format(
                 'ReturnSpeciesUtil.set_species_list_future()',
                 self._return.id,
                 e
@@ -328,8 +328,8 @@ class ReturnSpeciesUtility(ReturnUtility):
             if return_table:
                 ReturnTable.objects.bulk_create(return_table)
 
-        except BaseException as e:
-            logger.error('{0} ReturnID: {1} - {2}'.format(
+        except Exception as e:
+            raise Exception('{0} ReturnID: {1} - {2}'.format(
                 'ReturnSpeciesUtil.set_species_list()',
                 self._return.id,
                 e
@@ -404,8 +404,8 @@ class ReturnSpeciesUtility(ReturnUtility):
             logger.warn('{0} ReturnID: {1}'.format(
                 'No Species list available.', self._return.id
             ))
-        except BaseException as e:
-            logger.error('{0} ReturnID: {1} - {2}'.format(
+        except Exception as e:
+            raise Exception('{0} ReturnID: {1} - {2}'.format(
                 'ReturnSpeciesUtility.set_raw_species_list()',
                 self._return.id, e
             ))

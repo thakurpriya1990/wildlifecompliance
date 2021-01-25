@@ -882,7 +882,9 @@ class HtmlParser(object):
             if not self.soup.table:
                 return []
 
-            col_name = self.soup.table["species_col"]
+            #col_name = self.soup.table["species_col"]
+            col_name = 'Common Name'
+
             for tbl in self.tables:
                 for i, row in enumerate(tbl):
                     if i==0:
@@ -890,7 +892,7 @@ class HtmlParser(object):
                     else:
                         self.species.append(row[idx])
         except ValueError as e:
-            logger.warn('Species name not found in HTML. \n{}'.format(e))
+            raise Exception('Species name  (** Table column "Common Name") not found in HTML. \n{}'.format(e))
         except KeyError as e:
             logger.warn('Species attribute <species_col> not found in HTML table definition. \n{}'.format(e))
 
