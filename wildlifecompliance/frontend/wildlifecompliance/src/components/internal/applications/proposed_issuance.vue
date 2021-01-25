@@ -228,17 +228,18 @@ export default {
         filefield,
     },
     props:{
+        can_view_richtext_src: Boolean,
     },
     data:function () {
         let vm = this;
-        if (vm.canViewRichTextSrc) {
+        if (vm.can_view_richtext_src) {
             var toolbar_options = [
-                [ 'Source' ],
                 [ '-', 'Bold', 'Italic' ],
                 [ 'Format' ],
                 [ 'NumberedList', 'BulletedList' ],
                 //[ 'Indent', 'Outdent' ],
                 [ 'Table' ],
+                [ 'Source' ],
             ]
 	} else {
             var toolbar_options = [
@@ -302,9 +303,6 @@ export default {
             'canAssignOfficerFor',
             'selected_activity_tab_id',
         ]),
-        canViewRichTextSrc: function() {
-            return this.application.can_view_richtext_src;
-        },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
         },

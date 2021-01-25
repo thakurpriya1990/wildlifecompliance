@@ -589,7 +589,7 @@
     </div>
     <ProposedDecline ref="proposed_decline" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
     <AmendmentRequest ref="amendment_request" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-    <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse"></ProposedLicence>
+    <ProposedLicence ref="proposed_licence" @refreshFromResponse="refreshFromResponse" :can_view_richtext_src="application.can_view_richtext_src"></ProposedLicence>
 
     </div>
     <div v-else>
