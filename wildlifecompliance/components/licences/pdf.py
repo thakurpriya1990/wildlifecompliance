@@ -988,7 +988,17 @@ def html_to_rl(html, styleSheet, start_counter=0):
             return rows
 
         def _parse_nested_list(self):
-            def __dictify(ul):
+            def _strip_tags(soup_ol):
+                new_str = str(soup_ol) \
+                    .replace('<strong>','') \
+                    .replace('</strong>','') \
+                    .replace('<em>','') \
+                    .replace('</em>','')
+
+                new_soup_ol = BeautifulSoup(new_str).ol
+                return new_soup_ol
+
+            def _dictify(soup_ol):
                 """ 
                     html = 
                     '''<ol>
@@ -1008,16 +1018,16 @@ def html_to_rl(html, styleSheet, start_counter=0):
 
                 """
                 result = {}
-                for li in ul.find_all("li", recursive=False):
+                for li in soup_ol.find_all("li", recursive=False):
                     key = next(li.stripped_strings)
                     ul = li.find("ul")
                     if ul:
-                        result[key] = __dictify(ul)
+                        result[key] = _dictify(ul)
                     else:
                         result[key] = None
                 return result
 
-            def __print_nested(val, nesting = -5):
+            def _print_nested(val, nesting = -5):
                 if type(val) == dict: 
                     nesting += 5 
                     for k in val: 
@@ -1031,11 +1041,12 @@ def html_to_rl(html, styleSheet, start_counter=0):
                         else:
                             elements.append(Paragraph(k, styleSheet["ListNestedLeftIndent"], bulletText=u"" + nesting*' ' + "-"))
 
-                        __print_nested(val[k],nesting)
+                        _print_nested(val[k],nesting)
 
             #ol=soup.body.ol
-            ol_dict = __dictify(soup.ol)
-            __print_nested(ol_dict)
+            soup_ol = _strip_tags(soup.ol)
+            ol_dict = _dictify(soup_ol)
+            _print_nested(ol_dict)
 
         def _clear(self):
             self.buffer = ""

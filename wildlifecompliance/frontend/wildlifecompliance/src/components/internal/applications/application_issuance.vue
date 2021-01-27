@@ -103,7 +103,7 @@
                                                                             -->
                                                                             <div class="col-sm-12">
                                                                                 <div class="col-sm-2">
-                                                                                    <label class="control-label pull-left" for="Name">Details (app)</label>
+                                                                                    <label class="control-label pull-left" for="Name">Details</label>
                                                                                 </div>
                                                                                 <div class="col-sm-8">
                                                                                     <!--
