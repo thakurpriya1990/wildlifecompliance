@@ -492,7 +492,12 @@ ResponsiveDatatablesHelper.prototype.showRowDetail = function (responsiveDatatab
         if (!responsiveDatatablesHelperInstance.options.hideEmptyColumnsInRowDetail || td.innerHTML.trim().length) {
             var li = $(responsiveDatatablesHelperInstance.rowLiTemplate);
             var hiddenColumnName = $(columns[index]).attr('data-name');
-            $('.columnTitle', li).html(hiddenColumnName !== undefined ? hiddenColumnName : columns[index].innerHTML);
+            // Extracting text from a DOM node and interpreting it as HTML can lead to a XSS vulnerability
+            // when resolving hiddenColumnName.
+            // $('.columnTitle', li).html(hiddenColumnName !== undefined ? hiddenColumnName : columns[index].innerHTML);
+            hiddenColumnName = hiddenColumnName !== undefined ? hiddenColumnName : columns[index].innerHTML;
+            $('.columnTitle', li).html(hiddenColumnName);
+            //
             var contents = $(td).contents();
             var clonedContents = contents.clone();
 
