@@ -3406,7 +3406,7 @@ class Application(RevisionedMixin):
         ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
         today = timezone.now().date()
         timedelta = datetime.timedelta
-        for condition in self.conditions.all():
+        for condition in self.selected_activity.get_condition_list():
             try:
                 if condition.return_type and condition.due_date and condition.due_date >= today:
                     current_date = condition.due_date
@@ -5458,6 +5458,17 @@ class ApplicationSelectedActivity(models.Model):
         ).first()
 
         return has_amendment
+
+    def get_condition_list(self):
+        '''
+        Get a list of conditions for this Selected Activity.
+        '''
+        condition_list = ApplicationCondition.objects.filter(
+            application_id=self.application.id,
+            licence_activity_id=self.licence_activity.id
+        )
+
+        return condition_list
 
     def get_activity_to_replace(self):
 
