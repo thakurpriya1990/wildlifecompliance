@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 import json
 import reversion
+import logging
 from ckeditor.fields import RichTextField
 
 from ledger.licence.models import LicenceType
@@ -20,6 +21,8 @@ from wildlifecompliance.components.main.models import (
     Document
 )
 
+logger = logging.getLogger(__name__)
+# logger = logging
 
 def update_licence_doc_filename(instance, filename):
     return 'wildlifecompliance/licences/{}/documents/{}'.format(
@@ -658,7 +661,7 @@ class WildlifeLicence(models.Model):
         # activities for this licence in current or suspended.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+                # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         ]
         # latest purposes on the activities which are issued or reissued.
@@ -953,6 +956,7 @@ class WildlifeLicence(models.Model):
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
         )
+        logger.debug('Licence.apply_action_to_purpose() - start')
         CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
         SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
         SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
@@ -987,8 +991,8 @@ class WildlifeLicence(models.Model):
 
             # A Reissue on Activity Purpose occurs on the selected Activity
             # only and does apply to all activities.
-            # TODO:AYN requirement that reissue of active licence purposes only
-            # from the same licence application.
+            # NOTE: Multiple Purposes can exist on the selected Activity and
+            # must only reissue one purpose.
             if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
                 can_action_purposes_ids_list = purpose_ids_list
                 # licence_activity_id = purpose_ids_list[0]
@@ -1171,6 +1175,8 @@ class WildlifeLicence(models.Model):
                 for activity in original_activities:
                     activity.mark_as_replaced(request)
 
+        logger.debug('Licence.apply_action_to_purpose() - end')
+
     @property
     def purposes_available_to_add(self):
         """
@@ -1269,33 +1275,33 @@ class WildlifeLicence(models.Model):
         '''
         Returns selected licence purposes for this licence in sequence order.
         '''
-        from wildlifecompliance.components.applications.models import (
-            ApplicationSelectedActivityPurpose,
-            ApplicationSelectedActivity,
-        )
-        purposes = []
-        # activities for this licence in current or suspended.
-        activity_status = [
-                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-        ]
-        # latest purposes on the activities which are issued or reissued.
-        purpose_process_status = [
-            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
-            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
-        ]
+        # from wildlifecompliance.components.applications.models import (
+        #     ApplicationSelectedActivityPurpose,
+        #     ApplicationSelectedActivity,
+        # )
+        # purposes = []
+        # # activities for this licence in current or suspended.
+        # activity_status = [
+        #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+        #         # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        # ]
+        # # latest purposes on the activities which are issued or reissued.
+        # purpose_process_status = [
+        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        # ]
 
-        activity_ids = [
-            a.id for a in self.current_application.get_current_activity_chain(
-                activity_status__in=activity_status
-            )
-        ]
+        # activity_ids = [
+        #     a.id for a in self.current_application.get_current_activity_chain(
+        #         activity_status__in=activity_status
+        #     )
+        # ]
 
-        purposes = ApplicationSelectedActivityPurpose.objects.filter(
-            selected_activity__in=activity_ids,
-            processing_status__in=purpose_process_status
-        ).order_by('purpose_sequence')
+        # purposes = ApplicationSelectedActivityPurpose.objects.filter(
+        #     selected_activity__in=activity_ids,
+        #     processing_status__in=purpose_process_status
+        # ).order_by('purpose_sequence')
 
         purposes = self.get_proposed_purposes_in_applications()
 
