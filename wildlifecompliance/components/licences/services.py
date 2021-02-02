@@ -209,8 +209,9 @@ class LicenceService(object):
         '''
         the_list = None
         try:
-            on_licence_actioner = LicenceActioner(licence)
-            the_list = on_licence_actioner.get_latest_activities_for_request()
+            actioner = LicenceActioner(licence)
+            # the_list = actioner.get_latest_activities_for_request()
+            the_list = actioner.get_latest_activity_purposes_for_request()
 
         except Exception as e:
             logger.error('ERR get_activities_list_for() ID {0}: {1}'.format(
@@ -531,7 +532,7 @@ class LicenceActioner(LicenceActionable):
 
         # multiple activity purposes can exist. No action is available if
         # an open licence amendment application for activity purpose exist.
-        if activity.has_licence_amendment():
+        if activity.has_licence_amendment(purpose_list):
             return can_action
 
         # can_amend is true if the activity can be included in a Amendment
@@ -624,12 +625,12 @@ class LicenceActioner(LicenceActionable):
 
         can_action['can_suspend'] = current and len(suspendable)
 
-        # can_reissue is true if the activity can be included in a Reissue
+        # can_reissue is true if the activity can be included in a Reissue.
         # Application Extra exclude for SUSPENDED due to
         # get_current_activities_for_application_type intentionally not
         # excluding these as part of the default queryset disable if there are
         # any open applications to maintain licence sequence data integrity.
-        if not activity.has_licence_amendment():
+        if not activity.has_licence_amendment(purpose_list):
             current = self.get_current_activities_for_application_type(
                 Application.APPLICATION_TYPE_REISSUE,
                 activity_ids=[activity.id]
@@ -651,6 +652,86 @@ class LicenceActioner(LicenceActionable):
         can_action['can_reinstate'] = len(reinstatable)
 
         return can_action
+
+    def get_latest_activity_purposes_for_request(self, request=None):
+        '''
+        Gets a list of current selected licence activities available on this
+        licence for an action request. The list is a set of purposes for each
+        activity on the licence which can be actioned.
+
+        :return list of actionable current selected licence activity purposes.
+        '''
+        latest_activity_purposes = {}
+
+        licence_purposes = [
+            p for p in self.licence.get_purposes_in_sequence()
+            if p.is_issued
+        ]
+
+        if self.licence.is_latest_in_category:
+            purposes_in_open_applications = list(
+                self.licence.get_purposes_in_open_applications())
+        else:
+            purposes_in_open_applications = None
+
+        sequence = 0
+
+        # for activity in latest_activities:
+        for purpose in licence_purposes:
+
+            activity = purpose.selected_activity
+
+            if not purpose.purpose_id in purposes_in_open_applications or\
+                    purposes_in_open_applications == []:
+
+                activity_can_action = self.can_action_purposes(
+                    [purpose.purpose_id],
+                    activity,
+                )
+
+            else:
+                activity_can_action = {
+                    'licence_activity_id': activity.licence_activity_id,
+                    'can_renew': False,
+                    'can_amend': False,
+                    'can_surrender': False,
+                    'can_cancel': False,
+                    'can_suspend': False,
+                    'can_reissue': False,
+                    'can_reinstate': False,
+                }
+
+            sequence = sequence + 1
+            latest_activity_purposes[purpose] = {
+                'id': activity.id,
+                'licence_activity_id': activity.licence_activity_id,
+                'activity_purpose_id': purpose.id,
+                'activity_name_str': activity.licence_activity.name,
+                'issue_date': purpose.issue_date,
+                'start_date': purpose.start_date,
+                'expiry_date': '\n'.join([
+                    '{}'.format(purpose.expiry_date.strftime(
+                        '%d/%m/%Y') if purpose.expiry_date else '')
+                ]),
+                'activity_purpose_names_and_status': '\n'.join([
+                    '{} ({})'.format(
+                        purpose.purpose.name, purpose.purpose_status)
+                ]),
+                'can_action':
+                    {
+                        'licence_activity_id': activity.licence_activity_id,
+                        'can_renew': activity_can_action['can_renew'],
+                        'can_amend': activity_can_action['can_amend'],
+                        'can_surrender': activity_can_action['can_surrender'],
+                        'can_cancel': activity_can_action['can_cancel'],
+                        'can_suspend': activity_can_action['can_suspend'],
+                        'can_reissue': activity_can_action['can_reissue'],
+                        'can_reinstate': activity_can_action['can_reinstate'],
+                    },
+                'sequence': sequence,
+            }
+
+        return latest_activity_purposes.values()
 
     def get_latest_activities_for_request(self, request=None):
         '''

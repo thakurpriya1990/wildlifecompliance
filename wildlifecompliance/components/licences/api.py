@@ -775,6 +775,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
         licence_activity_id = request.GET.get('licence_activity')
         licence_no = request.GET.get('licence_no')
         select_activity_id = request.GET.get('select_activity')
+        select_purpose_id = request.GET.get('select_purpose')
         # active_applications are applications linked with licences that have CURRENT or SUSPENDED activities
         active_applications = Application.get_active_licence_applications(request, application_type)
         active_current_applications = active_applications.exclude(
@@ -903,7 +904,7 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 ]
                 p_ids = [
                     p.purpose_id for p in activitys[0].proposed_purposes.all()
-                    if p.is_issued
+                    if p.id == int(select_purpose_id)
                 ]
                 # amendable_purpose_ids = active_purpose_id2
                 amendable_purpose_ids = p_ids
@@ -915,8 +916,8 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                         'licence_activity_id', flat=True)
                 )
 
-        # Filter by Licence Category ID if specified or
-        # return empty queryset if available_purpose_records is empty for the Licence Category ID specified
+        # Filter by Licence Category ID if specified or return empty queryset 
+        # if available_purpose_records is empty for the Licence Category ID.
         if licence_category_id:
             if available_purpose_records:
                 available_purpose_records = available_purpose_records.filter(
@@ -926,8 +927,11 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             else:
                 queryset = LicenceCategory.objects.none()
 
-        # Filter out LicenceCategory objects that are not linked with available_purpose_records
-        queryset = queryset.filter(activity__purpose__in=available_purpose_records).distinct()
+        # Filter out LicenceCategory objects that are not linked with 
+        # available_purpose_records.
+        # queryset = queryset.filter(
+        #     activity__purpose__in=available_purpose_records
+        # ).distinct()
 
         # Set any changes to base fees.
         if application_type == Application.APPLICATION_TYPE_AMENDMENT:

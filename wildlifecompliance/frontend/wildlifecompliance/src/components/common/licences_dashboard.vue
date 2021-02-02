@@ -384,8 +384,8 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[amend-activity]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Amend Activity",
-                    text: "Are you sure you want to amend this activity?",
+                    title: "Amend Purpose Activity",
+                    text: "Are you sure you want to amend this purpose activity?",
                     type: "question",
                     showCancelButton: true,
                     confirmButtonText: 'Accept'
@@ -396,9 +396,10 @@ export default {
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = $(this).attr('amend-activity');
                         var select_activity_id = $(this).attr('select-activity');
+                        var select_purpose_id = $(this).attr('select-purpose');
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id, select_purpose_id);
                     }
                 },(error) => {
                 });
@@ -852,7 +853,7 @@ export default {
                                 <td>`;
                                     if (vm.is_external && activity['can_action']['can_amend']) {
                                         activity_rows +=
-                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' amend-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
+                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' amend-activity='${activity["licence_activity_id"]}' select-purpose='${activity["activity_purpose_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
                                     }
                                     if (vm.is_external && activity['can_action']['can_renew']) {
                                         activity_rows +=
@@ -996,7 +997,7 @@ export default {
         getColumnIndex: function(column_name) {
             return this.licence_headers.map(header => header.toLowerCase()).indexOf(column_name.toLowerCase());
         },
-        routeApplyLicence:function (licence_no, licence_category_id, licence_activity_id, select_activity_id) {
+        routeApplyLicence:function (licence_no, licence_category_id, licence_activity_id, select_activity_id, select_purpose_id) {
             this.setApplicationWorkflowState({bool: true});
             return this.$router.push({
                 name: "apply_application_licence",
@@ -1005,6 +1006,7 @@ export default {
                     licence_activity: licence_activity_id,
                     licence_no: licence_no,
                     select_activity: select_activity_id,
+                    select_purpose: select_purpose_id,
                 }
             });
         },
