@@ -16,6 +16,11 @@ ENV SITE_DOMAIN='dbca.wa.gov.au'
 ENV OSCAR_SHOP_NAME='Department of Biodiversity, Conservation and Attractions'
 ENV BPAY_ALLOWED=False
 
+# For app.js, manifest.js, vendor.js versioning (default value set to 0.0.0)
+ARG build_tag=0.0.0
+ENV BUILD_TAG=$build_tag
+RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
+
 # Install Python libs from base environment.
 RUN apt-get clean
 RUN apt-get update
