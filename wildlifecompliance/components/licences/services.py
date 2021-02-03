@@ -662,6 +662,7 @@ class LicenceActioner(LicenceActionable):
         :return list of actionable current selected licence activity purposes.
         '''
         latest_activity_purposes = {}
+        opened_proposed_purposes = []
 
         licence_purposes = [
             p for p in self.licence.get_purposes_in_sequence()
@@ -669,8 +670,19 @@ class LicenceActioner(LicenceActionable):
         ]
 
         if self.licence.is_latest_in_category:
-            purposes_in_open_applications = list(
-                self.licence.get_purposes_in_open_applications())
+            # purposes_in_open_applications = list(
+            #     self.licence.get_purposes_in_open_applications())
+
+            # Use proposed purpose to ensure multiple purposes of the same type
+            # are included.
+            opened_proposed_purpose_ids = None
+            opened_proposed_purposes = \
+                self.licence.get_proposed_purposes_in_open_applications()
+            if len(opened_proposed_purposes) > 0:
+                opened_proposed_purpose_ids = [
+                    p.purpose_id for p in opened_proposed_purposes
+                ]
+            purposes_in_open_applications = opened_proposed_purpose_ids
         else:
             purposes_in_open_applications = None
 
@@ -681,8 +693,10 @@ class LicenceActioner(LicenceActionable):
 
             activity = purpose.selected_activity
 
-            if not purpose.purpose_id in purposes_in_open_applications or\
-                    purposes_in_open_applications == []:
+            # if not purpose.purpose_id in purposes_in_open_applications or\
+            #         purposes_in_open_applications == []:
+            if not purpose in opened_proposed_purposes \
+                    or opened_proposed_purposes == []:
 
                 activity_can_action = self.can_action_purposes(
                     [purpose.purpose_id],

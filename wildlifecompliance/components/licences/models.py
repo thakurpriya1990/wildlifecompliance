@@ -624,6 +624,7 @@ class WildlifeLicence(models.Model):
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity)
 
+        logger.debug('WildlifeLicence.get_purposes_in_open_apps() - start')
         open_applications = Application.objects.filter(
             Q(org_applicant=self.current_application.org_applicant)
             if self.current_application.org_applicant
@@ -646,6 +647,47 @@ class WildlifeLicence(models.Model):
             'licence_purposes',
             flat=True)
 
+        logger.debug('WildlifeLicence.get_purposes_in_open_apps() - end')
+        return open_purposes
+
+    def get_proposed_purposes_in_open_applications(self):
+        '''
+        Get proposed purposes which are currently in an application being 
+        processed.
+
+        :return list of ApplicationSelectedActivityPurpose records.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            Application, ApplicationSelectedActivity)
+
+        logger.debug('WildlifeLicence.get_proposed_purposes_in_open() - start')
+        open_purposes = []
+
+        open_applications = Application.objects.filter(
+            Q(org_applicant=self.current_application.org_applicant)
+            if self.current_application.org_applicant
+            else Q(proxy_applicant=self.current_application.proxy_applicant)
+            if self.current_application.proxy_applicant
+            else Q(
+                submitter=self.current_application.submitter,
+                proxy_applicant=None,
+                org_applicant=None)
+        ).computed_filter(
+            licence_category_id=self.licence_category.id
+        ).exclude(
+            selected_activities__processing_status__in=[
+                ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED
+            ]
+        )
+
+        for application in open_applications:
+            purposes = application.get_proposed_purposes()
+            if purposes:
+                open_purposes += purposes
+
+        logger.debug('WildlifeLicence.get_proposed_purposes_in_open() - end')
         return open_purposes
 
     def get_proposed_purposes_in_applications(self):

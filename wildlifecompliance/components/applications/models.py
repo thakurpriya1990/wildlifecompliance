@@ -2905,7 +2905,7 @@ class Application(RevisionedMixin):
         #     # All licence purpose ids on this application.
         # ).values_list('id', flat=True)
 
-        # All active license purposes on the Wildlife License.
+        # All active license purposes on this application.
         all_purpose = self.get_proposed_purposes()
         all_purpose_ids = [p.purpose_id for p in all_purpose]
 
@@ -5434,6 +5434,43 @@ class ApplicationSelectedActivity(models.Model):
 
         return sequence_no
 
+    def get_activity_to_replace(self):
+        '''
+        Get the previously issued licence Activity with the correct license
+        Purpose that this Application Selected Activity will replace.
+
+        :return an ApplicationSelectedActivity with correct license purpose.
+        '''
+        activity_to_replace = None
+
+        valid_status = [
+            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        ]
+
+        # current_activities = self.application.get_current_activity_chain()
+        # NOTE: If applying activity_chain all purposes of the same type will
+        # be selected and will be difficult to distinguish which to replace.
+        # Select relevant using the previous application.
+        current_activities = ApplicationSelectedActivity.objects.filter(
+            application_id=self.application.previous_application,
+            activity_status__in=valid_status,
+        )
+
+        # NOTE: Multiple purposes of the same type can exist on a License but
+        # but only one instance on a Selected Activity. Ensure the correct
+        # Purpose on Activity is selected for replacement.
+        for activity in current_activities:
+            purposes = [    # use proposed purpose in Selected Activity.
+                p for p in activity.proposed_purposes.all()
+                if p.purpose in self.purposes
+            ]
+            if purposes:
+                activity_to_replace = activity
+
+        return activity_to_replace
+
     def set_selected_purpose_sequence(self, p_id, sequence_no):
         '''
         Set all Selected Purposes for the activity to the same sequence number.
@@ -5541,11 +5578,17 @@ class ApplicationSelectedActivity(models.Model):
 
     def has_licence_amendment(self, purpose_list=[]):
         '''
+        A check to indicate whether this application selected activity is for a
+        license with an opened amendment application having the same license
+        activity and purposes.
+
+        :param purpose_list containing purpose ids to be filtered on.
+        :return boolean.
         '''
         logger.debug('AppSelectedActivity.has_licence_amendment - start()')
         has_amendment = False
         valid_status = [
-            # Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_UNDER_REVIEW,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
@@ -5554,6 +5597,7 @@ class ApplicationSelectedActivity(models.Model):
 
         amendments = Application.objects.filter(
             previous_application_id=self.application.id,
+            application_type=Application.APPLICATION_TYPE_AMENDMENT,
             customer_status__in=valid_status,
         )
 
@@ -5601,22 +5645,6 @@ class ApplicationSelectedActivity(models.Model):
         )
 
         return condition_list
-
-    def get_activity_to_replace(self):
-
-        valid_status = [
-            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
-        ]
-
-        replace = ApplicationSelectedActivity.objects.filter(
-            application_id=self.application.previous_application,
-            activity_status__in=valid_status,
-        ).first()
-
-        return replace
-
 
     def get_activity_from_previous(self):
         '''
