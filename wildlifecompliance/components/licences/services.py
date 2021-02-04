@@ -73,6 +73,8 @@ class LicenceService(object):
 
                 on_licence_actioner = LicenceActioner(licence)
                 on_licence_actioner.apply_action(request, REISSUE)
+                application = on_licence_actioner.actioned_application
+                licence.current_application = application                   
 
         except Exception as e:
             logger.error('ERR request_reissue_licence() ID {0}: {1}'.format(
@@ -406,6 +408,7 @@ class LicenceActioner(LicenceActionable):
     A representation of a Licence that can be actioned.
     '''
     licence = None                  # Composite licence.
+    actioned_application = None
     actioned_purposes = None
     filter_on_action = None
 
@@ -490,7 +493,7 @@ class LicenceActioner(LicenceActionable):
             p for p in self.licence.get_proposed_purposes_in_applications()
             if p.purpose_status in self.filter_on_action
             and (
-                p.purpose.id in ids_list if ids_list else True
+                p.id in ids_list if ids_list else True
             )
             and (
                 p.selected_activity_id == int(selected_activity_id)
@@ -880,7 +883,7 @@ class LicenceActioner(LicenceActionable):
         licence activity_id and purposes list, the selected activity status
         will not be updated to allow further management of the activity.
         '''
-        purpose_ids_list = request.data.get('purpose_ids_list', None)
+        purpose_ids_list = request.data.get('purpose_ids_list', '0')
         selected_activity_id = request.data.get('selected_activity_id', None)
 
         def _log_selected_activity_request(_activity, _action):
@@ -921,30 +924,30 @@ class LicenceActioner(LicenceActionable):
 
         # Set purposes to be actioned on this actioner.
         self.filter_on_action = self.ACTIONS.get(action, self.ACTIVE)
-        self.set_actioned_purposes(purpose_ids_list, selected_activity_id)
+        self.set_actioned_purposes([purpose_ids_list], selected_activity_id)
 
         action_licence = True
         selected_user_action = None
         selected_activities = self.licence.latest_activities
 
-        if selected_activity_id:
+        if selected_activity_id:    # Action purpose from an Activity level.
             action_licence = False
             selected_activities = [
                 a for a in selected_activities
                 if a.id == int(selected_activity_id)
             ]
+            purpose_ids_list = [p.id for p in self.actioned_purposes]
 
         for selected_activity in selected_activities:
 
-            # build and order purposes on selected activity.
-            if action_licence:
+            self.actioned_application = selected_activity.application
+
+            if action_licence:      # Action purpose at Licence level.
                 purpose_ids_list = [
-                    p.purpose.id
+                    p.id
                     for p in selected_activity.proposed_purposes.all()
                     if p.is_issued
                 ]
-            purpose_ids_list = list(set(purpose_ids_list))
-            purpose_ids_list.sort()
 
             selected_activity.updated_by = request.user
 

@@ -700,11 +700,13 @@ class WildlifeLicence(models.Model):
             ApplicationSelectedActivity,
         )
 
-        # activities for this licence in current or suspended.
+        # status applicable for issued purpose which have a sequence number.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
         ]
         # latest purposes on the activities which are issued or reissued.
         purpose_process_status = [

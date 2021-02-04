@@ -5318,9 +5318,9 @@ class ApplicationSelectedActivity(models.Model):
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
-            return
+        # if not self.is_proposed_purposes_status(P_STATUS) and\
+        #    self.activity_status == A_STATUS:
+        #     return
 
         self.activity_status = A_STATUS
         self.save()
@@ -5333,25 +5333,26 @@ class ApplicationSelectedActivity(models.Model):
         P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
         REISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
 
-        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
-
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
-            return
-
-        # Update this activity status.
-        self.reissue()
-
         # Update purposes processing status so they can be re-issued.
         selected = [
             p for p in self.proposed_purposes.all()
-            if p.purpose.id in purpose_ids
+            if p.id in purpose_ids
         ]
         for purpose in selected:
             purpose.processing_status = REISSUE
             purpose.save()
 
-        return True
+        # Set the status for the selected proposed purposes.
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
+           # No setting of status for this selected Activity when another
+           # purpose is current.
+            return
+
+        # Update this activity status.
+        self.reissue()
 
     def reissue(self):
         '''
@@ -5500,15 +5501,22 @@ class ApplicationSelectedActivity(models.Model):
 
     def is_proposed_purposes_status(self, status):
         '''
-        Check all purposes on this activity have the same status. Used to check
-        if this activity is still current.
-        '''
-        not_same = [
-            p for p in self.proposed_purposes.all()
-            if not p.purpose_status == status
-        ]
+        Check all purposes on this activity have the same status. Where not the
+        same status then this Activity status must not be updated.
 
-        return not len(not_same)
+        :return boolean indicating this Activity status can be updated.
+        '''
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+        can_update_status = True
+
+        list_of_not_same = [
+            p for p in self.proposed_purposes.all()
+            if not p.purpose_status == status \
+                and not p.processing_status == DECLINE      # Excluded.
+        ]
+        can_update_status = not len(list_of_not_same) 
+
+        return can_update_status
 
     @transaction.atomic
     def set_proposed_purposes_status_for(self, ids, status):
@@ -5516,9 +5524,22 @@ class ApplicationSelectedActivity(models.Model):
         Set the status for the selected proposed purposes.
         '''
         is_updated = False
-        selected = [
-            p for p in self.proposed_purposes.all() if p.purpose.id in ids
-        ]
+        CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+ 
+        # Reinstate or Reissue select all applicable purposes for current. Else
+        # select applicable purposes which have a status of current. 
+        if status == CURRENT:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE
+            ]
+        else:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE 
+                and p.purpose_status == CURRENT
+            ]
 
         for purpose in selected:
             purpose.purpose_status = status
