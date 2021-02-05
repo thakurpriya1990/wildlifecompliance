@@ -228,6 +228,8 @@ class LicenceService(object):
         '''
         Verifies licences which have purposes about to expire and sends a
         notification the applicant.
+
+        :return a count of total renew notification sent.
         '''
         try:
             today = date.today()
@@ -266,7 +268,7 @@ class LicenceService(object):
             logger.error('ERR verify_licence_renewals: {0}'.format(e))
             raise Exception('Failed verifying licence renewal.')
 
-        return True
+        return licence_ids.count()
 
     @staticmethod
     def verify_licence_renewal_for(licence_id, request=None):
@@ -311,6 +313,8 @@ class LicenceService(object):
         '''
         Verifies licences requiring renewing by expiring licence purposes after
         their expiry date and sending out a renewal notification.
+
+        :return a count of licenses expired and re-generated.
         '''
         try:
             # raise Exception('LicenceService not implemented')
@@ -356,7 +360,7 @@ class LicenceService(object):
             logger.error('ERR verify_licence_renewal: {0}'.format(e))
             raise Exception('Failed verifying licence renewal.')
 
-        return True
+        return licence_ids.count()
 
     @staticmethod
     def verify_expired_licence_for(licence_id, request=None):
