@@ -408,25 +408,25 @@ export default {
         },
         eventListeners: function(){
             let vm = this;
-            // vm.$refs.contacts_datatable.vmDataTable.on('click','.remove-contact',(e) => {
-            //     e.preventDefault();
+            vm.$refs.contacts_datatable.vmDataTable.on('click','.remove-contact',(e) => {
+                e.preventDefault();
 
-            //     let name = $(e.target).data('name');
-            //     let email = $(e.target).data('email');
-            //     let id = $(e.target).data('id');
-            //     swal({
-            //         title: "Delete Contact",
-            //         text: "Are you sure you want to remove "+ name + "("+ email + ") as a contact  ?",
-            //         type: "error",
-            //         showCancelButton: true,
-            //         confirmButtonText: 'Accept'
-            //     }).then((result) => {
-            //         if (result.value) {
-            //             vm.deleteContact(id);
-            //         }
-            //     },(error) => {
-            //     });
-            // });
+                let name = $(e.target).data('name');
+                let email = $(e.target).data('email');
+                let id = $(e.target).data('id');
+                swal({
+                    title: "Delete Contact",
+                    text: "Are you sure you want to remove "+ name + "("+ email + ") as a contact  ?",
+                    type: "error",
+                    showCancelButton: true,
+                    confirmButtonText: 'Accept'
+                }).then((result) => {
+                    if (result.value) {
+                        vm.deleteContact(id);
+                    }
+                },(error) => {
+                });
+            });
             // Fix the table responsiveness when tab is shown
             $('a[href="#'+vm.oTab+'"]').on('shown.bs.tab', function (e) {
                 vm.$refs.applications_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
