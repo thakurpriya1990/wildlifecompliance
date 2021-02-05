@@ -5996,13 +5996,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Property to indicate that this purpose has expired or about to expire
         and can be renewed.
+
+        :return boolean indicating ok and not replaced with Renew application. 
         '''
         is_ok = False
 
         if self.purpose_status in self.RENEWABLE and self.sent_renewal:
             is_ok = True
 
-        return is_ok
+        return is_ok and not self.is_replaced()
 
     @property
     def is_active(self):
@@ -6284,6 +6286,30 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Reinstate this selected activity licence purpose.
         '''
         self.purpose_status = self.PURPOSE_STATUS_CURRENT
+
+    def is_replaced(self):
+        '''
+        Verifies if this selected purpose is going to be replaced by being
+        associated with a newer application. (amendments, renewals)
+
+        :return boolean indicating this selected purpose is being replaced.
+        '''
+        is_replacing = False
+
+        valid_status = [
+            Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_UNDER_REVIEW,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+            Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        ]
+
+        is_replacing = Application.objects.filter(
+            previous_application_id=self.selected_activity.application_id,
+            customer_status__in=valid_status
+        ).exists()
+
+        return is_replacing
 
     def get_purpose_from_previous(self):
         '''

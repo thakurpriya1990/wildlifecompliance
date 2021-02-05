@@ -548,7 +548,12 @@ class LicenceActioner(LicenceActionable):
                 activity_ids=[activity.id]
             ).exclude(activity_status=SUSPENDED).count() > 0
 
-        can_action['can_amend'] = current
+        amendable = [
+            p for p in activity.proposed_purposes.all() 
+            if p.is_issued and p.is_active and not p.is_replaced()
+        ]
+
+        can_action['can_amend'] = current and len(amendable)
 
         # can_renew is true if the activity can be included in a Renewal
         # Application Extra exclude for SUSPENDED due to get_current_activities
@@ -593,7 +598,7 @@ class LicenceActioner(LicenceActionable):
 
         surrenderable = [
             p for p in activity.proposed_purposes.all() 
-            if p.is_issued and p.is_active
+            if p.is_issued and p.is_active and not p.is_replaced()
         ]
 
         can_action['can_surrender'] = current and len(surrenderable)
