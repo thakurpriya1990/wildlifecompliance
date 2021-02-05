@@ -2,6 +2,9 @@ from django.core.management.base import BaseCommand
 
 import logging
 
+from wildlifecompliance.management.commands.emails import (
+    CommandsVerifyNotificationEmail
+)
 from wildlifecompliance.components.returns.services import (
     ReturnService,
 )
@@ -16,7 +19,12 @@ class Command(BaseCommand):
         try:
             logger.info('Running command {}'.format(__name__))
 
-            ReturnService.verify_due_returns()
+            total = ReturnService.verify_due_returns()
+
+            notify = CommandsVerifyNotificationEmail()
+            notify.set_verified_total(total)
+            notify.set_subject('verify_due_returns ran successfully')
+            notify.out()
 
             logger.info('Command {} finished'.format(__name__))
 
