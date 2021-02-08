@@ -238,6 +238,7 @@ export default {
         },(error) => {
             vm.spinner = false;
         });
+        vm.spinner = false;
     },
     handleRadioChange: function(e,index){
         let vm=this
