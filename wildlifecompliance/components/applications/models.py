@@ -6296,7 +6296,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         is_replacing = False
 
-        valid_status = [
+        app_customer_status = [                 # customer status to include.
             Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_UNDER_REVIEW,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
@@ -6304,10 +6304,22 @@ class ApplicationSelectedActivityPurpose(models.Model):
             Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
         ]
 
-        is_replacing = Application.objects.filter(
+        app_processing_status = [               # processing status to exclude.
+            Application.PROCESSING_STATUS_DECLINED,
+            Application.PROCESSING_STATUS_DISCARDED,
+        ]
+
+        applications = Application.objects.filter(
             previous_application_id=self.selected_activity.application_id,
-            customer_status__in=valid_status
-        ).exists()
+            customer_status__in=app_customer_status
+        )
+
+        is_replacing = len(
+            [
+                a for a in applications 
+                if a.processing_status not in app_processing_status
+            ]
+        )
 
         return is_replacing
 
