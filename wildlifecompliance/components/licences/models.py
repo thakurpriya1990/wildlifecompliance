@@ -877,46 +877,6 @@ class WildlifeLicence(models.Model):
             )
         ).filter(licence_category_id=self.licence_category.id).latest('id') == self
 
-    # @property
-    # def can_action(self):
-    #     # Returns DICT of can_<action> if any of the licence's
-    #     # latest_activities can be actioned
-    #     can_action = {
-    #         'can_amend': False,
-    #         'can_renew': False,
-    #         'can_reactivate_renew': False,
-    #         'can_surrender': False,
-    #         'can_cancel': False,
-    #         'can_suspend': False,
-    #         'can_reissue': False,
-    #         'can_reinstate': False,
-    #     }
-
-    #     # only check if licence is the latest in its category for the applicant
-    #     if self.is_latest_in_category:
-    #         # set True if any activities can be actioned
-    #         purposes_in_open_applications = self.get_purposes_in_open_applications()
-    #         for activity in self.latest_activities:
-    #             activity_can_action = activity.can_action(purposes_in_open_applications)
-    #             if activity_can_action.get('can_amend'):
-    #                 can_action['can_amend'] = True
-    #             if activity_can_action.get('can_renew'):
-    #                 can_action['can_renew'] = True
-    #             if activity_can_action.get('can_reactivate_renew'):
-    #                 can_action['can_reactivate_renew'] = True
-    #             if activity_can_action.get('can_surrender'):
-    #                 can_action['can_surrender'] = True
-    #             if activity_can_action.get('can_cancel'):
-    #                 can_action['can_cancel'] = True
-    #             if activity_can_action.get('can_suspend'):
-    #                 can_action['can_suspend'] = True
-    #             if activity_can_action.get('can_reissue'):
-    #                 can_action['can_reissue'] = True
-    #             if activity_can_action.get('can_reinstate'):
-    #                 can_action['can_reinstate'] = True
-
-    #     return can_action
-
     @property
     def has_inspection_open(self):
         """
