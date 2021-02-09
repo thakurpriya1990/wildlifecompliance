@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
             email = CommandsVerifyNotificationEmail()
             email.set_verified_total(total)
-            email.set_subject('verify_expired_licences ran successfully')
+            email.set_subject('verify_expired_licences was executed.')
             email.out()
 
             logger.info('Command {} finished'.format(__name__))

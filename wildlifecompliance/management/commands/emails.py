@@ -18,7 +18,7 @@ class CommandsVerifyNotificationEmail(TemplateEmailBase):
         '''
         Setter for email subject.
         '''
-        self.subject = '{0}: {1}.'.format(
+        self.subject = '{0}: {1}'.format(
             'WLC Script Command',
             subject,
         )

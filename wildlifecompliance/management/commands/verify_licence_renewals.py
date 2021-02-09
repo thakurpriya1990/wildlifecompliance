@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
             notify = CommandsVerifyNotificationEmail()
             notify.set_verified_total(total)
-            notify.set_subject('verified_licence_renewals ran successfully')
+            notify.set_subject('verified_licence_renewals was executed.')
             notify.out()
 
             logger.info('Command {} finished'.format(__name__))
