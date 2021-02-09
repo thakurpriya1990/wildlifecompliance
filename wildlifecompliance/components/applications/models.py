@@ -6318,6 +6318,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
             [
                 a for a in applications 
                 if a.processing_status not in app_processing_status
+                and self.purpose in a.licence_purposes.all()
             ]
         )
 
