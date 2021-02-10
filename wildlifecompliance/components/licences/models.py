@@ -733,6 +733,9 @@ class WildlifeLicence(models.Model):
         ApplicationSelectedActivityPurpose records available otherwise this
         licence is not current.
 
+        NOTE: WildlifeLicence is still current with Cancelled, Surrendered and
+        Suspended activities/purposes.
+
         :return: boolean.
         '''
         from wildlifecompliance.components.applications.models import (
@@ -743,10 +746,16 @@ class WildlifeLicence(models.Model):
         # status applicable for issued purpose which have a sequence number.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
         ]
 
         purpose_status = [
                 ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CANCELLED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SURRENDERED,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
         ]
 
         # latest purposes on the activities which are issued or reissued.
