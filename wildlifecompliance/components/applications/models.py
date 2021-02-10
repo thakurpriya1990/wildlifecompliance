@@ -2782,6 +2782,12 @@ class Application(RevisionedMixin):
                 raise
 
     def get_parent_licence(self, auto_create=True):
+        '''
+        Function to get a licence for this application.
+        When no licence (ie new application) one is created.
+
+        :return: WildlifeLicence.
+        '''
         from wildlifecompliance.components.licences.models import WildlifeLicence
         current_date = timezone.now().date()
         try:
@@ -2800,12 +2806,14 @@ class Application(RevisionedMixin):
                 # Only load licence if any associated activities are still current or suspended.
                 # TODO: get current activities in chain.
                 # get_current_activity_chain()
-                if not existing_licence.current_application.get_current_activity_chain(
-                    activity_status__in=[
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-                    ]
-                ).first():
+                # if not existing_licence.current_application.get_current_activity_chain(
+                #     activity_status__in=[
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+                #     ]
+                # ).first():
+                if not existing_licence.has_proposed_purposes_in_current():
+                    # the existing licence is not current.
                     raise WildlifeLicence.DoesNotExist
             else:
                 raise WildlifeLicence.DoesNotExist
@@ -3662,7 +3670,7 @@ class Application(RevisionedMixin):
 
         A check whether requested_user has any current applications.
         '''
-        applications = Application.get_request_user_applications(
+        application = Application.get_request_user_applications(
             request
 
         ).filter(
@@ -3672,7 +3680,11 @@ class Application(RevisionedMixin):
             ],
         ).first()
 
-        return applications
+        if application \
+        and not application.licence.has_proposed_purposes_in_current():
+            application = None
+
+        return application
 
     @staticmethod
     def get_open_applications(request):
@@ -5325,6 +5337,21 @@ class ApplicationSelectedActivity(models.Model):
         self.activity_status = A_STATUS
         self.save()
 
+    def expire_purposes(self, purpose_ids):
+        '''
+        Expire all licence purposes available on this selected activity.
+        '''
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_EXPIRED
+
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS):
+            return
+
+        self.activity_status = A_STATUS
+        self.save()
+
     def reissue_purposes(self, purpose_ids):
         '''
         Reinstate all licence purposes available on this selected activity.
@@ -5761,7 +5788,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     RENEWABLE = [
         PURPOSE_STATUS_DEFAULT,
         PURPOSE_STATUS_CURRENT,
-        PURPOSE_STATUS_EXPIRED,
+        # PURPOSE_STATUS_EXPIRED,
     ]
 
     processing_status = models.CharField(
