@@ -38,7 +38,7 @@
                                 </select> -->
                             </div>
                         </div>
-                        <div v-if="is_external" class="col-md-3">
+                        <div v-show="showNewApplicationButton" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
                     </div>
@@ -523,6 +523,7 @@ export default {
     computed: {
         ...mapGetters([
             'canViewPayments',
+            'current_user',
         ]),
         visibleHeaders: function() {
             return this.is_external ? this.application_ex_headers : this.application_headers;
@@ -532,6 +533,9 @@ export default {
         },
         is_external: function(){
             return this.level == 'external';
+        },
+        showNewApplicationButton: function() {
+            return this.is_external && this.current_user.identification
         },
     },
     methods:{
