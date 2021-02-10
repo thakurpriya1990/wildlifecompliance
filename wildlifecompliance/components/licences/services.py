@@ -620,7 +620,7 @@ class LicenceActioner(LicenceActionable):
 
         cancelable = [
             p for p in activity.proposed_purposes.all()
-            if p.is_issued and p.is_active
+            if p.is_issued and p.is_active and not p.is_replaced()
         ]
 
         can_action['can_cancel'] = current and len(cancelable)
@@ -635,7 +635,7 @@ class LicenceActioner(LicenceActionable):
 
         suspendable = [
             p for p in activity.proposed_purposes.all()
-            if p.is_issued and p.is_active
+            if p.is_issued and p.is_active and not p.is_replaced()
         ]
 
         can_action['can_suspend'] = current and len(suspendable)
@@ -654,7 +654,8 @@ class LicenceActioner(LicenceActionable):
             ).count() > 0
 
             reissuable = [
-                p for p in activity.proposed_purposes.all() if p.is_issued
+                p for p in activity.proposed_purposes.all() 
+                if p.is_issued and not p.is_replaced()
             ]
 
             can_action['can_reissue'] = current and len(reissuable)
