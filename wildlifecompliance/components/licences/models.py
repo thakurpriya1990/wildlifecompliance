@@ -727,6 +727,48 @@ class WildlifeLicence(models.Model):
 
         return purposes
 
+    def has_proposed_purposes_in_current(self):
+        '''
+        A Flag to indicate that there are current licence purposes -
+        ApplicationSelectedActivityPurpose records available otherwise this
+        licence is not current.
+
+        :return: boolean.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # status applicable for issued purpose which have a sequence number.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+        ]
+
+        purpose_status = [
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        ]
+
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status,
+            purpose_status__in=purpose_status,
+        ).order_by('purpose_sequence')
+
+        return len(purposes)
+
     @property
     def latest_activities_merged(self):
         """
