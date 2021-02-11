@@ -753,10 +753,11 @@ class WildlifeLicence(models.Model):
                 ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
         ]
 
-        # latest purposes on the activities which are issued or reissued.
+        # latest purposes on the activities which are proposed/issued/reissued.
         purpose_process_status = [
             ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
             ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_PROPOSED,
         ]
 
         activity_ids = [
