@@ -62,10 +62,14 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
         '''
         Check if there are purposes left in the category to add on licence.
         '''
-        can_add = obj.is_latest_in_category and\
-            obj.purposes_available_to_add.count() > 0
+        is_latest = obj.is_latest_in_category
+        has_available_purposes = obj.purposes_available_to_add.count() > 0 
+        has_current_purposes = obj.has_proposed_purposes_in_current()
+        # can_add = obj.is_latest_in_category and\
+        #     obj.purposes_available_to_add.count() > 0 and\
+        #         obj.has_proposed_purposes_in_current()
 
-        return can_add
+        return is_latest and has_available_purposes and has_current_purposes
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):

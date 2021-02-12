@@ -44,6 +44,7 @@ from wildlifecompliance.components.organisations.serializers import (
     OrganisationRequestSerializer,
     OrganisationRequestDTSerializer,
     OrganisationContactSerializer,
+    OrganisationContactCheckSerializer,
     OrganisationCheckSerializer,
     OrganisationPinCheckSerializer,
     OrganisationRequestActionSerializer,
@@ -231,16 +232,70 @@ class OrganisationViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
+    def add_nonuser_contact(self, request, *args, **kwargs):
+        try:
+            serializer = OrganisationContactCheckSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            instance = self.get_object()
+            admin_flag = False
+            role = OrganisationContact.ORG_CONTACT_ROLE_USER
+            status = OrganisationContact.ORG_CONTACT_STATUS_DRAFT
+
+            with transaction.atomic():
+
+                OrganisationContact.objects.create(
+                    organisation=instance,
+                    first_name=request.data.get('first_name'),
+                    last_name=request.data.get('last_name'),
+                    mobile_number=request.data.get('mobile_number',''),
+                    phone_number=request.data.get('phone_number'),
+                    fax_number=request.data.get('fax_number',''),
+                    email=request.data.get('email'),
+                    user_role=role,
+                    user_status=status,
+                    is_admin=admin_flag
+                )
+
+                instance.log_user_action(
+                    OrganisationAction.ACTION_CONTACT_ADDED.format(
+                        '{} {}({})'.format(
+                            request.data.get('first_name'),
+                            request.data.get('last_name'),
+                            request.data.get('email')
+                        )
+                    ), 
+                    request
+                )
+
+            serializer = self.get_serializer(instance)
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
     def validate_pins(self, request, *args, **kwargs):
         try:
             instance = Organisation.objects.get(id=request.data.get('id'))
             serializer = OrganisationPinCheckSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            data = {
-                'valid': instance.validate_pins(
-                    serializer.validated_data['pin1'],
-                    serializer.validated_data['pin2'],
-                    request)}
+
+            with transaction.atomic():
+                data = {
+                    'valid': instance.validate_pins(
+                        serializer.validated_data['pin1'],
+                        serializer.validated_data['pin2'],
+                        request)}
+
             if data['valid']:
                 # Notify each Admin member of request.
                 instance.send_organisation_request_link_notification(request)
