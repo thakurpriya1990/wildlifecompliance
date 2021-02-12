@@ -220,6 +220,8 @@ class ReturnService(object):
         '''
         Vertification of return due date seven days before it is due and
         updating the processing status.
+
+        :return a count of total returns due.
         '''
         DUE_DAYS = 7
 
@@ -263,6 +265,8 @@ class ReturnService(object):
             if not for_all and not a_return.id == id:
                 continue
             a_return.set_processing_status(status)
+
+        return due_returns.count()
 
     @staticmethod
     def get_details_for(a_return):
