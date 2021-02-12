@@ -33,7 +33,7 @@
         </div>
     </div>
 </template>
-
+<!-- NOTE: this template is used for Wildlife Licensing issuance -->
 <script>
 import {
   api_endpoints,
@@ -100,7 +100,6 @@ export default {
                     url = api_endpoints.temporary_document + this.temporary_document_collection_id + '/process_temp_comms_log_document/'
                 }
             } else {
-                console.log(this.documentActionUrl);
                 url = this.documentActionUrl
             }
             return url;
@@ -122,10 +121,18 @@ export default {
             if (vm.isRepeatable && e.target.files) {
                 let  el = $(e.target).attr('data-que');
                 let avail = $('input[name='+e.target.name+']');
-                avail = [...avail.map(id => {
-                    return $(avail[id]).attr('data-que');
-                })];
-                console.log(avail);
+                // Extracting text from a DOM node and interpreting it as HTML 
+                // can lead to a XSS vulnerability when resolving avail list.
+                // avail = [...avail.map(id => {
+                //     return $(avail[id]).attr('data-que');
+                // })];
+                // reinterpreted (below)
+                let avail_map = $('input[name='+e.target.name+']');
+                avail = []
+                $.map(avail_map, function(val, i) {
+                    avail.push($(avail_map[i]).attr('data-que'))
+                });
+
                 avail.pop();
                 if (vm.repeat == 1) {
                     vm.repeat+=1;
@@ -151,7 +158,6 @@ export default {
         },
 
         get_documents: async function() {
-            console.log('get_documents');
             this.show_spinner = true;
 
             if (this.document_action_url) {
@@ -185,7 +191,6 @@ export default {
             formData.append('csrfmiddlewaretoken', this.csrf_token);
             if (this.document_action_url) {
                 let res = await Vue.http.post(this.document_action_url, formData)
-                console.log(res.body)
                 this.documents = res.body.filedata;
                 //this.documents = await this.get_documents()
                 this.commsLogId = res.body.comms_instance_id;
@@ -225,12 +230,9 @@ export default {
         },
 
         handleChangeWrapper: async function(e) {
-            console.log(this.document_action_url)
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // If temporary_document, create TemporaryDocumentCollection object and allow document_action_url to update
-                console.log("in handlechangewrapper")
                 let res = await Vue.http.post(this.document_action_url)
-                console.log(res)
                 this.temporary_document_collection_id = res.body.id
                 await this.$emit('update-temp-doc-coll-id',
                     {
@@ -295,7 +297,6 @@ export default {
             }
         }
         this.$nextTick(async () => {
-            console.log(this.document_action_url);
             if (this.documentActionUrl === 'temporary_document' && !this.temporary_document_collection_id) {
                 // pass
             } else {

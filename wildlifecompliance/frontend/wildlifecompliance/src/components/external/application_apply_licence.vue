@@ -84,7 +84,8 @@
                                 </div>
                             </div>
                             <div class="col-sm-12">
-                                <button @click.prevent="submit()" class="btn btn-primary pull-right" style="margin-left: 10px;">Continue</button>
+                                <button v-if="showSpinner" type="button" class="btn btn-primary pull-right" style="margin-left: 10px;" disabled><i class="fa fa-spinner fa-spin" />Continue</button>
+                                <button v-else @click.prevent="submit()" type="button" class="btn btn-primary pull-right" style="margin-left: 10px;">Continue</button>
                                 <div class="pull-right" style="font-size: 18px;">
                                     <strong>Estimated application fee: {{application_fee | toCurrency}}</strong><br>
                                     <strong>Estimated licence fee: {{licence_fee | toCurrency}}</strong><br>
@@ -124,6 +125,7 @@ export default {
         licence_activity : this.$route.params.licence_activity,
         licence_no : this.$route.params.licence_no,
         select_activity : this.$route.params.select_activity,
+        select_purpose : this.$route.params.select_purpose,
         application: null,
         agent: {},
         activity :{
@@ -153,6 +155,7 @@ export default {
         selected_apply_org_id_details : {},
         selected_apply_proxy_id_details: {},
         customer_pay_method: 'card',
+        spinner: false,
     }
   },
   components: {
@@ -208,7 +211,10 @@ export default {
         },
         isReissue: function() {
             return this.selected_apply_licence_select && this.selected_apply_licence_select === 'reissue_activity'
-        }
+        },
+        showSpinner: function() {
+            return this.spinner
+        },
   },
   methods: {
     ...mapActions([
@@ -218,6 +224,7 @@ export default {
     ]),
     submit: function() {
         let vm = this;
+        vm.spinner = true;
         swal({
             title: "Create Application",
             text: "Are you sure you want to create an application?",
@@ -229,7 +236,9 @@ export default {
                vm.createApplication();
             }
         },(error) => {
+            vm.spinner = false;
         });
+        vm.spinner = false;
     },
     handleRadioChange: function(e,index){
         let vm=this
@@ -287,7 +296,7 @@ export default {
     },
     createApplication:function () {
         let vm = this;
-
+        vm.spinner = true;
         let licence_purposes = [];
         let count_total_licence_categories = 0
         let count_total_activities = 0
@@ -359,12 +368,14 @@ export default {
                 vm.setApplicationWorkflowState({bool: false});
                 vm.setReceptionMethodId({pay_method: this.customer_pay_method});
                 vm.application = res.body;
+                vm.spinner = false;
                 vm.$router.push({
                     name:"draft_application",
                     params:{application_id:vm.application.id}
                 });
             }, err => {
                 console.log(err);
+                vm.spinner = false;
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(err),
@@ -385,6 +396,7 @@ export default {
             "organisation_id": this.selected_apply_org_id,
             "licence_no": this.licence_no,
             "select_activity": this.select_activity,
+            "select_purpose": this.select_purpose,
         }),
         this.selected_apply_org_id ? utils.fetchOrganisation(this.selected_apply_org_id) : '',
         this.selected_apply_proxy_id ? internal_utils.fetchUser(this.selected_apply_proxy_id) : '',
