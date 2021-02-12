@@ -301,6 +301,35 @@ class DetailsSerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class OrganisationContactCheckSerializer(serializers.Serializer):
+    '''
+    Validation Serializer for Organisation Contact.
+    '''
+    last_name = serializers.CharField()
+    first_name = serializers.CharField()
+    organisation = serializers.CharField()
+    email = serializers.CharField()
+
+    def validate(self, data):
+        is_invalid = False
+        invalid_attr = ''
+
+        if data['organisation'] == '':
+            is_invalid = True
+
+        # validate formatting.
+        # if data['phone_number'] == '':
+        #     is_invalid = True
+
+        if data['email'] == '':
+            is_invalid = True
+
+        if is_invalid:
+            raise serializers.ValidationError('Contact details are invalid.')
+
+        return data
+
+
 class OrganisationContactSerializer(serializers.ModelSerializer):
     user_status = CustomChoiceField(read_only=True)
     user_role = CustomChoiceField(read_only=True)

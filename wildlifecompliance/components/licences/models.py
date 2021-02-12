@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.forms.models import model_to_dict
 import json
 import reversion
+import logging
 from ckeditor.fields import RichTextField
 
 from ledger.licence.models import LicenceType
@@ -20,6 +21,8 @@ from wildlifecompliance.components.main.models import (
     Document
 )
 
+logger = logging.getLogger(__name__)
+# logger = logging
 
 def update_licence_doc_filename(instance, filename):
     return 'wildlifecompliance/licences/{}/documents/{}'.format(
@@ -621,6 +624,7 @@ class WildlifeLicence(models.Model):
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity)
 
+        logger.debug('WildlifeLicence.get_purposes_in_open_apps() - start')
         open_applications = Application.objects.filter(
             Q(org_applicant=self.current_application.org_applicant)
             if self.current_application.org_applicant
@@ -643,6 +647,47 @@ class WildlifeLicence(models.Model):
             'licence_purposes',
             flat=True)
 
+        logger.debug('WildlifeLicence.get_purposes_in_open_apps() - end')
+        return open_purposes
+
+    def get_proposed_purposes_in_open_applications(self):
+        '''
+        Get proposed purposes which are currently in an application being 
+        processed.
+
+        :return list of ApplicationSelectedActivityPurpose records.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            Application, ApplicationSelectedActivity)
+
+        logger.debug('WildlifeLicence.get_proposed_purposes_in_open() - start')
+        open_purposes = []
+
+        open_applications = Application.objects.filter(
+            Q(org_applicant=self.current_application.org_applicant)
+            if self.current_application.org_applicant
+            else Q(proxy_applicant=self.current_application.proxy_applicant)
+            if self.current_application.proxy_applicant
+            else Q(
+                submitter=self.current_application.submitter,
+                proxy_applicant=None,
+                org_applicant=None)
+        ).computed_filter(
+            licence_category_id=self.licence_category.id
+        ).exclude(
+            selected_activities__processing_status__in=[
+                ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED
+            ]
+        )
+
+        for application in open_applications:
+            purposes = application.get_proposed_purposes()
+            if purposes:
+                open_purposes += purposes
+
+        logger.debug('WildlifeLicence.get_proposed_purposes_in_open() - end')
         return open_purposes
 
     def get_proposed_purposes_in_applications(self):
@@ -655,11 +700,13 @@ class WildlifeLicence(models.Model):
             ApplicationSelectedActivity,
         )
 
-        # activities for this licence in current or suspended.
+        # status applicable for issued purpose which have a sequence number.
         activity_status = [
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SURRENDERED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CANCELLED,
         ]
         # latest purposes on the activities which are issued or reissued.
         purpose_process_status = [
@@ -679,6 +726,53 @@ class WildlifeLicence(models.Model):
         ).order_by('purpose_sequence')
 
         return purposes
+
+    def has_proposed_purposes_in_current(self):
+        '''
+        A Flag to indicate that there are current licence purposes -
+        ApplicationSelectedActivityPurpose records available otherwise this
+        licence is not current.
+
+        NOTE: WildlifeLicence is still current with Suspended purposes.
+
+        :return: boolean.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # status applicable for issued purpose which have a sequence number.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+
+        purpose_status = [
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+                ApplicationSelectedActivityPurpose.PURPOSE_STATUS_SUSPENDED,
+        ]
+
+        # latest purposes on the activities which are proposed/issued/reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_PROPOSED,
+        ]
+
+        activity_ids = [
+            a.id for a in self.current_application.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__in=activity_ids,
+            processing_status__in=purpose_process_status,
+            purpose_status__in=purpose_status,
+        ).order_by('purpose_sequence')
+
+        return len(purposes)
 
     @property
     def latest_activities_merged(self):
@@ -830,46 +924,6 @@ class WildlifeLicence(models.Model):
             )
         ).filter(licence_category_id=self.licence_category.id).latest('id') == self
 
-    # @property
-    # def can_action(self):
-    #     # Returns DICT of can_<action> if any of the licence's
-    #     # latest_activities can be actioned
-    #     can_action = {
-    #         'can_amend': False,
-    #         'can_renew': False,
-    #         'can_reactivate_renew': False,
-    #         'can_surrender': False,
-    #         'can_cancel': False,
-    #         'can_suspend': False,
-    #         'can_reissue': False,
-    #         'can_reinstate': False,
-    #     }
-
-    #     # only check if licence is the latest in its category for the applicant
-    #     if self.is_latest_in_category:
-    #         # set True if any activities can be actioned
-    #         purposes_in_open_applications = self.get_purposes_in_open_applications()
-    #         for activity in self.latest_activities:
-    #             activity_can_action = activity.can_action(purposes_in_open_applications)
-    #             if activity_can_action.get('can_amend'):
-    #                 can_action['can_amend'] = True
-    #             if activity_can_action.get('can_renew'):
-    #                 can_action['can_renew'] = True
-    #             if activity_can_action.get('can_reactivate_renew'):
-    #                 can_action['can_reactivate_renew'] = True
-    #             if activity_can_action.get('can_surrender'):
-    #                 can_action['can_surrender'] = True
-    #             if activity_can_action.get('can_cancel'):
-    #                 can_action['can_cancel'] = True
-    #             if activity_can_action.get('can_suspend'):
-    #                 can_action['can_suspend'] = True
-    #             if activity_can_action.get('can_reissue'):
-    #                 can_action['can_reissue'] = True
-    #             if activity_can_action.get('can_reinstate'):
-    #                 can_action['can_reinstate'] = True
-
-    #     return can_action
-
     @property
     def has_inspection_open(self):
         """
@@ -953,6 +1007,7 @@ class WildlifeLicence(models.Model):
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity
         )
+        logger.debug('Licence.apply_action_to_purpose() - start')
         CANCEL = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL
         SUSPEND = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND
         SURRENDER = WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER
@@ -987,8 +1042,8 @@ class WildlifeLicence(models.Model):
 
             # A Reissue on Activity Purpose occurs on the selected Activity
             # only and does apply to all activities.
-            # TODO:AYN requirement that reissue of active licence purposes only
-            # from the same licence application.
+            # NOTE: Multiple Purposes can exist on the selected Activity and
+            # must only reissue one purpose.
             if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REISSUE:
                 can_action_purposes_ids_list = purpose_ids_list
                 # licence_activity_id = purpose_ids_list[0]
@@ -1171,6 +1226,8 @@ class WildlifeLicence(models.Model):
                 for activity in original_activities:
                     activity.mark_as_replaced(request)
 
+        logger.debug('Licence.apply_action_to_purpose() - end')
+
     @property
     def purposes_available_to_add(self):
         """
@@ -1269,33 +1326,33 @@ class WildlifeLicence(models.Model):
         '''
         Returns selected licence purposes for this licence in sequence order.
         '''
-        from wildlifecompliance.components.applications.models import (
-            ApplicationSelectedActivityPurpose,
-            ApplicationSelectedActivity,
-        )
-        purposes = []
-        # activities for this licence in current or suspended.
-        activity_status = [
-                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
-                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-        ]
-        # latest purposes on the activities which are issued or reissued.
-        purpose_process_status = [
-            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
-            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
-        ]
+        # from wildlifecompliance.components.applications.models import (
+        #     ApplicationSelectedActivityPurpose,
+        #     ApplicationSelectedActivity,
+        # )
+        # purposes = []
+        # # activities for this licence in current or suspended.
+        # activity_status = [
+        #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+        #         # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        # ]
+        # # latest purposes on the activities which are issued or reissued.
+        # purpose_process_status = [
+        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        # ]
 
-        activity_ids = [
-            a.id for a in self.current_application.get_current_activity_chain(
-                activity_status__in=activity_status
-            )
-        ]
+        # activity_ids = [
+        #     a.id for a in self.current_application.get_current_activity_chain(
+        #         activity_status__in=activity_status
+        #     )
+        # ]
 
-        purposes = ApplicationSelectedActivityPurpose.objects.filter(
-            selected_activity__in=activity_ids,
-            processing_status__in=purpose_process_status
-        ).order_by('purpose_sequence')
+        # purposes = ApplicationSelectedActivityPurpose.objects.filter(
+        #     selected_activity__in=activity_ids,
+        #     processing_status__in=purpose_process_status
+        # ).order_by('purpose_sequence')
 
         purposes = self.get_proposed_purposes_in_applications()
 

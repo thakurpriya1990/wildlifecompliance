@@ -1849,13 +1849,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     Application.APPLICATION_TYPE_RENEWAL,
                     Application.APPLICATION_TYPE_REISSUE,
                 ]:
-                    # Check that at least one active application exists in this licence category for amendment/renewal
+                    # Check that at least one active application exists in this
+                    # licence category for amendment/renewal.
                     if not latest_active_licence:
                         raise serializers.ValidationError(
                             'Cannot create amendment application: active licence not found!')
 
-                    # Ensure purpose ids are in a shared set with the latest current applications purposes
-                    # to prevent front-end tampering. Remove any that aren't valid for renew/amendment/reissue.
+                    # Ensure purpose ids are in a shared set with the latest 
+                    # current applications purposes to prevent front-end 
+                    # tampering. Remove any that aren't valid for 
+                    # renew/amendment/reissue.
                     active_current_purposes = active_current_applications.filter(
                         licence_purposes__licence_activity_id__in=licence_activity_ids
                     ).values_list(
@@ -1863,6 +1866,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         flat=True
                     )
 
+                    # Set the previous for these application types.
+                    # Although multiple purposes of the same type can exist for
+                    # a licence, only one can be created for selected activity.
                     previous_application = licence_activities.filter(
                         id=selected_activity
                     ).values_list(

@@ -1117,11 +1117,18 @@ class Application(RevisionedMixin):
             NOTE: System Generated Applications cannot be processed by staff
             and so processing status for activity needs to be accepted.
 
-            SYSTEM GENERATED can occur with renewal of licence purposes where
+            SYSTEM GENERATED occurs with renewal of licence purposes where
             current licenses still exist. A copy of this application with the
             renewed purpose is created with the current licence activities and
             purposes, and set to accepted. This will the latest application for
             the licence.
+
+            SYSTEM GENERATED occurs with reissue of a licence purpose where
+            current licenses still exist. A copy of this application with the
+            issued purpose is created with the current licence activities and
+            purposes, and set to accepted. This will the latest application for
+            the licence.
+            
             '''
             new_app = Application.objects.get(id=original_app_id)
             new_app.id = None
@@ -2511,6 +2518,40 @@ class Application(RevisionedMixin):
             except BaseException:
                 raise
 
+    def get_proposed_purposes(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        on this application.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__application_id=self.id,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        return purposes
+
     def proposed_licence(self, request, details):
         '''
         Propose licence purposes for issuing by Approver.
@@ -2741,6 +2782,12 @@ class Application(RevisionedMixin):
                 raise
 
     def get_parent_licence(self, auto_create=True):
+        '''
+        Function to get a licence for this application.
+        When no licence (ie new application) one is created.
+
+        :return: WildlifeLicence.
+        '''
         from wildlifecompliance.components.licences.models import WildlifeLicence
         current_date = timezone.now().date()
         try:
@@ -2759,12 +2806,14 @@ class Application(RevisionedMixin):
                 # Only load licence if any associated activities are still current or suspended.
                 # TODO: get current activities in chain.
                 # get_current_activity_chain()
-                if not existing_licence.current_application.get_current_activity_chain(
-                    activity_status__in=[
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-                    ]
-                ).first():
+                # if not existing_licence.current_application.get_current_activity_chain(
+                #     activity_status__in=[
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+                #     ]
+                # ).first():
+                if not existing_licence.has_proposed_purposes_in_current():
+                    # the existing licence is not current.
                     raise WildlifeLicence.DoesNotExist
             else:
                 raise WildlifeLicence.DoesNotExist
@@ -2846,6 +2895,10 @@ class Application(RevisionedMixin):
 
     def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False):
 
+        REPLACED = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+        ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        CURRENT = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+
         if not preview and not selected_activity.is_licence_fee_paid():
             raise Exception("Cannot issue activity: licence fee has not been paid!")
 
@@ -2856,13 +2909,13 @@ class Application(RevisionedMixin):
             raise Exception("Cannot issue activity: licence not found!")
 
         latest_application_in_function = self
-        application_selected_purpose_ids = self.licence_purposes.all().values_list('id', flat=True)
-        # FIXME: need to all for multiple activities of same licence purpose
-        # when issuing licence amendments. Causing all to be replaced.
-        # licence_latest_activities_for_licence_activity_id = \
-        #     parent_licence.latest_activities.filter(
-        #         licence_activity_id=selected_activity.licence_activity_id
-        #     )
+        # all_purpose_ids = self.licence_purposes.all(
+        #     # All licence purpose ids on this application.
+        # ).values_list('id', flat=True)
+
+        # All active license purposes on this application.
+        all_purpose = self.get_proposed_purposes()
+        all_purpose_ids = [p.purpose_id for p in all_purpose]
 
         # Set previous activity if selected_activity is replacing. Required
         # when issuing activity for licence amendments.
@@ -2876,13 +2929,44 @@ class Application(RevisionedMixin):
         with transaction.atomic():
             try:
                 for existing_activity in licence_latest_activities_for_licence_activity_id:
-                    # compare each activity's purposes and find the difference from
-                    # the selected_purposes of the new application
-                    issued_activity_purposes = application_selected_purpose_ids.filter(
-                        licence_activity_id=selected_activity.licence_activity_id)
-                    existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
-                    common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
-                    remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
+
+                    # compare each activity's purposes and find the difference 
+                    # from the selected_purposes of the new application.
+
+                    # selected_lic_id = selected_activity.licence_activity_id
+                    # issued_purposes = all_purpose_ids.filter(
+                    #     licence_activity_id=selected_lic_id
+                    # )
+
+                    # existing_purposes = \
+                    #     existing_activity.purposes.values_list('id', flat=True)
+
+                    # All active license purposes on the current Activity.
+                    existing_purposes = [
+                        p.purpose_id 
+                        for p in existing_activity.get_proposed_purposes()
+                    ]
+
+                    # All purposes on both selected Activity and Licence.
+                    common_purpose_ids = list(
+                        set(existing_purposes) & set(all_purpose_ids)
+                    )
+
+                    # Purposes on the Licence and not on the selected Activity.
+                    remaining_purpose_ids_list = list(
+                        set(existing_purposes) - set(all_purpose_ids)
+                    )
+
+                    # All purposes on the Licence which are currently opened.
+                    opened_purposes = list(
+                        self.licence.get_purposes_in_open_applications()
+                    )
+
+                    # Remove any currently opened licence purposes from the
+                    # remaining list to prevent replacing.
+                    remaining_purpose_ids_list = list(
+                        set(remaining_purpose_ids_list) - set(opened_purposes)
+                    )    
 
                     # Ignore common purposes to allow addition of multiple
                     # purposes when the application type is a new activity or
@@ -2913,21 +2997,35 @@ class Application(RevisionedMixin):
                                 p_id, sequence_no
                             )
 
-                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        # If no other license purposes are opened then mark the
+                        # existing activity as replaced.
+                        if len(opened_purposes) < 2:
+                            existing_activity.activity_status = REPLACED
+
                         existing_activity.save()
 
                     # If only a subset of the existing_activity's purposes are
                     # to be actioned, create new_activity for remaining
                     # purposes. New system generated application is created.
                     elif remaining_purpose_ids_list:
-                        existing_application = existing_activity.application
-                        existing_activity_status = existing_activity.activity_status
-                        new_copied_application = existing_application.copy_application_purposes_for_status(
-                                                remaining_purpose_ids_list, existing_activity_status)
+          
+                        existing_app = existing_activity.application
 
-                        # for each new application created, set its previous_application to latest_application_in_function,
-                        # then update latest_application_in_function to the new_copied_application
-                        new_copied_application.previous_application = latest_application_in_function
+                        existing_activity_status = \
+                            existing_activity.activity_status
+
+                        new_copied_application = \
+                            existing_app.copy_application_purposes_for_status(
+                                remaining_purpose_ids_list, 
+                                existing_activity_status
+                            )
+
+                        # for each new application created, set its previous
+                        # application to latest_application_in_function,
+                        # then update latest_application_in_function to the 
+                        # new_copied_application.
+                        new_copied_application.previous_application = \
+                            latest_application_in_function
                         new_copied_application.save()
                         latest_application_in_function = new_copied_application
 
@@ -2943,11 +3041,11 @@ class Application(RevisionedMixin):
                                 p_id, sequence_no
                             )
 
-                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+                        existing_activity.activity_status = REPLACED
                         existing_activity.save()
 
-                selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-                selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                selected_activity.processing_status = ACCEPTED
+                selected_activity.activity_status = CURRENT
 
                 if not selected_activity.get_expiry_date() == None:
                     self.generate_returns(parent_licence, selected_activity, request)
@@ -3392,13 +3490,15 @@ class Application(RevisionedMixin):
         self.save()
 
     def generate_returns(self, licence, selected_activity, request):
+        '''
+        Generates Returns for Conditions on the selected Activity on this 
+        Application.
+        '''
         from wildlifecompliance.components.returns.utils import (
             ReturnSpeciesUtility,
         )
-        # TODO: Delete any previously existing returns with default status
-        # which may occur if this activity is being reissued or amended.
         from wildlifecompliance.components.returns.models import Return
-        # licence_expiry = selected_activity.expiry_date
+
         # Returns are generated at issuing; expiry_date may not be set yet.
         licence_expiry = selected_activity.get_expiry_date()
         licence_expiry = datetime.datetime.strptime(
@@ -3406,14 +3506,16 @@ class Application(RevisionedMixin):
         ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
         today = timezone.now().date()
         timedelta = datetime.timedelta
-        for condition in self.conditions.all():
+
+        for condition in selected_activity.get_condition_list():
             try:
                 if condition.return_type and condition.due_date and condition.due_date >= today:
+                    already_generated = False
                     current_date = condition.due_date
-                    # create a first Return
                     try:
                         first_return = Return.objects.get(
                             condition=condition, due_date=current_date)
+                        already_generated = True
                     except Return.DoesNotExist:
                         first_return = Return.objects.create(
                             application=self,
@@ -3437,7 +3539,8 @@ class Application(RevisionedMixin):
                     raw_specie_names = returns_utils.get_raw_species_list_for(
                         selected_activity
                     )
-                    returns_utils.set_species_list(raw_specie_names)
+                    if not already_generated:
+                        returns_utils.set_species_list(raw_specie_names)
 
                     if condition.recurrence:
                         while current_date < licence_expiry:
@@ -3456,6 +3559,8 @@ class Application(RevisionedMixin):
                                         .APPLICATION_CONDITION_RECURRENCE_YEARLY:
                                             current_date += timedelta(days=365)
                             # Create the Return
+                            # FIXME: Create species lists for subsequent
+                            # returns.
                             if current_date <= licence_expiry:
                                 try:
                                     Return.objects.get(
@@ -3565,7 +3670,7 @@ class Application(RevisionedMixin):
 
         A check whether requested_user has any current applications.
         '''
-        applications = Application.get_request_user_applications(
+        application = Application.get_request_user_applications(
             request
 
         ).filter(
@@ -3575,7 +3680,11 @@ class Application(RevisionedMixin):
             ],
         ).first()
 
-        return applications
+        if application \
+        and not application.licence.has_proposed_purposes_in_current():
+            application = None
+
+        return application
 
     @staticmethod
     def get_open_applications(request):
@@ -5221,8 +5330,23 @@ class ApplicationSelectedActivity(models.Model):
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
+        # if not self.is_proposed_purposes_status(P_STATUS) and\
+        #    self.activity_status == A_STATUS:
+        #     return
+
+        self.activity_status = A_STATUS
+        self.save()
+
+    def expire_purposes(self, purpose_ids):
+        '''
+        Expire all licence purposes available on this selected activity.
+        '''
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_EXPIRED
+
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS):
             return
 
         self.activity_status = A_STATUS
@@ -5236,25 +5360,26 @@ class ApplicationSelectedActivity(models.Model):
         P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
         REISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
 
-        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
-
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
-            return
-
-        # Update this activity status.
-        self.reissue()
-
         # Update purposes processing status so they can be re-issued.
         selected = [
             p for p in self.proposed_purposes.all()
-            if p.purpose.id in purpose_ids
+            if p.id in purpose_ids
         ]
         for purpose in selected:
             purpose.processing_status = REISSUE
             purpose.save()
 
-        return True
+        # Set the status for the selected proposed purposes.
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
+           # No setting of status for this selected Activity when another
+           # purpose is current.
+            return
+
+        # Update this activity status.
+        self.reissue()
 
     def reissue(self):
         '''
@@ -5337,6 +5462,43 @@ class ApplicationSelectedActivity(models.Model):
 
         return sequence_no
 
+    def get_activity_to_replace(self):
+        '''
+        Get the previously issued licence Activity with the correct license
+        Purpose that this Application Selected Activity will replace.
+
+        :return an ApplicationSelectedActivity with correct license purpose.
+        '''
+        activity_to_replace = None
+
+        valid_status = [
+            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        ]
+
+        # current_activities = self.application.get_current_activity_chain()
+        # NOTE: If applying activity_chain all purposes of the same type will
+        # be selected and will be difficult to distinguish which to replace.
+        # Select relevant using the previous application.
+        current_activities = ApplicationSelectedActivity.objects.filter(
+            application_id=self.application.previous_application,
+            activity_status__in=valid_status,
+        )
+
+        # NOTE: Multiple purposes of the same type can exist on a License but
+        # but only one instance on a Selected Activity. Ensure the correct
+        # Purpose on Activity is selected for replacement.
+        for activity in current_activities:
+            purposes = [    # use proposed purpose in Selected Activity.
+                p for p in activity.proposed_purposes.all()
+                if p.purpose in self.purposes
+            ]
+            if purposes:
+                activity_to_replace = activity
+
+        return activity_to_replace
+
     def set_selected_purpose_sequence(self, p_id, sequence_no):
         '''
         Set all Selected Purposes for the activity to the same sequence number.
@@ -5366,15 +5528,22 @@ class ApplicationSelectedActivity(models.Model):
 
     def is_proposed_purposes_status(self, status):
         '''
-        Check all purposes on this activity have the same status. Used to check
-        if this activity is still current.
-        '''
-        not_same = [
-            p for p in self.proposed_purposes.all()
-            if not p.purpose_status == status
-        ]
+        Check all purposes on this activity have the same status. Where not the
+        same status then this Activity status must not be updated.
 
-        return not len(not_same)
+        :return boolean indicating this Activity status can be updated.
+        '''
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+        can_update_status = True
+
+        list_of_not_same = [
+            p for p in self.proposed_purposes.all()
+            if not p.purpose_status == status \
+                and not p.processing_status == DECLINE      # Excluded.
+        ]
+        can_update_status = not len(list_of_not_same) 
+
+        return can_update_status
 
     @transaction.atomic
     def set_proposed_purposes_status_for(self, ids, status):
@@ -5382,9 +5551,22 @@ class ApplicationSelectedActivity(models.Model):
         Set the status for the selected proposed purposes.
         '''
         is_updated = False
-        selected = [
-            p for p in self.proposed_purposes.all() if p.purpose.id in ids
-        ]
+        CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+ 
+        # Reinstate or Reissue select all applicable purposes for current. Else
+        # select applicable purposes which have a status of current. 
+        if status == CURRENT:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE
+            ]
+        else:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE 
+                and p.purpose_status == CURRENT
+            ]
 
         for purpose in selected:
             purpose.purpose_status = status
@@ -5442,38 +5624,75 @@ class ApplicationSelectedActivity(models.Model):
             except BaseException:
                 raise
 
-    def has_licence_amendment(self):
+    def has_licence_amendment(self, purpose_list=[]):
+        '''
+        A check to indicate whether this application selected activity is for a
+        license with an opened amendment application having the same license
+        activity and purposes.
 
+        :param purpose_list containing purpose ids to be filtered on.
+        :return boolean.
+        '''
+        logger.debug('AppSelectedActivity.has_licence_amendment - start()')
+        has_amendment = False
         valid_status = [
-            # Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_UNDER_REVIEW,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
             Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
         ]
 
-        has_amendment = Application.objects.filter(
+        amendments = Application.objects.filter(
             previous_application_id=self.application.id,
+            application_type=Application.APPLICATION_TYPE_AMENDMENT,
             customer_status__in=valid_status,
-        ).first()
+        )
+
+        for app in amendments:
+            for a in app.activities:
+                for p in a.proposed_purposes.all():
+                    if p.purpose_id in purpose_list:
+                        has_amendment = True
+                        break
+
+        logger.debug('AppSelectedActivity.has_licence_amendment - end()')
 
         return has_amendment
 
-    def get_activity_to_replace(self):
+    def get_proposed_purposes(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        on this Selected Activity.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
 
-        valid_status = [
-            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
         ]
 
-        replace = ApplicationSelectedActivity.objects.filter(
-            application_id=self.application.previous_application,
-            activity_status__in=valid_status,
-        ).first()
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity_id=self.id,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
 
-        return replace
+        return purposes
 
+    def get_condition_list(self):
+        '''
+        Get a list of conditions for this Selected Activity.
+        '''
+        condition_list = ApplicationCondition.objects.filter(
+            application_id=self.application.id,
+            licence_activity_id=self.licence_activity.id
+        )
+
+        return condition_list
 
     def get_activity_from_previous(self):
         '''
@@ -5569,7 +5788,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     RENEWABLE = [
         PURPOSE_STATUS_DEFAULT,
         PURPOSE_STATUS_CURRENT,
-        PURPOSE_STATUS_EXPIRED,
+        # PURPOSE_STATUS_EXPIRED,
     ]
 
     processing_status = models.CharField(
@@ -5804,13 +6023,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Property to indicate that this purpose has expired or about to expire
         and can be renewed.
+
+        :return boolean indicating ok and not replaced with Renew application. 
         '''
         is_ok = False
 
         if self.purpose_status in self.RENEWABLE and self.sent_renewal:
             is_ok = True
 
-        return is_ok
+        return is_ok and not self.is_replaced()
 
     @property
     def is_active(self):
@@ -6092,6 +6313,43 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Reinstate this selected activity licence purpose.
         '''
         self.purpose_status = self.PURPOSE_STATUS_CURRENT
+
+    def is_replaced(self):
+        '''
+        Verifies if this selected purpose is going to be replaced by being
+        associated with a newer application. (amendments, renewals)
+
+        :return boolean indicating this selected purpose is being replaced.
+        '''
+        is_replacing = False
+
+        app_customer_status = [                 # customer status to include.
+            Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_UNDER_REVIEW,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+            Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        ]
+
+        app_processing_status = [               # processing status to exclude.
+            Application.PROCESSING_STATUS_DECLINED,
+            Application.PROCESSING_STATUS_DISCARDED,
+        ]
+
+        applications = Application.objects.filter(
+            previous_application_id=self.selected_activity.application_id,
+            customer_status__in=app_customer_status
+        )
+
+        is_replacing = len(
+            [
+                a for a in applications 
+                if a.processing_status not in app_processing_status
+                and self.purpose in a.licence_purposes.all()
+            ]
+        )
+
+        return is_replacing
 
     def get_purpose_from_previous(self):
         '''

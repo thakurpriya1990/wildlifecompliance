@@ -106,9 +106,18 @@ export default {
             if (vm.isRepeatable) {
                 let  el = $(e.target).attr('data-que');
                 let avail = $('input[name='+e.target.name+']');
-                avail = [...avail.map(id => {
-                    return $(avail[id]).attr('data-que');
-                })];
+                // Extracting text from a DOM node and interpreting it as HTML 
+                // can lead to a XSS vulnerability when resolving avail list.
+                // avail = [...avail.map(id => {
+                //     return $(avail[id]).attr('data-que');
+                // })];
+                // reinterpreted (below)
+                let avail_map = $('input[name='+e.target.name+']');
+                avail = []
+                $.map(avail_map, function(val, i) {
+                    avail.push($(avail_map[i]).attr('data-que'))
+                });
+
                 avail.pop();
                 if (vm.repeat == 1) {
                     vm.repeat+=1;

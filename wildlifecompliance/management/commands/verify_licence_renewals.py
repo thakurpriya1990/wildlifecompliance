@@ -2,6 +2,9 @@ from django.core.management.base import BaseCommand
 
 import logging
 
+from wildlifecompliance.management.commands.emails import (
+    CommandsVerifyNotificationEmail
+)
 from wildlifecompliance.components.licences.services import (
     LicenceService,
 )
@@ -16,7 +19,12 @@ class Command(BaseCommand):
         try:
             logger.info('Running command {}'.format(__name__))
 
-            LicenceService.verify_licence_renewals()
+            total = LicenceService.verify_licence_renewals()
+
+            notify = CommandsVerifyNotificationEmail()
+            notify.set_verified_total(total)
+            notify.set_subject('verified_licence_renewals was executed.')
+            notify.out()
 
             logger.info('Command {} finished'.format(__name__))
 
