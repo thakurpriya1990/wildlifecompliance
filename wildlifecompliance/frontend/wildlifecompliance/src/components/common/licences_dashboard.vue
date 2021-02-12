@@ -384,8 +384,8 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[amend-activity]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Amend Activity",
-                    text: "Are you sure you want to amend this activity?",
+                    title: "Amend Purpose Activity",
+                    text: "Are you sure you want to amend this purpose activity?",
                     type: "question",
                     showCancelButton: true,
                     confirmButtonText: 'Accept'
@@ -396,9 +396,10 @@ export default {
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = $(this).attr('amend-activity');
                         var select_activity_id = $(this).attr('select-activity');
+                        var select_purpose_id = $(this).attr('select-purpose');
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id, select_purpose_id);
                     }
                 },(error) => {
                 });
@@ -441,9 +442,10 @@ export default {
                         var licence_category_id = $(this).attr('licence-category-id');
                         var licence_activity_id = $(this).attr('renew-activity');
                         var select_activity_id = $(this).attr('select-activity');
+                        var select_purpose_id = $(this).attr('select-purpose');
                         vm.setApplyProxyId({id: $(this).attr('proxy-id')});
                         vm.setApplyOrgId({id: $(this).attr('org-id')});
-                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id);
+                        vm.routeApplyLicence(licence_no, licence_category_id, licence_activity_id, select_activity_id, select_purpose_id);
                     }
                 },(error) => {
                 });
@@ -528,22 +530,40 @@ export default {
                         vm.licence_action = 'surrender';
                         vm.selected_licence_id = licence_id;
                         var select_activity_id = $(this).attr('select-activity');
-                        vm.$http.get(helpers.add_endpoint_join(
-                            api_endpoints.licences,licence_id+
-                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
-                                if (res.body) {
-                                    vm.action_purpose_list = res.body;
-                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
-                                    vm.$refs.licence_action_purposes.isModalOpen = true;
-                                }
-                            }, (error) => {
+                        var select_purpose_id = $(this).attr('select-purpose');
+                        let data = new FormData()
+
+                        data.purpose_ids_list = select_purpose_id;
+                        data.selected_activity_id = select_activity_id;
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.selected_licence_id+'/surrender_purposes'),JSON.stringify(data),{
+                                emulateJSON:true,
+                            }).then((response)=>{
+                                vm.$refs.licence_datatable.vmDataTable.ajax.reload();
+                                vm.$emit('refreshFromResponse',response);
+                            },(error)=>{
                                 swal(
                                     'Surrender Activity Error',
                                     helpers.apiVueResourceError(error),
                                     'error'
                                 )
                             });
+
+                        // vm.$http.get(helpers.add_endpoint_join(
+                        //     api_endpoints.licences,licence_id+
+                        //     '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                        //     licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
+                        //         if (res.body) {
+                        //             vm.action_purpose_list = res.body;
+                        //             vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
+                        //             vm.$refs.licence_action_purposes.isModalOpen = true;
+                        //         }
+                        //     }, (error) => {
+                        //         swal(
+                        //             'Surrender Activity Error',
+                        //             helpers.apiVueResourceError(error),
+                        //             'error'
+                        //         )
+                        //     });
                     }
                 },(error) => {
                 });
@@ -582,7 +602,7 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[cancel-purposes]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Cancel Purposes",
+                    title: "Cancel Activity Purposes",
                     text: "Are you sure you want to cancel purposes for this activity?",
                     type: "question",
                     showCancelButton: true,
@@ -594,22 +614,39 @@ export default {
                         vm.licence_action = 'cancel';
                         vm.selected_licence_id = licence_id;
                         var select_activity_id = $(this).attr('select-activity');
-                        vm.$http.get(helpers.add_endpoint_join(
-                            api_endpoints.licences,licence_id+
-                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
-                                if (res.body) {
-                                    vm.action_purpose_list = res.body;
-                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
-                                    vm.$refs.licence_action_purposes.isModalOpen = true;
-                                }
-                            }, (error) => {
+                        var select_purpose_id = $(this).attr('select-purpose');
+                        let data = new FormData()
+
+                        data.purpose_ids_list = select_purpose_id;
+                        data.selected_activity_id = select_activity_id;
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.selected_licence_id+'/cancel_purposes'),JSON.stringify(data),{
+                                emulateJSON:true,
+                            }).then((response)=>{
+                                vm.$refs.licence_datatable.vmDataTable.ajax.reload();
+                                vm.$emit('refreshFromResponse',response);
+                            },(error)=>{
                                 swal(
-                                    'Cancel Activity Error',
-                                    helpers.apiVueResourceError(error),
-                                    'error'
+                                        'Cancel Activity Purposes Error',
+                                        helpers.apiVueResourceError(error),
+                                        'error'
                                 )
                             });
+                        // vm.$http.get(helpers.add_endpoint_join(
+                        //     api_endpoints.licences,licence_id+
+                        //     '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                        //     licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
+                        //         if (res.body) {
+                        //             vm.action_purpose_list = res.body;
+                        //             vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
+                        //             vm.$refs.licence_action_purposes.isModalOpen = true;
+                        //         }
+                        //     }, (error) => {
+                        //         swal(
+                        //             'Cancel Activity Error',
+                        //             helpers.apiVueResourceError(error),
+                        //             'error'
+                        //         )
+                        //     });
                     }
                 },(error) => {
                 });
@@ -648,7 +685,7 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[suspend-purposes]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Suspend Activity",
+                    title: "Suspend Activity Purposes",
                     text: "Are you sure you want to suspend purposes for this activity?",
                     type: "question",
                     showCancelButton: true,
@@ -660,22 +697,40 @@ export default {
                         vm.licence_action = 'suspend';
                         vm.selected_licence_id = licence_id;
                         var select_activity_id = $(this).attr('select-activity');
-                        vm.$http.get(helpers.add_endpoint_join(
-                            api_endpoints.licences,licence_id+
-                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
-                                if (res.body) {
-                                    vm.action_purpose_list = res.body;
-                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
-                                    vm.$refs.licence_action_purposes.isModalOpen = true;
-                                }
-                            }, (error) => {
+                        var select_purpose_id = $(this).attr('select-purpose');
+                        let data = new FormData()
+
+                        data.purpose_ids_list = select_purpose_id;
+                        data.selected_activity_id = select_activity_id;
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.selected_licence_id+'/suspend_purposes'),JSON.stringify(data),{
+                                emulateJSON:true,
+                            }).then((response)=>{
+                                vm.$refs.licence_datatable.vmDataTable.ajax.reload();
+                                vm.$emit('refreshFromResponse',response);
+                            },(error)=>{
                                 swal(
-                                    'Suspend Activity Error',
-                                    helpers.apiVueResourceError(error),
-                                    'error'
+                                        'Suspend Activity Purposes Error',
+                                        helpers.apiVueResourceError(error),
+                                        'error'
                                 )
                             });
+
+                        // vm.$http.get(helpers.add_endpoint_join(
+                        //     api_endpoints.licences,licence_id+
+                        //     '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                        //     licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
+                        //         if (res.body) {
+                        //             vm.action_purpose_list = res.body;
+                        //             vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
+                        //             vm.$refs.licence_action_purposes.isModalOpen = true;
+                        //         }
+                        //     }, (error) => {
+                        //         swal(
+                        //             'Suspend Activity Error',
+                        //             helpers.apiVueResourceError(error),
+                        //             'error'
+                        //         )
+                        //     });
                     }
                 },(error) => {
                 });
@@ -704,8 +759,8 @@ export default {
             vm.$refs.licence_datatable.vmDataTable.on('click', 'a[reissue-activity]', function(e) {
                 e.preventDefault();
                 swal({
-                    title: "Reissue Activity",
-                    text: "Are you sure you want to reissue purposes for this activity?",
+                    title: "Reissue License",
+                    text: "Are you sure you want to reissue this activity purpose?",
                     type: "question",
                     showCancelButton: true,
                     confirmButtonText: 'Accept'
@@ -716,22 +771,41 @@ export default {
                         vm.licence_action = 'reissue';
                         vm.selected_licence_id = licence_id;
                         var select_activity_id = $(this).attr('select-activity');
-                        vm.$http.get(helpers.add_endpoint_join(
-                            api_endpoints.licences,licence_id+
-                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
-                                if (res.body) {
-                                    vm.action_purpose_list = res.body;
-                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
-                                    vm.$refs.licence_action_purposes.isModalOpen = true;
-                                }
-                            }, (error) => {
+                        var select_purpose_id = $(this).attr('select-purpose');
+                        let data = new FormData()
+
+                        data.purpose_ids_list = select_purpose_id;
+                        data.selected_activity_id = select_activity_id;
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.selected_licence_id+'/reissue_purposes'),JSON.stringify(data),{
+                                emulateJSON:true,
+                            }).then((response)=>{
+                                let app_id = response.body.current_application.id
+                                vm.$router.push({name:"internal-application", params:{application_id: app_id}});
+                                vm.$emit('refreshFromResponse',response);
+                            },(error)=>{
                                 swal(
                                     'Reissue Activity Error',
                                     helpers.apiVueResourceError(error),
                                     'error'
                                 )
                             });
+                        // vm.$http.get(helpers.add_endpoint_join(
+                        //     api_endpoints.licences,licence_id+'/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                        //     licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
+
+                        //         if (res.body) {
+                        //             vm.action_purpose_list = res.body;
+                        //             vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
+                        //             vm.$refs.licence_action_purposes.isModalOpen = true;
+                        //         }
+                        //     }, (error) => {
+                        //         swal(
+                        //             'Reissue Activity Error',
+                        //             helpers.apiVueResourceError(error),
+                        //             'error'
+                        //         )
+                        //     }
+                        // );
                     }
                 },(error) => {
                 });
@@ -782,22 +856,40 @@ export default {
                         vm.licence_action = 'reinstate';
                         vm.selected_licence_id = licence_id;
                         var select_activity_id = $(this).attr('select-activity');
-                        vm.$http.get(helpers.add_endpoint_join(
-                            api_endpoints.licences,licence_id+
-                            '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
-                            licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
-                                if (res.body) {
-                                    vm.action_purpose_list = res.body;
-                                    vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
-                                    vm.$refs.licence_action_purposes.isModalOpen = true;
-                                }
-                            }, (error) => {
+                        var select_purpose_id = $(this).attr('select-purpose');
+                        let data = new FormData()
+
+                        data.purpose_ids_list = select_purpose_id;
+                        data.selected_activity_id = select_activity_id;
+                        console.log(licence_id)
+                        vm.$http.post(helpers.add_endpoint_json(api_endpoints.licences,vm.selected_licence_id+'/reinstate_purposes'),JSON.stringify(data),{
+                                emulateJSON:true,
+                            }).then((response)=>{
+                                vm.$refs.licence_datatable.vmDataTable.ajax.reload();
+                                vm.$emit('refreshFromResponse',response);
+                            },(error)=>{
                                 swal(
                                     'Reinstate Activity Error',
                                     helpers.apiVueResourceError(error),
                                     'error'
                                 )
                             });
+                        // vm.$http.get(helpers.add_endpoint_join(
+                        //     api_endpoints.licences,licence_id+
+                        //     '/get_latest_purposes_for_licence_activity_and_action/?licence_activity_id='+
+                        //     licence_activity_id+'&action='+vm.licence_action+'&selected_activity_id='+select_activity_id)).then(res=>{
+                        //         if (res.body) {
+                        //             vm.action_purpose_list = res.body;
+                        //             vm.$refs.licence_action_purposes.selectedActivityId = select_activity_id;
+                        //             vm.$refs.licence_action_purposes.isModalOpen = true;
+                        //         }
+                        //     }, (error) => {
+                        //         swal(
+                        //             'Reinstate Activity Error',
+                        //             helpers.apiVueResourceError(error),
+                        //             'error'
+                        //         )
+                        //     });
                     }
                 },(error) => {
                 });
@@ -852,11 +944,11 @@ export default {
                                 <td>`;
                                     if (vm.is_external && activity['can_action']['can_amend']) {
                                         activity_rows +=
-                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' amend-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
+                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' amend-activity='${activity["licence_activity_id"]}' select-purpose='${activity["activity_purpose_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Amend</a></br>`;
                                     }
                                     if (vm.is_external && activity['can_action']['can_renew']) {
                                         activity_rows +=
-                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' renew-activity='${activity["licence_activity_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Renew</a></br>`;
+                                            `<a licence-id='${licence_id}' select-activity='${activity["id"]}' renew-activity='${activity["licence_activity_id"]}' select-purpose='${activity["activity_purpose_id"]}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Renew</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reactivate_renew']) {
                                         activity_rows +=
@@ -864,23 +956,23 @@ export default {
                                     }
                                     if (activity['can_action']['can_surrender']) {
                                         activity_rows +=
-                                            `<a surrender-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' lic-id='${licence_id}'>Surrender</a></br>`;
+                                            `<a surrender-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' select-purpose='${activity["activity_purpose_id"]}' lic-id='${licence_id}'>Surrender</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_cancel']) {
                                         activity_rows +=
-                                            `<a cancel-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' lic-id='${licence_id}'>Cancel</a></br>`;
+                                            `<a cancel-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' select-purpose='${activity["activity_purpose_id"]}' lic-id='${licence_id}'>Cancel</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_suspend']) {
                                         activity_rows +=
-                                            `<a suspend-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' lic-id='${licence_id}'>Suspend</a></br>`;
+                                            `<a suspend-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' select-purpose='${activity["activity_purpose_id"]}' lic-id='${licence_id}'>Suspend</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reissue']) {
                                         activity_rows +=
-                                            `<a reissue-activity='${activity['licence_activity_id']}' select-activity='${activity["id"]}' lic-id='${licence_id}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Reissue</a></br>`;
+                                            `<a reissue-activity='${activity['licence_activity_id']}' select-activity='${activity["id"]}' select-purpose='${activity["activity_purpose_id"]}' lic-id='${licence_id}' proxy-id='${proxy_id}' org-id='${org_id}' licence-category-id='${licence_category_id}'>Reissue</a></br>`;
                                     }
                                     if (!vm.is_external && activity['can_action']['can_reinstate']) {
                                         activity_rows +=
-                                            `<a reinstate-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' lic-id='${licence_id}'>Reinstate</a></br>`;
+                                            `<a reinstate-purposes='${activity["licence_activity_id"]}' select-activity='${activity["id"]}' select-purpose='${activity["activity_purpose_id"]}' lic-id='${licence_id}'>Reinstate</a></br>`;
                                     }
                         activity_rows += `</td>
                             </tr>`;
@@ -996,7 +1088,7 @@ export default {
         getColumnIndex: function(column_name) {
             return this.licence_headers.map(header => header.toLowerCase()).indexOf(column_name.toLowerCase());
         },
-        routeApplyLicence:function (licence_no, licence_category_id, licence_activity_id, select_activity_id) {
+        routeApplyLicence:function (licence_no, licence_category_id, licence_activity_id, select_activity_id, select_purpose_id) {
             this.setApplicationWorkflowState({bool: true});
             return this.$router.push({
                 name: "apply_application_licence",
@@ -1005,8 +1097,20 @@ export default {
                     licence_activity: licence_activity_id,
                     licence_no: licence_no,
                     select_activity: select_activity_id,
+                    select_purpose: select_purpose_id,
                 }
             });
+        },
+        close_back_to_application:function (app_id) {
+            // this.isModalOpen = false;
+            // this.action_licence = {
+            //     purpose_ids_list:[]
+            // };
+            // this.errors = false;
+            // $('.has-error').removeClass('has-error');
+            // this.validation_form.resetForm();
+            // route back to application for reissue.
+            this.$router.push({name:"internal-application", params:{application_id: app_id}});
         },
     },
     mounted: function(){

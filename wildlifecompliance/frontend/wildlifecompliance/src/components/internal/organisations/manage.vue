@@ -51,7 +51,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
+                        <!-- div class="row">
                             <div class="col-sm-12">
                                 <div class="panel panel-default">
                                   <div class="panel-heading">
@@ -71,7 +71,7 @@
                                           </div>
                                           <div class="form-group">
                                             <div class="col-sm-12">
-                                                <!-- output order in reverse due to pull-right at runtime -->
+                                                -- output order in reverse due to pull-right at runtime --
                                                 <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
                                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
                                                 <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
@@ -84,7 +84,7 @@
                                   </div>
                                 </div>
                             </div>
-                        </div>
+                        </div -->
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="panel panel-default">
@@ -123,7 +123,7 @@
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
                                                 <select class="form-control" name="country" v-model="org.address.country">
-                                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="`code_${c.alpha2Code}`">{{ c.name }}</option>
                                                 </select>
                                             </div>
                                           </div>
@@ -176,27 +176,27 @@
                                                 <div class="form-group">
                                                     <label for="" class="col-sm-6 control-label"> Organisation User Pin Code 1:</label>
                                                     <div class="col-sm-6">
-                                                        <label class="control-label">{{org.pins.three}}</label>
+                                                        <label class="control-label">{{org.pins ? org.pins.three : ' '}}</label>
                                                     </div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label for="" class="col-sm-6 control-label" >Organisation User Pin Code 2:</label>
                                                     <div class="col-sm-6">
-                                                        <label class="control-label">{{org.pins.four}}</label>
+                                                        <label class="control-label">{{org.pins ? org.pins.four : ' '}}</label>
                                                     </div>
                                                 </div>
                                              </div>
                                              <div class="col-sm-6">
-                                                <div class="form-group" :disabled ='!myorgperms.is_admin'>
+                                                <div class="form-group">
                                                     <label for="" class="col-sm-6 control-label"> Organisation Administrator Pin Code 1:</label>
                                                     <div class="col-sm-6">
-                                                        <label class="control-label">{{org.pins.one}}</label>
+                                                        <label class="control-label">{{org.pins ? org.pins.one : ' '}}</label>
                                                     </div>
                                                 </div>
-                                                <div class="form-group" :disabled ='!myorgperms.is_admin'>
+                                                <div class="form-group">
                                                     <label for="" class="col-sm-6 control-label" >Organisation Administrator Pin Code 2:</label>
                                                     <div class="col-sm-6">
-                                                        <label class="control-label">{{org.pins.two}}</label>
+                                                        <label class="control-label">{{org.pins ? org.pins.two : ' '}}</label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -212,7 +212,7 @@
                                         </div>
                                     </div>
                                     <div>
-                                        <datatable ref="contacts_datatable_user" id="organisation_contacts_datatable_ref" :dtOptions="contacts_options_ref" :dtHeaders="contacts_headers_ref" v-model="filterOrgContactStatus"/>
+                                        <datatable ref="contacts_datatable_user" id="organisation_contacts_datatable_ref" :dtOptions="contacts_options_ref" :dtHeaders="contacts_headers_ref" />
                                     </div>
                                   </div>
                                 </div>
@@ -281,7 +281,7 @@ export default {
             contacts_headers_ref:["Name","Role","Email","Status"],
             applications_url: api_endpoints.applications_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
             licences_url: api_endpoints.licences_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
-            returns_url: api_endpoints.returns+'?org_id='+vm.$route.params.org_id,
+            returns_url: api_endpoints.returns_paginated+'?org_id='+vm.$route.params.org_id,
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -293,6 +293,7 @@ export default {
                 },
                 columns: [
                     {
+                        data:'last_name',
                         mRender:function (data,type,full) {
                             return full.first_name + " " + full.last_name;
                         }
@@ -302,6 +303,7 @@ export default {
                     {data:'fax_number'},
                     {data:'email'},
                     {
+                        data:'user_status',
                         mRender:function (data,type,full) {
                             let links = '';
                             let name = full.first_name + ' ' + full.last_name;
@@ -326,17 +328,20 @@ export default {
                 },
                 columns: [
                     {
+                        data:'last_name',
                         mRender:function (data,type,full) {
                             return full.first_name + " " + full.last_name;
                         }
                     },
                     {
+                        data:'user_role',
                         mRender:function (data,type,full) {
                             return full.user_role.name;
                         }
                     },
                     {data:'email'},
                     {
+                        data:'user_status',
                         mRender:function (data,type,full) {
                             return full.user_status.name;
                         }
@@ -425,8 +430,8 @@ export default {
             // Fix the table responsiveness when tab is shown
             $('a[href="#'+vm.oTab+'"]').on('shown.bs.tab', function (e) {
                 vm.$refs.applications_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                vm.$refs.licences_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
-                vm.$refs.returns_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
+                // vm.$refs.licences_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
+                // vm.$refs.returns_table.$refs.application_datatable.vmDataTable.columns.adjust().responsive.recalc();
             });
         },
         updateDetails: function() {
