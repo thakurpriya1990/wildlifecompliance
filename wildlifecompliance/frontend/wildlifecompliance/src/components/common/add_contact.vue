@@ -137,9 +137,7 @@ export default {
             } else {
                 let contact = JSON.parse(JSON.stringify(vm.contact));
                 contact.organisation = vm.org_id;
-                contact.user_status.id = 'draft'
-                contact.user_role.id = 'organisation_user'
-                vm.$http.post(api_endpoints.organisation_contacts,JSON.stringify(contact),{
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.organisations,vm.org_id+'/add_nonuser_contact'),JSON.stringify(contact),{
                         emulateJSON:true,
                     }).then((response)=>{
                         //vm.$parent.loading.splice('processing contact',1);

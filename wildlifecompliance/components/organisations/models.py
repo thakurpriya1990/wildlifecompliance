@@ -73,30 +73,32 @@ class Organisation(models.Model):
         return val
 
     def add_user_contact(self, user, request, admin_flag, role):
-        with transaction.atomic():
+        '''
+        Add user contact for linking to this Organisation. Linking requires
+        authorisation as validation pins are supplied by admin.
+        '''
+        OrganisationContact.objects.create(
+            organisation=self,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            mobile_number=user.mobile_number,
+            phone_number=user.phone_number,
+            fax_number=user.fax_number,
+            email=user.email,
+            user_role=role,
+            user_status=OrganisationContact.ORG_CONTACT_STATUS_PENDING,
+            is_admin=admin_flag
 
-            OrganisationContact.objects.create(
-                organisation=self,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                mobile_number=user.mobile_number,
-                phone_number=user.phone_number,
-                fax_number=user.fax_number,
-                email=user.email,
-                user_role=role,
-                user_status=OrganisationContact.ORG_CONTACT_STATUS_PENDING,
-                is_admin=admin_flag
+        )
 
-            )
-
-            # log linking
-            self.log_user_action(
-                OrganisationAction.ACTION_CONTACT_ADDED.format(
-                    '{} {}({})'.format(
-                        user.first_name,
-                        user.last_name,
-                        user.email)),
-                request)
+        # log linking
+        self.log_user_action(
+            OrganisationAction.ACTION_CONTACT_ADDED.format(
+                '{} {}({})'.format(
+                    user.first_name,
+                    user.last_name,
+                    user.email)),
+            request)
 
     def accept_user(self, user, request):
         with transaction.atomic():
