@@ -38,7 +38,7 @@
                                 </select> -->
                             </div>
                         </div>
-                        <div v-show="showNewApplicationButton" class="col-md-3">
+                        <div v-if="has_identification" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
                     </div>
@@ -524,6 +524,7 @@ export default {
         ...mapGetters([
             'canViewPayments',
             'current_user',
+            'isIdentifiedUser',
         ]),
         visibleHeaders: function() {
             return this.is_external ? this.application_ex_headers : this.application_headers;
@@ -534,8 +535,12 @@ export default {
         is_external: function(){
             return this.level == 'external';
         },
-        showNewApplicationButton: function() {
-            return this.is_external && this.current_user.identification
+        has_identification: function() {
+            let vm = this
+            if (!vm.isIdentifiedUser){
+                vm.$router.push({name:"account",});
+            }  
+            return true
         },
     },
     methods:{
@@ -820,9 +825,12 @@ export default {
                 });
         },
     },
-    mounted: function(){
+    created: function(){
         let vm = this;
         vm.loadCurrentUser({ url: `/api/my_user_details` });
+    },
+    mounted: function(){
+        let vm = this;     
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
             window.setTimeout( function () {
