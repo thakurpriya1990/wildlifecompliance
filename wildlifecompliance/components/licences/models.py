@@ -350,6 +350,23 @@ class DefaultPurpose(models.Model):
 
 
 class WildlifeLicence(models.Model):
+    '''
+    A model representation of a Wildlife Licence.
+    '''
+
+    # Licence states.
+    LICENCE_STATUS_CURRENT = 'current'
+    LICENCE_STATUS_SURRENDER = 'surrender'
+    LICENCE_STATUS_CANCEL = 'cancel'
+    LICENCE_STATUS_SUSPEND = 'suspend'
+    LICENCE_STATUS_EXPIRE = 'expire'
+    LICENCE_STATUS_CHOICES = (
+        (LICENCE_STATUS_CURRENT, 'Current'),
+        (LICENCE_STATUS_SURRENDER, 'Surrendered'),
+        (LICENCE_STATUS_CANCEL, 'Cancelled'),
+        (LICENCE_STATUS_SUSPEND, 'Suspended'),
+        (LICENCE_STATUS_EXPIRE, 'Expired'),
+    )
 
     ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW = 'reactivate_renew'
     ACTIVITY_PURPOSE_ACTION_SURRENDER = 'surrender'
@@ -627,6 +644,36 @@ class WildlifeLicence(models.Model):
         logger.debug('WildlifeLicence.has_inspection_open() - end')
         return inspection_exists
 
+    @property
+    def status(self):
+        '''
+        Property defining this Wildlife Licence status. Can be either Current,
+        Cancelled, Suspended or Surrendered.
+        '''
+        status = self.get_property_cache_status()
+
+        return status
+
+    def get_property_cache_status(self):
+        '''
+        Getter for status on the property cache.
+        '''
+        status = None
+        try:
+
+            status = self.property_cache['status']
+
+        except KeyError:
+            pass
+
+        return status
+
+    def set_property_cache_status(self, status):
+        '''
+        Setter for status on the property cache.
+        '''
+        if self.id:
+            self.property_cache['status'] = status
 
     def get_activities_by_activity_status_ordered(self, status):
         '''
@@ -1338,6 +1385,29 @@ class WildlifeLicence(models.Model):
         purposes = self.get_proposed_purposes_in_applications()
 
         return purposes
+
+    def has_purposes_in_current(self):
+        '''
+        Verify that this Wildlife License has a current licence purpose.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+        )
+
+        current_status = [
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT,
+            ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT,
+        ]
+
+        purposes = self.get_proposed_purposes_in_applications()
+
+        is_current = len([
+            p for p in purposes.filter(
+                purpose_status__in=current_status,
+            )
+        ])
+
+        return is_current
 
     def get_purposes_to_expire(self):
         '''

@@ -133,7 +133,7 @@ export default {
             licence_holders: [],
             licence_categories: [],
 //            licence_headers: ["Number", "Category", "Holder", "Status", "Issue Date", "Licence", "Action"],
-            licence_headers: ["Number", "Category", "Holder", "Issue Date", "Licence", "Action"],
+            licence_headers: ["Number", "Category", "Holder", "Issue Date", "Licence", "Status", "Action"],
             licence_options:{
                 serverSide: true,
                 searchDelay: 1000,
@@ -195,6 +195,11 @@ export default {
                         searchable: false
                     },
                     {
+                        data: "status",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: "current_application",
                         mRender:function (data,type,full) {
                             let links = '';
@@ -229,9 +234,9 @@ export default {
                                 if (!vm.is_external && full.can_add_purpose && !full.has_inspection_open) {
                                     links += `<a inspection-licence='${full.id}'>Request Inspection</a><br/>`
                                 }
-                                if (!vm.is_external) {
-                                    links += `<a licence-history='${full.id}'>History</a><br/>`
-                                }
+                            }
+                            if (!vm.is_external) {
+                                links += `<a licence-history='${full.id}'>History</a><br/>`
                             }
                             return links;
                         },

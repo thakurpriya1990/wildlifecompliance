@@ -3058,6 +3058,8 @@ class Application(RevisionedMixin):
                 self.update_customer_approval_status()
 
                 parent_licence.current_application = latest_application_in_function
+                licence_status = parent_licence.LICENCE_STATUS_CURRENT
+                parent_licence.set_property_cache_status(licence_status)
                 parent_licence.save()
 
                 if generate_licence:

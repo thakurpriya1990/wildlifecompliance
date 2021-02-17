@@ -385,6 +385,12 @@ class LicenceService(object):
                     purpose.purpose_status = EXPIRED
                     purpose.save()
 
+            # Update licence status if all purposes expired.
+            if not licence.has_purposes_in_current():
+                new_status = licence.LICENCE_STATUS_EXPIRE
+                licence.set_property_cache_status(new_status)
+                licence.save()
+
             if purposes_to_expire:
                 # Re-generate licence.
                 licence.generate_doc()
@@ -927,7 +933,7 @@ class LicenceActioner(LicenceActionable):
         2. Build purpose list;
         3. Action selected_activity_id; or
         4. Action licence when no selected_activity_id;
-        5. Re-generate the licence and save.
+        5. Save licence status when no current purposes;
         '''
         if action not in [
             self.RENEW, self.SURRENDER, self.CANCEL,
@@ -998,3 +1004,19 @@ class LicenceActioner(LicenceActionable):
                 selected_activity,
                 selected_user_action,
             )
+
+        # Update the overall status for Wildlife Licence.
+        new_status = self.licence.LICENCE_STATUS_CURRENT
+        if not self.licence.has_purposes_in_current():
+
+            if action == self.SURRENDER:
+                new_status = self.licence.LICENCE_STATUS_SURRENDER
+
+            elif action == self.CANCEL:
+                new_status = self.licence.LICENCE_STATUS_CANCEL
+
+            elif action == self.SUSPEND:
+                new_status = self.licence.LICENCE_STATUS_SUSPEND
+
+        self.licence.set_property_cache_status(new_status)
+        self.licence.save()
