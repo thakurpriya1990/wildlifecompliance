@@ -909,12 +909,16 @@ class WildlifeLicence(models.Model):
 
     @property
     def is_latest_in_category(self):
-        # Returns True if the licence is the most recent one of it's category, filtered by
-        # matching org_applicant, proxy_applicant and submitter
+        '''
+        Returns True if the licence is the most recent one of it's category,
+        filtered by matching org_applicant, proxy_applicant and submitter.
+        '''
+        logger.debug('WildlifeLicence.is_latest_in_category() - start')
         organisation_id = self.current_application.org_applicant
         proxy_id = self.current_application.proxy_applicant
         submitter = self.current_application.submitter
-        return WildlifeLicence.objects.filter(
+
+        is_latest = WildlifeLicence.objects.filter(
             Q(current_application__org_applicant_id=organisation_id) if organisation_id else
             (Q(current_application__submitter=proxy_id) |
                 Q(current_application__proxy_applicant=proxy_id)) if proxy_id else
@@ -924,12 +928,16 @@ class WildlifeLicence(models.Model):
             )
         ).filter(licence_category_id=self.licence_category.id).latest('id') == self
 
+        logger.debug('WildlifeLicence.is_latest_in_category() - end')
+        return is_latest
+
     @property
     def has_inspection_open(self):
         """
         An attribute indicating a licence inspection is created and opened for
         this License.
         """
+        logger.debug('WildlifeLicence.has_inspection_open() - start')
         inspection_exists = False
 
         inspections = LicenceInspection.objects.filter(
@@ -938,6 +946,7 @@ class WildlifeLicence(models.Model):
         is_active = [i.is_active for i in inspections if i.is_active]
         inspection_exists = is_active[0] if is_active else False
 
+        logger.debug('WildlifeLicence.has_inspection_open() - end')
         return inspection_exists
 
     def create_inspection(self, request):
@@ -1234,6 +1243,7 @@ class WildlifeLicence(models.Model):
         Returns a list of LicencePurpose objects that can be added to a WildlifeLicence
         Same logic as the UserAvailableWildlifeLicencePurposesViewSet list function (used in API call)
         """
+        logger.debug('WildlifeLicence.purposes_available_to_add() - start')
         available_purpose_records = LicencePurpose.objects.all()
         licence_category_id = self.licence_category.id
         current_activities = self.current_activities
@@ -1251,13 +1261,8 @@ class WildlifeLicence(models.Model):
             licence_category_id=licence_category_id
         )
 
+        logger.debug('WildlifeLicence.purposes_available_to_add() - end')
         return available_purpose_records
-
-    # @property
-    # def can_add_purpose(self):
-    #     return self.is_latest_in_category and\
-    #            self.purposes_available_to_add.count() > 0 and\
-    #            self.can_action.get('can_amend')
 
     def has_additional_information_for(self, selected_activity):
         """
@@ -1326,34 +1331,6 @@ class WildlifeLicence(models.Model):
         '''
         Returns selected licence purposes for this licence in sequence order.
         '''
-        # from wildlifecompliance.components.applications.models import (
-        #     ApplicationSelectedActivityPurpose,
-        #     ApplicationSelectedActivity,
-        # )
-        # purposes = []
-        # # activities for this licence in current or suspended.
-        # activity_status = [
-        #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-        #         # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
-        #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-        # ]
-        # # latest purposes on the activities which are issued or reissued.
-        # purpose_process_status = [
-        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
-        #     ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
-        # ]
-
-        # activity_ids = [
-        #     a.id for a in self.current_application.get_current_activity_chain(
-        #         activity_status__in=activity_status
-        #     )
-        # ]
-
-        # purposes = ApplicationSelectedActivityPurpose.objects.filter(
-        #     selected_activity__in=activity_ids,
-        #     processing_status__in=purpose_process_status
-        # ).order_by('purpose_sequence')
-
         purposes = self.get_proposed_purposes_in_applications()
 
         return purposes
