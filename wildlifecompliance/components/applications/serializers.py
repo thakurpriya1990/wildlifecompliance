@@ -1090,6 +1090,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
             # Outstanding amendment request - edit required.
             result = True
+        elif not obj.licence:
+            result = obj.can_user_edit
+        elif not obj.licence.has_proposed_purposes_in_current():
+            # no active purposes ie. licence is expired.
+            result = False
         else:
             result = obj.can_user_edit
         logger.debug('BaseApplicationSerializer.can_user_edit() - end')
