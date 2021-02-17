@@ -379,7 +379,8 @@ class WildlifeLicence(models.Model):
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return '{} {}-{}'.format(self.licence_category, self.licence_number, self.licence_sequence)
+        return '{} {}-{}'.format(
+            self.licence_category, self.licence_number, self.licence_sequence)
 
     def save(self, *args, **kwargs):
         self.update_property_cache(False)
@@ -388,6 +389,8 @@ class WildlifeLicence(models.Model):
             self.licence_number = 'L{0:06d}'.format(
                 self.next_licence_number_id)
             self.save()
+
+    #####                   PROPERTY CACHING STRATEGY                      #####
 
     def get_property_cache(self):
         '''
@@ -402,8 +405,6 @@ class WildlifeLicence(models.Model):
         '''
         Refresh cached properties with updated properties.
         '''
-        # self.property_cache['payment_status'] = self.payment_status
-
         if save is True:
             self.save()
 
@@ -421,6 +422,211 @@ class WildlifeLicence(models.Model):
             self.update_property_cache()
 
         return self.property_cache
+
+    ############################################################################
+
+    @property
+    def purposes_available_to_add(self):
+        """
+        Returns a list of LicencePurpose objects that can be added to a WildlifeLicence
+        Same logic as the UserAvailableWildlifeLicencePurposesViewSet list function (used in API call)
+        """
+        logger.debug('WildlifeLicence.purposes_available_to_add() - start')
+        available_purpose_records = LicencePurpose.objects.all()
+        licence_category_id = self.licence_category.id
+        current_activities = self.current_activities
+
+        # Exclude any purposes that are linked with CURRENT activities
+        active_purpose_ids = []
+        for current_activity in current_activities:
+            active_purpose_ids.extend([purpose.id for purpose in current_activity.purposes])
+        available_purpose_records = available_purpose_records.exclude(
+            id__in=active_purpose_ids
+        )
+
+        # Filter by Licence Category ID
+        available_purpose_records = available_purpose_records.filter(
+            licence_category_id=licence_category_id
+        )
+
+        logger.debug('WildlifeLicence.purposes_available_to_add() - end')
+        return available_purpose_records
+
+    @property
+    def latest_activities_merged(self):
+        """
+        Return a list of activities for the licence, merged by
+        licence_activity_id (1 per LicenceActivity)
+
+        NOTE:AYN redundant replaced with LicenceActioner.
+        """
+        latest_activities = self.latest_activities
+        merged_activities = {}
+
+        if self.is_latest_in_category:
+            purposes_in_open_applications = list(
+                self.get_purposes_in_open_applications())
+        else:
+            purposes_in_open_applications = None
+
+        for activity in latest_activities:
+            if purposes_in_open_applications or\
+                    purposes_in_open_applications == []:
+                activity_can_action = activity.can_action(
+                    purposes_in_open_applications)
+            else:
+                activity_can_action = {
+                    'licence_activity_id': activity.licence_activity_id,
+                    'can_renew': False,
+                    'can_amend': False,
+                    'can_surrender': False,
+                    'can_cancel': False,
+                    'can_suspend': False,
+                    'can_reissue': False,
+                    'can_reinstate': False,
+                }
+
+            # Check if a record for the licence_activity_id already exists, if
+            # not, add.
+            if not merged_activities.get(activity.licence_activity_id):
+
+                issued_list = [
+                    p for p in activity.proposed_purposes.all() if p.is_issued]
+
+                if not len(issued_list):
+                    continue
+
+                merged_activities[activity.licence_activity_id] = {
+                    'licence_activity_id': activity.licence_activity_id,
+                    'activity_name_str': activity.licence_activity.name,
+                    'issue_date': activity.get_issue_date(),
+                    'start_date': activity.get_start_date(),
+                    'expiry_date': '\n'.join(['{}'.format(
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
+                    'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all() if p.is_issued]),
+                    'can_action':
+                        {
+                            'licence_activity_id': activity.licence_activity_id,
+                            'can_renew': activity_can_action['can_renew'],
+                            'can_amend': activity_can_action['can_amend'],
+                            'can_surrender': activity_can_action['can_surrender'],
+                            'can_cancel': activity_can_action['can_cancel'],
+                            'can_suspend': activity_can_action['can_suspend'],
+                            'can_reissue': activity_can_action['can_reissue'],
+                            'can_reinstate': activity_can_action['can_reinstate'],
+                        }
+                }
+            else:
+                activity_key = merged_activities[activity.licence_activity_id]
+                activity_key['activity_purpose_names_and_status'] += \
+                    '\n' + '\n'.join(['{} ({})'.format(
+                        p.purpose.name, activity.get_activity_status_display())
+                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
+                activity_key['expiry_date'] += \
+                    '\n' + '\n'.join(['{}'.format(
+                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else None)
+                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
+                activity_key['can_action']['can_renew'] =\
+                    activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
+                activity_key['can_action']['can_amend'] =\
+                    activity_key['can_action']['can_amend'] or activity_can_action['can_amend']
+                activity_key['can_action']['can_surrender'] =\
+                    activity_key['can_action']['can_surrender'] or activity_can_action['can_surrender']
+                activity_key['can_action']['can_cancel'] =\
+                    activity_key['can_action']['can_cancel'] or activity_can_action['can_cancel']
+                activity_key['can_action']['can_suspend'] =\
+                    activity_key['can_action']['can_suspend'] or activity_can_action['can_suspend']
+                activity_key['can_action']['can_reissue'] =\
+                    activity_key['can_action']['can_reissue'] or activity_can_action['can_reissue']
+                activity_key['can_action']['can_reinstate'] =\
+                    activity_key['can_action']['can_reinstate'] or activity_can_action['can_reinstate']
+
+        merged_activities_list = merged_activities.values()
+
+        return merged_activities_list
+
+    @property
+    def latest_activities(self):
+        '''
+        Returns the most recently issued activities.
+
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivity)
+
+        REPLACE = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+
+        return self.get_activities_by_processing_status(
+            ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        ).exclude(activity_status=REPLACE)
+
+    @property
+    def current_activities(self):
+        from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
+        return self.get_activities_by_activity_status(ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT)
+
+    @property
+    def next_licence_number_id(self):
+        licence_number_max = WildlifeLicence.objects.all().aggregate(
+            Max('licence_number'))['licence_number__max']
+        if licence_number_max is None:
+            return self.pk
+        else:
+            return int(licence_number_max.split('L')[1]) + 1
+
+    @property
+    def reference(self):
+        return '{}-{}'.format(self.licence_number, self.licence_sequence)
+
+    @property
+    def is_issued(self):
+        return self.licence_number is not None and len(self.licence_number) > 0
+
+    @property
+    def is_latest_in_category(self):
+        '''
+        Returns True if the licence is the most recent one of it's category,
+        filtered by matching org_applicant, proxy_applicant and submitter.
+        '''
+        logger.debug('WildlifeLicence.is_latest_in_category() - start')
+        organisation_id = self.current_application.org_applicant
+        proxy_id = self.current_application.proxy_applicant
+        submitter = self.current_application.submitter
+
+        is_latest = WildlifeLicence.objects.filter(
+            Q(current_application__org_applicant_id=organisation_id) if organisation_id else
+            (Q(current_application__submitter=proxy_id) |
+                Q(current_application__proxy_applicant=proxy_id)) if proxy_id else
+            Q(current_application__submitter=submitter,
+              current_application__proxy_applicant=None,
+              current_application__org_applicant=None
+            )
+        ).filter(licence_category_id=self.licence_category.id).latest('id') == self
+
+        logger.debug('WildlifeLicence.is_latest_in_category() - end')
+        return is_latest
+
+    @property
+    def has_inspection_open(self):
+        """
+        An attribute indicating a licence inspection is created and opened for
+        this License.
+        """
+        logger.debug('WildlifeLicence.has_inspection_open() - start')
+        inspection_exists = False
+
+        inspections = LicenceInspection.objects.filter(
+            licence=self
+        )
+        is_active = [i.is_active for i in inspections if i.is_active]
+        inspection_exists = is_active[0] if is_active else False
+
+        logger.debug('WildlifeLicence.has_inspection_open() - end')
+        return inspection_exists
+
 
     def get_activities_by_activity_status_ordered(self, status):
         '''
@@ -774,181 +980,6 @@ class WildlifeLicence(models.Model):
 
         return len(purposes)
 
-    @property
-    def latest_activities_merged(self):
-        """
-        Return a list of activities for the licence, merged by
-        licence_activity_id (1 per LicenceActivity)
-
-        NOTE:AYN redundant replaced with LicenceActioner.
-        """
-        latest_activities = self.latest_activities
-        merged_activities = {}
-
-        if self.is_latest_in_category:
-            purposes_in_open_applications = list(
-                self.get_purposes_in_open_applications())
-        else:
-            purposes_in_open_applications = None
-
-        for activity in latest_activities:
-            if purposes_in_open_applications or\
-                    purposes_in_open_applications == []:
-                activity_can_action = activity.can_action(
-                    purposes_in_open_applications)
-            else:
-                activity_can_action = {
-                    'licence_activity_id': activity.licence_activity_id,
-                    'can_renew': False,
-                    'can_amend': False,
-                    'can_surrender': False,
-                    'can_cancel': False,
-                    'can_suspend': False,
-                    'can_reissue': False,
-                    'can_reinstate': False,
-                }
-
-            # Check if a record for the licence_activity_id already exists, if
-            # not, add.
-            if not merged_activities.get(activity.licence_activity_id):
-
-                issued_list = [
-                    p for p in activity.proposed_purposes.all() if p.is_issued]
-
-                if not len(issued_list):
-                    continue
-
-                merged_activities[activity.licence_activity_id] = {
-                    'licence_activity_id': activity.licence_activity_id,
-                    'activity_name_str': activity.licence_activity.name,
-                    'issue_date': activity.get_issue_date(),
-                    'start_date': activity.get_start_date(),
-                    'expiry_date': '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else '')
-                        for p in activity.proposed_purposes.all() if p.is_issued]),
-                    'activity_purpose_names_and_status': '\n'.join(['{} ({})'.format(
-                        p.purpose.name, activity.get_activity_status_display())
-                        for p in activity.proposed_purposes.all() if p.is_issued]),
-                    'can_action':
-                        {
-                            'licence_activity_id': activity.licence_activity_id,
-                            'can_renew': activity_can_action['can_renew'],
-                            'can_amend': activity_can_action['can_amend'],
-                            'can_surrender': activity_can_action['can_surrender'],
-                            'can_cancel': activity_can_action['can_cancel'],
-                            'can_suspend': activity_can_action['can_suspend'],
-                            'can_reissue': activity_can_action['can_reissue'],
-                            'can_reinstate': activity_can_action['can_reinstate'],
-                        }
-                }
-            else:
-                activity_key = merged_activities[activity.licence_activity_id]
-                activity_key['activity_purpose_names_and_status'] += \
-                    '\n' + '\n'.join(['{} ({})'.format(
-                        p.purpose.name, activity.get_activity_status_display())
-                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
-                activity_key['expiry_date'] += \
-                    '\n' + '\n'.join(['{}'.format(
-                        p.expiry_date.strftime('%d/%m/%Y') if p.expiry_date else None)
-                        for p in activity.proposed_purposes.all() if p.is_issued and p.purpose in activity.purposes])
-                activity_key['can_action']['can_renew'] =\
-                    activity_key['can_action']['can_renew'] or activity_can_action['can_renew']
-                activity_key['can_action']['can_amend'] =\
-                    activity_key['can_action']['can_amend'] or activity_can_action['can_amend']
-                activity_key['can_action']['can_surrender'] =\
-                    activity_key['can_action']['can_surrender'] or activity_can_action['can_surrender']
-                activity_key['can_action']['can_cancel'] =\
-                    activity_key['can_action']['can_cancel'] or activity_can_action['can_cancel']
-                activity_key['can_action']['can_suspend'] =\
-                    activity_key['can_action']['can_suspend'] or activity_can_action['can_suspend']
-                activity_key['can_action']['can_reissue'] =\
-                    activity_key['can_action']['can_reissue'] or activity_can_action['can_reissue']
-                activity_key['can_action']['can_reinstate'] =\
-                    activity_key['can_action']['can_reinstate'] or activity_can_action['can_reinstate']
-
-        merged_activities_list = merged_activities.values()
-
-        return merged_activities_list
-
-    @property
-    def latest_activities(self):
-        '''
-        Returns the most recently issued activities.
-
-        '''
-        from wildlifecompliance.components.applications.models import (
-            ApplicationSelectedActivity)
-
-        REPLACE = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-
-        return self.get_activities_by_processing_status(
-            ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-        ).exclude(activity_status=REPLACE)
-
-    @property
-    def current_activities(self):
-        from wildlifecompliance.components.applications.models import ApplicationSelectedActivity
-        return self.get_activities_by_activity_status(ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT)
-
-    @property
-    def next_licence_number_id(self):
-        licence_number_max = WildlifeLicence.objects.all().aggregate(
-            Max('licence_number'))['licence_number__max']
-        if licence_number_max is None:
-            return self.pk
-        else:
-            return int(licence_number_max.split('L')[1]) + 1
-
-    @property
-    def reference(self):
-        return '{}-{}'.format(self.licence_number, self.licence_sequence)
-
-    @property
-    def is_issued(self):
-        return self.licence_number is not None and len(self.licence_number) > 0
-
-    @property
-    def is_latest_in_category(self):
-        '''
-        Returns True if the licence is the most recent one of it's category,
-        filtered by matching org_applicant, proxy_applicant and submitter.
-        '''
-        logger.debug('WildlifeLicence.is_latest_in_category() - start')
-        organisation_id = self.current_application.org_applicant
-        proxy_id = self.current_application.proxy_applicant
-        submitter = self.current_application.submitter
-
-        is_latest = WildlifeLicence.objects.filter(
-            Q(current_application__org_applicant_id=organisation_id) if organisation_id else
-            (Q(current_application__submitter=proxy_id) |
-                Q(current_application__proxy_applicant=proxy_id)) if proxy_id else
-            Q(current_application__submitter=submitter,
-              current_application__proxy_applicant=None,
-              current_application__org_applicant=None
-            )
-        ).filter(licence_category_id=self.licence_category.id).latest('id') == self
-
-        logger.debug('WildlifeLicence.is_latest_in_category() - end')
-        return is_latest
-
-    @property
-    def has_inspection_open(self):
-        """
-        An attribute indicating a licence inspection is created and opened for
-        this License.
-        """
-        logger.debug('WildlifeLicence.has_inspection_open() - start')
-        inspection_exists = False
-
-        inspections = LicenceInspection.objects.filter(
-            licence=self
-        )
-        is_active = [i.is_active for i in inspections if i.is_active]
-        inspection_exists = is_active[0] if is_active else False
-
-        logger.debug('WildlifeLicence.has_inspection_open() - end')
-        return inspection_exists
-
     def create_inspection(self, request):
         '''
         Creates an inspection for this licence.
@@ -1236,33 +1267,6 @@ class WildlifeLicence(models.Model):
                     activity.mark_as_replaced(request)
 
         logger.debug('Licence.apply_action_to_purpose() - end')
-
-    @property
-    def purposes_available_to_add(self):
-        """
-        Returns a list of LicencePurpose objects that can be added to a WildlifeLicence
-        Same logic as the UserAvailableWildlifeLicencePurposesViewSet list function (used in API call)
-        """
-        logger.debug('WildlifeLicence.purposes_available_to_add() - start')
-        available_purpose_records = LicencePurpose.objects.all()
-        licence_category_id = self.licence_category.id
-        current_activities = self.current_activities
-
-        # Exclude any purposes that are linked with CURRENT activities
-        active_purpose_ids = []
-        for current_activity in current_activities:
-            active_purpose_ids.extend([purpose.id for purpose in current_activity.purposes])
-        available_purpose_records = available_purpose_records.exclude(
-            id__in=active_purpose_ids
-        )
-
-        # Filter by Licence Category ID
-        available_purpose_records = available_purpose_records.filter(
-            licence_category_id=licence_category_id
-        )
-
-        logger.debug('WildlifeLicence.purposes_available_to_add() - end')
-        return available_purpose_records
 
     def has_additional_information_for(self, selected_activity):
         """
