@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='sectionregulation',
             name='amount',
-            field=models.DecimalField(decimal_places=2, default=b'0.00', max_digits=8),
+            field=models.DecimalField(decimal_places=2, default=str(b'0.00', 'utf-8'), max_digits=8),
         ),
     ]
