@@ -184,13 +184,14 @@ export const offenceStore = {
                 // Construct payload to store data to be sent
                 let payload = new Object();
                 Object.assign(payload, state.offence);
-
+                /*
                 if (params.fr_date && params.fr_time){
                     let occurrence_datetime_from = moment(params.fr_date + ' ' + params.fr_time, 'DD/MM/YYYY LT');
                     payload.occurrence_datetime_from = occurrence_datetime_from.toDate().toISOString();
                 } else {
                     throw new Error('Occurrence date-from and time-from cannot be empty');
                 }
+                */
 
                 if (payload.occurrence_from_to) {
                     if (params.to_date && params.to_time){
