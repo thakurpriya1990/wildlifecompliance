@@ -17,6 +17,7 @@ from wildlifecompliance.helpers import (
     is_internal,
     is_reception,
     is_wildlifecompliance_payment_officer,
+    is_new_to_wildlifecompliance,
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
@@ -346,6 +347,7 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
     dob = serializers.SerializerMethodField(read_only=True)
     identification = serializers.SerializerMethodField(read_only=True)
     is_payment_officer = serializers.SerializerMethodField(read_only=True)
+    has_complete_first_time = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -370,7 +372,24 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             'prefer_compliance_management',
             'is_reception',
             'is_payment_officer',
+            'has_complete_first_time',
         )
+
+    def get_has_complete_first_time(self, obj):
+        '''
+        Verify request user has completed adding reqired details for first time
+        usage.
+        '''
+        is_completed = False
+
+        request = self.context.get('request')
+
+        if is_internal(request):
+            is_completed = True
+        else:
+            is_completed = not is_new_to_wildlifecompliance(request)
+
+        return is_completed
 
     def get_is_payment_officer(self, obj):
         is_officer = is_wildlifecompliance_payment_officer(

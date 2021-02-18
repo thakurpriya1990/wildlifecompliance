@@ -38,7 +38,7 @@
                                 </select> -->
                             </div>
                         </div>
-                        <div v-if="has_identification" class="col-md-3">
+                        <div class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
                     </div>
@@ -535,13 +535,6 @@ export default {
         is_external: function(){
             return this.level == 'external';
         },
-        has_identification: function() {
-            let vm = this
-            if (!vm.isIdentifiedUser){
-                vm.$router.push({name:"account",});
-            }  
-            return true
-        },
     },
     methods:{
         ...mapActions([
@@ -824,10 +817,6 @@ export default {
                     )
                 });
         },
-    },
-    created: function(){
-        let vm = this;
-        vm.loadCurrentUser({ url: `/api/my_user_details` });
     },
     mounted: function(){
         let vm = this;     

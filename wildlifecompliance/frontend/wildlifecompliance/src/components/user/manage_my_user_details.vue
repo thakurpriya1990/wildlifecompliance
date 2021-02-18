@@ -508,10 +508,10 @@ export default {
         //     return this.uploadedID != null ? this.uploadedID.name: id_file;
         // },
         showCompletion: function() {
-            if (!this.showCompleteMsg) {
-                this.showCompleteMsg = this.$route.name == 'first-time' ? true : this.current_user.identification == null ? true : false
-            }
-            return this.showCompleteMsg
+            // if (!this.showCompleteMsg) {
+            //     this.showCompleteMsg = this.$route.name == 'first-time' ? true : this.current_user.identification == null ? true : false
+            // }
+            return this.$route.name == 'first-time'
         },
         completedProfile: function(){
             return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details && this.current_user.identification;
@@ -1107,7 +1107,8 @@ export default {
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.my_user_details).then((response) => {
-            if (response.body.address_details && response.body.personal_details && response.body.contact_details && to.name == 'first-time'){
+            console.log(response.body)
+            if (to.name == 'first-time' && response.body.address_details && response.body.personal_details && response.body.contact_details && response.body.has_complete_first_time){
                 window.location.href='/';
             }
             else{
@@ -1115,11 +1116,7 @@ export default {
                     vm.current_user = response.body
                     if (vm.current_user.residential_address == null){ vm.current_user.residential_address = {}; }
                     if (vm.current_user.wildlifecompliance_organisations && vm.current_user.wildlifecompliance_organisations.length > 0) { vm.managesOrg = 'Yes' }
-                    if (vm.current_user.identification){ 
-                        vm.uploadedID = vm.current_user.identification.file.split('/').pop(); 
-                    } else {
-                        vm.showCompleteMsg = true;
-                    }
+                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification.file.split('/').pop(); }
                 });
             }
         },(error) => {
