@@ -684,7 +684,7 @@ class SearchSectionRegulation(viewsets.ModelViewSet):
     queryset = SectionRegulation.objects.all()
     serializer_class = SectionRegulationSerializer
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('act', 'name', 'offence_text',)
+    search_fields = ('act__name', 'name', 'offence_text',)
 
 
 class SearchOrganisation(viewsets.ModelViewSet):
