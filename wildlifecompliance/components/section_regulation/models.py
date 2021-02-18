@@ -5,18 +5,20 @@ from ledger.accounts.models import RevisionedMixin
 
 
 class Act(RevisionedMixin):
-    ACRONYM_CHOICES =  (
+    NAME_CHOICES =  (
             ('BCA', 'Biodiversity Conservation Act 2016'),
             ('CALM', 'Conservation and Land Management Act 1984'),
             )
 
-    acronym = models.CharField(max_length=50, choices=ACRONYM_CHOICES)
-    name = models.CharField(max_length=200, blank=True)
+    name = models.CharField(max_length=50, choices=NAME_CHOICES)
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_Act'
         verbose_name_plural = 'CM_Acts'
+
+    def __str__(self):
+        return self.name
 
 class SectionRegulation(RevisionedMixin):
     #act = models.CharField(max_length=100, blank=True)
