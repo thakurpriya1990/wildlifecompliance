@@ -18,6 +18,27 @@ BASIC_AUTH = env('BASIC_AUTH', False)
 logger = logging.getLogger(__name__)
 # logger = logging
 
+def is_new_to_wildlifecompliance(request=None):
+    '''
+    Verify request user holds minimum details to use Wildlife Licensing.
+    '''
+    has_user_details = True if request.user.first_name \
+        and request.user.last_name \
+        and request.user.dob \
+        and request.user.residential_address \
+        and (request.user.phone_number or request.user.mobile_number) \
+        and request.user.identification else False
+
+    other_url = [                   # NOTE: This should be in settings.
+        # 'localhost:8000',
+        'xxx-dev.dbca.wa.gov.au',
+    ]
+    http_host = request.META.get('HTTP_HOST', None)
+    if http_host and (http_host in other_url):
+         has_user_details = True
+
+    return not has_user_details
+
 def belongs_to(user, group_name):
     """
     Check if the user belongs to the given group.
