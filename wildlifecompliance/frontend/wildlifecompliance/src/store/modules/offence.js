@@ -190,7 +190,7 @@ export const offenceStore = {
                 } else {
                     throw new Error('Occurrence date-from and time-from cannot be empty');
                 }
-                /*
+
                 if (payload.occurrence_from_to) {
                     if (params.to_date && params.to_time){
                         let occurrence_datetime_to = moment(params.to_date + ' ' + params.to_time, 'DD/MM/YYYY LT');
@@ -199,7 +199,6 @@ export const offenceStore = {
                         throw new Error('Occurrence date-to and time-to cannot be empty');
                     }
                 }
-                */
 
                // // Format date
                // if (payload.occurrence_date_from) {
