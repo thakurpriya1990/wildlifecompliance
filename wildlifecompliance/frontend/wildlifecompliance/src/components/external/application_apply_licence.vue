@@ -363,7 +363,8 @@ export default {
             data.licence_purposes=licence_purposes;
             data.application_type = vm.selected_apply_licence_select;
             data.customer_method_id = vm.customer_pay_method;
-            data.selected_activity = vm.select_activity
+            data.selected_activity = vm.select_activity;
+            data.selected_purpose = vm.select_purpose;
             vm.$http.post('/api/application.json',JSON.stringify(data),{emulateJSON:true}).then(res => {
                 vm.setApplicationWorkflowState({bool: false});
                 vm.setReceptionMethodId({pay_method: this.customer_pay_method});
