@@ -6358,9 +6358,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
             Application.PROCESSING_STATUS_DISCARDED,
         ]
 
-        app_application_type = [               # Only types which can replace.
+        app_application_type = [                # Only types which can replace.
             Application.APPLICATION_TYPE_AMENDMENT,
             Application.APPLICATION_TYPE_REISSUE,
+            Application.APPLICATION_TYPE_RENEWAL,
         ]
 
         applications = Application.objects.filter(
