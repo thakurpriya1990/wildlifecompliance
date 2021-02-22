@@ -343,12 +343,14 @@ export default {
           columns: [
             {
                 visible: false,
-                mRender: function(data, type, full){
+                data: 'id',
+                render: function(data, type, full){
                     return full.id;
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.act;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -357,7 +359,8 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.name;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -366,7 +369,8 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.offence_text;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -375,7 +379,8 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full) {
+                data: 'id',
+                render: function(data, type, full) {
                     let ret_line = '';
 
                     // Chenck if this alleged offence has already a connection to the current offender selected
@@ -427,7 +432,7 @@ export default {
             },
             {
               data: "action",
-              mRender: function(data, type, row) {
+              render: function(data, type, row) {
                 return (
                   '<a href="#" class="remove_button" data-remediation-action-id="' +
                   row.id +
