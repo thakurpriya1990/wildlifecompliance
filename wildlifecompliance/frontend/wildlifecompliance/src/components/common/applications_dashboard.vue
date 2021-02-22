@@ -183,6 +183,7 @@ export default {
                 // Actions
                 width: "10%",
                 mRender:function (data,type,full) {
+                    console.log(full)
                     let links = '';
                     if (!vm.is_external){
                         const finalised = ['approved', 'declined', 'awaiting_payment'].includes(full.processing_status.id);
@@ -819,7 +820,8 @@ export default {
         },
     },
     mounted: function(){
-        let vm = this;     
+        let vm = this;
+        vm.loadCurrentUser({ url: `/api/my_user_details` });     
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
             window.setTimeout( function () {
