@@ -18,7 +18,21 @@ BASIC_AUTH = env('BASIC_AUTH', False)
 logger = logging.getLogger(__name__)
 # logger = logging
 
-def is_new_to_wildlifecompliance(request=None):
+def is_wildlifelicensing_request(request=None):
+    '''
+    Verify in-coming request is for Wildlife Licensing.
+    '''
+    is_wlc = False
+
+    http_host = request.META.get('HTTP_HOST', None)
+
+    if http_host and settings.SITE_URL_WLC \
+    and ('wlc' in http_host.lower() or http_host in settings.SITE_URL_WLC):
+        is_wlc = True
+
+    return is_wlc
+
+def is_new_to_wildlifelicensing(request=None):
     '''
     Verify request user holds minimum details to use Wildlife Licensing.
     '''
@@ -29,12 +43,7 @@ def is_new_to_wildlifecompliance(request=None):
         and (request.user.phone_number or request.user.mobile_number) \
         and request.user.identification else False
 
-    other_url = [                   # NOTE: This should be in settings.
-        # 'localhost:8000',
-        'xxx-dev.dbca.wa.gov.au',
-    ]
-    http_host = request.META.get('HTTP_HOST', None)
-    if http_host and (http_host in other_url):
+    if not is_wildlifelicensing_request(request):
          has_user_details = True
 
     return not has_user_details

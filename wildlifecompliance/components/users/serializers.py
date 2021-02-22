@@ -17,7 +17,7 @@ from wildlifecompliance.helpers import (
     is_internal,
     is_reception,
     is_wildlifecompliance_payment_officer,
-    is_new_to_wildlifecompliance,
+    is_new_to_wildlifelicensing,
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
@@ -310,6 +310,53 @@ class UserSerializer(serializers.ModelSerializer):
         return serialized_orgs
 
 
+class FirstTimeUserSerializer(UserSerializer):
+    '''
+    Specialised UserSerializer with flag for minimal details provided check for 
+    first-time user.
+    '''
+    has_complete_first_time = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = EmailUser
+        fields = (
+            'title',
+            'id',
+            'last_name',
+            'first_name',
+            'dob',
+            'email',
+            'identification',
+            'residential_address',
+            'phone_number',
+            'mobile_number',
+            'fax_number',
+            'character_flagged',
+            'character_comments',
+            'wildlifecompliance_organisations',
+            'personal_details',
+            'address_details',
+            'contact_details',
+            'has_complete_first_time',
+        )
+
+    def get_has_complete_first_time(self, obj):
+        '''
+        Verify request user has completed adding reqired details for first time
+        usage.
+        '''
+        is_completed = False
+
+        request = self.context.get('request')
+
+        if is_internal(request):
+            is_completed = True
+        else:
+            is_completed = not is_new_to_wildlifelicensing(request)
+
+        return is_completed
+
+
 class DTUserSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -387,7 +434,7 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
         if is_internal(request):
             is_completed = True
         else:
-            is_completed = not is_new_to_wildlifecompliance(request)
+            is_completed = not is_new_to_wildlifelicensing(request)
 
         return is_completed
 

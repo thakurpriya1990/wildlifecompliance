@@ -69,7 +69,7 @@
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <i v-if="showCompletion && uploadedID" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="!uploadedID" class="fa fa-times fa-2x pull-left" style="color:red"></i>
+                    <i v-else-if="!uploadedID && !current_user.has_complete_first_time" class="fa fa-times fa-2x pull-left" style="color:red"></i>
                     <h3 class="panel-title">Identification <small>Upload your photo ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
