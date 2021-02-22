@@ -357,38 +357,43 @@ export default {
       //    }
                     {
                         visible: false,
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             return row.allegedOffence.id;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.act;
                             return ret_str;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.name;
                             return ret_str;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.offence_text;
                             return ret_str;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = '<a href="#" class="remove_button" data-alleged-offence-uuid="' + row.allegedOffence.uuid + '">Remove</a>';
                             return ret_str;
-
                         }
                     },
         ]
       }
     };
+
   },
   components: {
     modal,
@@ -656,7 +661,7 @@ export default {
       vm.setCurrentOffenderEmpty();
     },
     addAllegedOffenceClicked: function() {
-
+        console.log('addAllegedOffenceClicked')
         if (this.current_alleged_offence && this.current_alleged_offence.id) {
 
             // Check if the item is already in the list
@@ -683,35 +688,22 @@ export default {
                 this.offence.alleged_offences.push(alleged_offence_obj);
             }
         }
-
-//      if (this.current_alleged_offence.id) {
-//        let already_exists = this.$refs.alleged_offence_table.vmDataTable.columns(0).data()[0].includes(this.current_alleged_offence.id);
-//
-//        if (!already_exists) {
-//          this.$refs.alleged_offence_table.vmDataTable.row.add({
-//              id: this.current_alleged_offence.id,
-//              Act: this.current_alleged_offence.Act,
-//              "Section/Regulation": this.current_alleged_offence.SectionRegulation,
-//              "Alleged Offence": this.current_alleged_offence.AllegedOffence
-//            }).draw();
-//        }
-//      }
-
-      this.setCurrentAllegedOffenceEmpty();
+        this.setCurrentAllegedOffenceEmpty();
         this.constructAllegedOffencesTable();
     },
-        constructAllegedOffencesTable: function(){
-            this.$refs.alleged_offence_table.vmDataTable.clear().draw();
-            if (this.offence.alleged_offences){
-                for(let i=0; i<this.offence.alleged_offences.length; i++){
-                    this.addAllegedOffenceToTable(this.offence.alleged_offences[i]);
-                }
+    constructAllegedOffencesTable: function(){
+        this.$refs.alleged_offence_table.vmDataTable.clear().draw();
+        if (this.offence.alleged_offences){
+            for(let i=0; i<this.offence.alleged_offences.length; i++){
+                this.addAllegedOffenceToTable(this.offence.alleged_offences[i]);
             }
-        },
-        addAllegedOffenceToTable: function(allegedOffence){
-            allegedOffence.uuid = uuid();
-            this.$refs.alleged_offence_table.vmDataTable.row.add({ allegedOffence: allegedOffence, offence: this.offence }).draw();
-        },
+        }
+    },
+    addAllegedOffenceToTable: function(allegedOffence){
+        console.log('in addAllegedOffenceToTable')
+        allegedOffence.uuid = uuid();
+        this.$refs.alleged_offence_table.vmDataTable.row.add({ "allegedOffence": allegedOffence, "offence": this.offence }).draw();
+    },
     ok: async function() {
         try {
             this.processingDetails = true;
