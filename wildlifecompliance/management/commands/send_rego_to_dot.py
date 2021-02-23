@@ -21,7 +21,7 @@ from wildlifecompliance.components.sanction_outcome_due.serializers import SaveS
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
-from wildlifecompliance.settings import DOT_EMAIL_ADDRESS
+from wildlifecompliance.settings import DOT_EMAIL_ADDRESS, SO_TYPE_INFRINGEMENT_NOTICE
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 # is_parking_offence == True
                 # status == 'with_dot'
                 # details not sent to the DoT yet
-                acos = AllegedCommittedOffence.objects.filter(Q(sanction_outcome__type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
+                acos = AllegedCommittedOffence.objects.filter(Q(sanction_outcome__type=SO_TYPE_INFRINGEMENT_NOTICE) &
                                                               Q(sanction_outcome__status=SanctionOutcome.STATUS_WITH_DOT) &
                                                               Q(sanction_outcome__offender=None) &
                                                               Q(sanction_outcome__dot_request_files=None) &
@@ -53,7 +53,7 @@ class Command(BaseCommand):
                 logger.info('{} parking infringement notice(s) found to process.'.format(str(count)))
 
                 for aco in acos:
-                    print aco.sanction_outcome.id
+                    print(aco.sanction_outcome.id)
 
                 if count:
                     file_for_dot = DotRequestFile()

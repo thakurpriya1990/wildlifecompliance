@@ -9,8 +9,11 @@ from ledger.accounts.models import EmailUser
 import os
 from django.utils.translation import ugettext_lazy as _
 
+from wildlifecompliance.components.section_regulation.models import Act
+from wildlifecompliance.settings import SO_TYPE_CHOICES
+
 logger = logging.getLogger(__name__)
-# logger = logging
+
 
 @python_2_unicode_compatible
 class SystemMaintenance(models.Model):
@@ -245,6 +248,8 @@ def update_sanction_outcome_word_filename(instance, filename):
 
 
 class SanctionOutcomeWordTemplate(models.Model):
+    sanction_outcome_type = models.CharField(max_length=30, choices=SO_TYPE_CHOICES, blank=True,)
+    act = models.CharField(max_length=30, choices=Act.NAME_CHOICES, blank=True,)
     _file = models.FileField(upload_to=update_sanction_outcome_word_filename, max_length=255)
     uploaded_date = models.DateTimeField(auto_now_add=True, editable=False)
     description = models.TextField(blank=True, verbose_name='description', help_text='')

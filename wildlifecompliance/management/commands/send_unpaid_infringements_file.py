@@ -19,6 +19,7 @@ from wildlifecompliance.helpers import DEBUG
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileHeader, \
     UnpaidInfringementFileTrailer
 from wildlifecompliance.management.commands.cron_tasks import get_infringement_notice_coordinators
+from wildlifecompliance.settings import SO_TYPE_INFRINGEMENT_NOTICE
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,7 @@ class Command(BaseCommand):
 
                 # Retrieve sanction outcomes whose type is Infringement Notice and which is unpaid
                 sanction_outcomes_base = SanctionOutcome.objects.filter(
-                    Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
+                    Q(type=SO_TYPE_INFRINGEMENT_NOTICE) &
                     Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                     Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID))\
                     .filter(due_dates__in=SanctionOutcomeDueDate.objects.filter(Q(due_date_2nd__lt=today) & Q(due_date_term_currently_applied='2nd')))
@@ -43,7 +44,7 @@ class Command(BaseCommand):
                     # For debugging purpose, infringement notice which has the string '__overdue2nd__' in the description field is also selected.
                     logger.info('DEBUG = True')
                     sanction_outcomes_debug = SanctionOutcome.objects.filter(
-                        Q(type=SanctionOutcome.TYPE_INFRINGEMENT_NOTICE) &
+                        Q(type=SO_TYPE_INFRINGEMENT_NOTICE) &
                         # Q(status=SanctionOutcome.STATUS_AWAITING_PAYMENT) &
                         # Q(payment_status=SanctionOutcome.PAYMENT_STATUS_UNPAID) &
                         Q(description__icontains='__overdue2nd__'))
