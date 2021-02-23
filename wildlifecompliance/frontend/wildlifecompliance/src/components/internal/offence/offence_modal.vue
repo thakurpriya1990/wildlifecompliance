@@ -284,8 +284,8 @@ export default {
             visible: true
           },
           {
-            data: "",
-            mRender: function(data, type, row) {
+            data: "data_type",
+            render: function(data, type, row) {
               if (row.data_type == "individual") {
                 let full_name = [row.first_name, row.last_name]
                   .filter(Boolean)
@@ -319,8 +319,8 @@ export default {
             }
           },
           {
-            data: "Action",
-            mRender: function(data, type, row) {
+            data: "id",
+            render: function(data, type, row) {
               return (
                 '<a href="#" class="remove_button" data-offender-id="' +
                 row.id +
