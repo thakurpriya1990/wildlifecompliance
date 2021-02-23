@@ -1,7 +1,7 @@
 from django.contrib import admin
-#from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.main import models, forms
-#from reversion.admin import VersionAdmin
+from wildlifecompliance.components.main.models import SanctionOutcomeWordTemplate
+from wildlifecompliance.components.main.utils import to_local_tz
 
 
 @admin.register(models.GlobalSettings)
@@ -16,3 +16,25 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
     ordering = ('start_date',)
     readonly_fields = ('duration',)
     form = forms.SystemMaintenanceAdminForm
+
+
+@admin.register(SanctionOutcomeWordTemplate)
+class SanctionOutcomeWordTemplateAdmin(admin.ModelAdmin):
+    list_display = ('Version', '_file', 'description', 'Date', 'Time')
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return ['_file', 'description', 'Date', 'Time']
+        else:
+            return []
+
+    def Version(self, obj):
+        return obj.id
+
+    def Date(self, obj):
+        local_date = to_local_tz(obj.uploaded_date)
+        return local_date.strftime('%d/%m/%Y')
+
+    def Time(self, obj):
+        local_date = to_local_tz(obj.uploaded_date)
+        return local_date.strftime('%H:%M')

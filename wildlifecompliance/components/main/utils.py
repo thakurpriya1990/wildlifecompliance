@@ -1,4 +1,6 @@
 import ast
+
+import pytz
 import requests
 import json
 import logging
@@ -549,3 +551,8 @@ class FakeRequest():
     def __init__(self, data):
         self.data = data
         self.user = None
+
+
+def to_local_tz(_date):
+    local_tz = pytz.timezone(settings.TIME_ZONE)
+    return _date.astimezone(local_tz)
