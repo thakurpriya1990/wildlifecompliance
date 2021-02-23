@@ -2,6 +2,7 @@ import os
 from django.conf import settings
 from docxtpl import DocxTemplate
 # from disturbance.components.main.models import ApiaryGlobalSettings
+from wildlifecompliance.components.main.models import SanctionOutcomeWordTemplate
 
 
 def create_infringement_notice_pdf_contents(pdf_filename):
@@ -22,6 +23,8 @@ def create_infringement_notice_pdf_contents(pdf_filename):
         # path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
 
     path_to_template = os.path.join(settings.BASE_DIR, 'wildlifecompliance', 'static', 'wildlifecompliance', 'infringement-notice-bca.docx')
+    test = SanctionOutcomeWordTemplate.objects.all().first()
+    path_to_template = test._file.path
 
     doc = DocxTemplate(path_to_template)
     # address = ''
