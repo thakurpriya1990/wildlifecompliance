@@ -2092,10 +2092,25 @@ class Application(RevisionedMixin):
     def get_owe_amount(self):
         '''
         Get owing amount for this application where the last invoice has a
-        balance amount exceeding the payment amount.
+        balance amount exceeding the payment amount. Balance amount will exceed
+        payment only with cash payments (ie non online application submission).
+
+        NOTE: Cash payments have pre-paid invoices.
         '''
+        under_paid = 0
+
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            # Under paid amount will not exist for online card payments.
+            return under_paid
+
         under_paid = \
             self.latest_invoice.amount - self.latest_invoice.payment_amount
+
+        if self.submit_type == self.SUBMIT_TYPE_PAPER \
+        and self.processing_status == self.PROCESSING_STATUS_APPROVED:
+            # When officer enters and approves a paper based application 
+            # allow for under_paid amounts be paid from ledger refund.
+            under_paid = 0
 
         return under_paid if under_paid > 0 else 0
 
@@ -3430,7 +3445,9 @@ class Application(RevisionedMixin):
                         generate_invoice = False
                         for activity in issued_activities:
                             # if activity.additional_fee > 0 \
-                            if activity.has_payable_fees_at_issue:
+                            refund = activity.get_refund_amount()
+                            if activity.has_payable_fees_at_issue \
+                            and refund < 1:
                                 generate_invoice = True
                                 break
 
