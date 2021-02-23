@@ -10,6 +10,7 @@ from wildlifecompliance.components.sanction_outcome.pdf_caution_notice import cr
 from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import create_infringement_notice_blue
 from wildlifecompliance.components.sanction_outcome.pdf_letter_of_advice import create_letter_of_advice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_remediation_notice import create_remediation_notice_pdf_bytes
+from wildlifecompliance.doctopdf import create_infringement_notice_pdf_contents
 
 logger = logging.getLogger(__name__)
 
