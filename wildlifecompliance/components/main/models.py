@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 import logging
+from datetime import datetime
+
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils.encoding import python_2_unicode_compatible
@@ -235,3 +237,22 @@ class ComplianceManagementEmailUser(EmailUser):
     def get_related_items_descriptor(self):
         return self.get_full_name()
 
+
+def update_sanction_outcome_word_filename(instance, filename):
+    cur_time = datetime.now().strftime('%Y%m%d_%H_%M') 
+    new_filename = 'sanction_outcome_template_{}'.format(cur_time)
+    return 'sanction_outcome_template/{}.docx'.format(new_filename)
+
+
+class SanctionOutcomeWordTemplate(models.Model):
+    _file = models.FileField(upload_to=update_sanction_outcome_word_filename, max_length=255)
+    uploaded_date = models.DateTimeField(auto_now_add=True, editable=False)
+    description = models.TextField(blank=True, verbose_name='description', help_text='')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name_plural = 'Wildlife Compliance Templates'
+        ordering = ['-id']
+
+    def __str__(self):
+        return "Version: {}, {}".format(self.id, self._file.name)
