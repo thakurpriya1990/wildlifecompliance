@@ -6,15 +6,11 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
-from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_caution_notice import create_caution_notice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import create_infringement_notice_blue
-from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_white import \
-    create_infringement_notice_white
-from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_yellow import \
-    create_infringement_notice_yellow
 from wildlifecompliance.components.sanction_outcome.pdf_letter_of_advice import create_letter_of_advice_pdf_bytes
 from wildlifecompliance.components.sanction_outcome.pdf_remediation_notice import create_remediation_notice_pdf_bytes
+from wildlifecompliance.doctopdf import create_infringement_notice_pdf_contents
 
 logger = logging.getLogger(__name__)
 
@@ -567,32 +563,12 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
 
 
 def create_infringement_notice_ybw(sanction_outcome, workflow_entry):
-    pdf_file_name_y = 'infringement_notice_y_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
-                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
-                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    pdf_file_name_w = 'infringement_notice_w_{}_{}.pdf'.format(sanction_outcome.lodgement_number,
-                                                               datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    # document = create_prosecution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    # document = create_court_hearing_notice_pdf_bytes(pdf_file_name, sanction_outcome)
-    document_y = create_infringement_notice_yellow(pdf_file_name_y, sanction_outcome)
+    pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     document_b = create_infringement_notice_blue(pdf_file_name_b, sanction_outcome)
-    document_w = create_infringement_notice_white(pdf_file_name_w, sanction_outcome)
-    # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
-    mime = mimetypes.guess_type(document_y._file.path)[0]
-    attachments.append((pdf_file_name_y, document_y._file.read(), mime))
     attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
-    attachments.append((pdf_file_name_w, document_w._file.read(), 'application/pdf'))
-    # Attach the pdf file created above to the communication log entry
-    doc = workflow_entry.documents.create(name=document_y.name)
-    doc._file = document_y._file
-    doc.save()
     doc = workflow_entry.documents.create(name=document_b.name)
     doc._file = document_b._file
-    doc.save()
-    doc = workflow_entry.documents.create(name=document_w.name)
-    doc._file = document_w._file
     doc.save()
     return attachments
 
