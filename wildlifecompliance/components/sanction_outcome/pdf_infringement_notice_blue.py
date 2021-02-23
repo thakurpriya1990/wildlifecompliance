@@ -3,6 +3,7 @@ import os
 
 from io import BytesIO
 
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from reportlab.lib import enums
 from reportlab.lib.colors import Color
@@ -15,6 +16,7 @@ from reportlab.lib import colors
 from django.conf import settings
 
 from wildlifecompliance.components.main.pdf_utils import gap, get_infringement_notice_table
+from wildlifecompliance.doctopdf import create_infringement_notice_pdf_contents
 from wildlifecompliance.settings import STATIC_ROOT
 
 DPAW_HEADER_LOGO = os.path.join(STATIC_ROOT, 'payments', 'img','dbca_logo.jpg')
@@ -124,11 +126,14 @@ def create_infringement_notice_blue(filename, sanction_outcome):
         _create_pdf(invoice_buffer, sanction_outcome)
 
         # Get the value of the BytesIO buffer
-        value = invoice_buffer.getvalue()
+        # value = invoice_buffer.getvalue()
+        value = create_infringement_notice_pdf_contents(filename)
+        content = ContentFile(value)
 
         # START: Save the pdf file to the database
         document = sanction_outcome.documents.create(name=filename)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+        # path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), content)
         document._file = path
         document.save()
         # END: Save
