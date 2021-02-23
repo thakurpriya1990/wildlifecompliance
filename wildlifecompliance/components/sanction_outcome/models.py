@@ -18,7 +18,8 @@ from wildlifecompliance.components.section_regulation.models import SectionRegul
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
-
+from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_INFRINGEMENT_NOTICE, SO_TYPE_CAUTION_NOTICE, \
+    SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_REMEDIATION_NOTICE
 
 logger = logging.getLogger(__name__)
 
@@ -112,21 +113,9 @@ class SanctionOutcome(models.Model):
         (STATUS_CLOSED, 'Closed'),
     )
 
-    TYPE_INFRINGEMENT_NOTICE = 'infringement_notice'
-    TYPE_CAUTION_NOTICE = 'caution_notice'
-    TYPE_LETTER_OF_ADVICE = 'letter_of_advice'
-    TYPE_REMEDIATION_NOTICE = 'remediation_notice'
-
-    TYPE_CHOICES = (
-        (TYPE_INFRINGEMENT_NOTICE, 'Infringement Notice'),
-        (TYPE_CAUTION_NOTICE, 'Caution Notice'),
-        (TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
-        (TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
-    )
-
     __original_status = STATUS_DRAFT
 
-    type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
+    type = models.CharField(max_length=30, choices=SO_TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
     payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
                                                                                                    # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
@@ -217,7 +206,7 @@ class SanctionOutcome(models.Model):
     def is_parking_offence(self):
         is_parking_offence = False
 
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=self)
             for aco in qs_allegedCommittedOffences:
                 if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
@@ -485,7 +474,7 @@ class SanctionOutcome(models.Model):
             return True
 
     def send_to_inc(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             # if self.is_issuable(raise_exception=True):
             self.status = SanctionOutcome.STATUS_WITH_DOT
             new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
@@ -496,7 +485,7 @@ class SanctionOutcome(models.Model):
             pass
 
     def endorse_parking_infringement(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             if not self.issued_on_paper and self.is_issuable(raise_exception=True):
                 self.confirm_date_time_issue(raise_exception=True)
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
@@ -509,7 +498,7 @@ class SanctionOutcome(models.Model):
         self.save()
 
     def endorse(self, request):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
                 self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
@@ -525,12 +514,12 @@ class SanctionOutcome(models.Model):
             new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
             self.allocated_group = new_group
 
-        elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
+        elif self.type in (SO_TYPE_CAUTION_NOTICE, SO_TYPE_LETTER_OF_ADVICE):
             # print('In SanctionOutcome.endorse(): Should not reach here...')
             # self.close(request)
             self.confirm_date_time_issue(raise_exception=True)
 
-        elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+        elif self.type == SO_TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
             new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
             self.allocated_group = new_group
@@ -627,7 +616,7 @@ class SanctionOutcome(models.Model):
     @property
     def coming_due_date(self):
         try:
-            if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
                 today = datetime.date.today()
                 if today <= self.last_due_date_1st:
                     return self.last_due_date_1st
@@ -643,7 +632,7 @@ class SanctionOutcome(models.Model):
 
     @property
     def last_due_date(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             due_dates = self.due_dates.order_by('-created_at')
             if self.date_of_issue and not due_dates:
                 raise ValidationError('Issued but not due dates are set.')
