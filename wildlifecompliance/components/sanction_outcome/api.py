@@ -50,6 +50,8 @@ from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
+from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_REMEDIATION_NOTICE, SO_TYPE_INFRINGEMENT_NOTICE, \
+    SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_CAUTION_NOTICE
 
 logger = logging.getLogger('compliancemanagement')
 
@@ -533,7 +535,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def types(self, request, *args, **kwargs):
         res_obj = []
-        for choice in SanctionOutcome.TYPE_CHOICES:
+        for choice in SO_TYPE_CHOICES:
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
@@ -775,7 +777,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 request_data = request.data
 
-                if request_data['type'] == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                if request_data['type'] == SO_TYPE_REMEDIATION_NOTICE:
                     if not len(request_data['remediation_actions']):
                         # Type is remediation action but no remediation actions defined
                         raise serializers.ValidationError(['You must define at least one remediation action.'])
@@ -843,7 +845,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Validate if alleged offences are selected
                 if count_alleged_offences == 0:
-                    if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                    if instance.type == SO_TYPE_INFRINGEMENT_NOTICE:
                         raise serializers.ValidationError(['You must select an alleged committed offence.'])
                     else:
                         raise serializers.ValidationError(['You must select at least one alleged committed offence.'])
@@ -1214,13 +1216,13 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if instance.type in (SanctionOutcome.TYPE_LETTER_OF_ADVICE, SanctionOutcome.TYPE_CAUTION_NOTICE):
+                    if instance.type in (SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_CAUTION_NOTICE):
                         instance.endorse(request)
                         if not instance.issued_on_paper:
                             to_address = [instance.get_offender()[0].email, ]
                             cc = None
                             bcc = [member.email for member in instance.allocated_group.members]
-                            if instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
+                            if instance.type == SO_TYPE_CAUTION_NOTICE:
                                 email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
                             else:
                                 email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
@@ -1247,7 +1249,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             to_address = [instance.get_offender()[0].email, ]
                             cc = None
                             bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                            if instance.type == SO_TYPE_INFRINGEMENT_NOTICE:
                                 email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
                             else:
                                 email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
@@ -1261,7 +1263,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             to_address = inc_emails
                             cc = [instance.responsible_officer.email,]
                             bcc = None
-                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                            if instance.type == fanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
                                 email_data = send_infringement_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
                             else:
                                 email_data = send_remediation_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
