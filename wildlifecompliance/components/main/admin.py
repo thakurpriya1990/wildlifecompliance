@@ -20,7 +20,7 @@ class SystemMaintenanceAdmin(admin.ModelAdmin):
 
 @admin.register(SanctionOutcomeWordTemplate)
 class SanctionOutcomeWordTemplateAdmin(admin.ModelAdmin):
-    list_display = ('Version', '_file', 'description', 'Date', 'Time')
+    list_display = ('Version', '_file', 'sanction_outcome_type', 'act', 'description', 'Date', 'Time')
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
