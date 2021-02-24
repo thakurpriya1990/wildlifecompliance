@@ -670,6 +670,13 @@ class SaveRemediationActionSerializer(serializers.ModelSerializer):
         return obj
 
 
+class SanctionOutcomeNoticeSerializer(serializers.ModelSerializer):
+
+
+    class Meta:
+        model = SanctionOutcome
+
+
 class SanctionOutcomeUserActionSerializer(serializers.ModelSerializer):
     # who = serializers.CharField(source='who.get_full_name')
     who = serializers.SerializerMethodField()

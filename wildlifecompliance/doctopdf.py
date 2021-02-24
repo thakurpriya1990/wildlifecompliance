@@ -1,52 +1,65 @@
+import logging
 import os
 from django.conf import settings
 from docxtpl import DocxTemplate
-# from disturbance.components.main.models import ApiaryGlobalSettings
 from wildlifecompliance.components.main.models import SanctionOutcomeWordTemplate
+from wildlifecompliance.components.sanction_outcome.models import AllegedCommittedOffence
 
 
-def create_infringement_notice_pdf_contents(pdf_filename):
-    #import ipdb; ipdb.set_trace()
-    # print ("Letter File")
-    # confirmation_doc = None
-    # if booking.annual_booking_period_group.letter:
-    #     print (booking.annual_booking_period_group.letter.path)
-    #     confirmation_doc = booking.annual_booking_period_group.letter.path
-    # confirmation_doc = settings.BASE_DIR+"/mooring/templates/doc/AnnualAdmissionStickerLetter.docx"
+logger = logging.getLogger(__name__)
 
-    # licence_template = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE)
 
-    # if licence_template._file:
-    #     path_to_template = licence_template._file.path
-    # else:
-        # Use default template file
-        # path_to_template = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'apiary_authority_template.docx')
+def create_infringement_notice_pdf_contents(pdf_filename, sanction_outcome):
+    acos = AllegedCommittedOffence.objects.filter(sanction_outcome=sanction_outcome, included=True)
+    if acos.count() == 1:
+        alleged_offence = acos[0].alleged_offence
+    else:
+        # Should not reach here.  For an infringement notice, there should be only one alleged offence.
+        str = 'Sanction Outcome: {} has {} alleged offences.  There should be 1.'.format(sanction_outcome.lodgement_nubmer, acos.count())
+        logger.error(str)
+        raise Exception(str)
 
-    path_to_template = os.path.join(settings.BASE_DIR, 'wildlifecompliance', 'static', 'wildlifecompliance', 'infringement-notice-bca.docx')
-    test = SanctionOutcomeWordTemplate.objects.all().first()
-    path_to_template = test._file.path
+    # Retrieve the latest template which matches the Act and SanctionOutcome type.
+    try:
+        so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=alleged_offence.act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
+    except:
+        raise Exception('Template not found for the Act: {} and Sanction Outcome type: {}'.format(alleged_offence.act, sanction_outcome.type))
+
+    path_to_template = so_outcome_template._file.path
 
     doc = DocxTemplate(path_to_template)
-    # address = ''
-    # if len(booking.details.get('postal_address_line_2', '')) > 0:
-    #     address = '{}, {}'.format(booking.details.get('postal_address_line_1', ''),
-    #                               booking.details.get('postal_address_line_2', ''))
-    # else:
-    #     address = '{}'.format(booking.details.get('postal_address_line_1', ''))
-    # bookingdate = booking.created + timedelta(hours=8)
-    # todaydate = datetime.utcnow() + timedelta(hours=8)
-    # stickercreated = ''
-    # if booking.sticker_created:
-    #     sc = booking.sticker_created + timedelta(hours=8)
-    #     stickercreated = sc.strftime('%d %B %Y')
-    # from disturbance.components.approvals.serializers import ApprovalSerializerForLicenceDoc
-    # serializer_context = {
-    #         'approver': approver,
-    #         'site_transfer_preview': site_transfer_preview,
-    #         }
-    # context_obj = ApprovalSerializerForLicenceDoc(approval, context=serializer_context)
-    # context = context_obj.data
-    context = {}
+
+    try:
+        offender = sanction_outcome.get_offender()[0]
+    except:
+        raise Exception('No offender found for the Sanction Outcome: {}'.format(sanction_outcome.lodgement_number))
+    offender_dob = offender.dob.strftime('%d/%m/%Y') if offender.dob else ''
+    offender_postcode = offender.residential_address.postcode if offender.residential_address else ''
+    offender_email = offender.email if offender.email else ''
+    rego = sanction_outcome.registration_number if sanction_outcome.registration_number else ''
+    offence_datetime = sanction_outcome.offence.offence_occurrence_datetime if sanction_outcome.offence.offence_occurrence_datetime else ''
+    responsible_officer_name = sanction_outcome.responsible_officer.get_full_name() if sanction_outcome.responsible_officer else ''
+    issue_date = sanction_outcome.date_of_issue.strftime('%d/%m/%Y')
+    issue_time = sanction_outcome.time_of_issue.strftime('%I:%M %p')
+
+    context = {
+        'lodgement_number': sanction_outcome.lodgement_number,
+        'offender_family_name': offender.last_name,
+        'offender_given_name': offender.first_name,
+        'offender_date_of_birth': offender_dob,
+        'offender_postcode': offender_postcode,
+        'offender_residential_address': offender.residential_address,
+        'offender_email': offender_email,
+        'registration_number': rego,
+        'offence_location': sanction_outcome.offence.location,
+        'offence_date': offence_datetime.strftime('%d/%m/%Y'),
+        'offence_time': offence_datetime.strftime('%I:%M %p'),
+        'sanction_outcome_description': sanction_outcome.description,
+        'responsible_officer_name': responsible_officer_name,
+        'issue_date': issue_date,
+        'issue_time': issue_time,
+    }
+
     doc.render(context)
 
     temp_directory = settings.BASE_DIR + "/tmp/"
