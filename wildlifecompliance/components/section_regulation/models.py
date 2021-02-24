@@ -20,6 +20,7 @@ class Act(RevisionedMixin):
     def __str__(self):
         return self.name
 
+
 class SectionRegulation(RevisionedMixin):
     #act = models.CharField(max_length=100, blank=True)
     act = models.ForeignKey(Act, related_name='section_regulations')
