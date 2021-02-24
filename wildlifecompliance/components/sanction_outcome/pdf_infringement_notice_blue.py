@@ -122,24 +122,16 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
 
 def create_infringement_notice_blue(filename, sanction_outcome):
-    with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, sanction_outcome)
+    value = create_infringement_notice_pdf_contents(filename, sanction_outcome)
+    content = ContentFile(value)
 
-        # Get the value of the BytesIO buffer
-        # value = invoice_buffer.getvalue()
-        value = create_infringement_notice_pdf_contents(filename)
-        content = ContentFile(value)
+    # START: Save the pdf file to the database
+    document = sanction_outcome.documents.create(name=filename)
+    path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), content)
+    document._file = path
+    document.save()
+    # END: Save
 
-        # START: Save the pdf file to the database
-        document = sanction_outcome.documents.create(name=filename)
-        # path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), content)
-        document._file = path
-        document.save()
-        # END: Save
-
-        invoice_buffer.close()
-
-        return document
+    return document
 
 
