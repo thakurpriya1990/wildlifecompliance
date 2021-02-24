@@ -295,13 +295,13 @@ class SanctionOutcome(models.Model):
     @property
     def prefix_lodgement_nubmer(self):
         prefix_lodgement = ''
-        if self.type == self.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             prefix_lodgement = 'IF'
-        elif self.type == self.TYPE_LETTER_OF_ADVICE:
+        elif self.type == SO_TYPE_LETTER_OF_ADVICE:
             prefix_lodgement = 'LA'
-        elif self.type == self.TYPE_CAUTION_NOTICE:
+        elif self.type == SO_TYPE_CAUTION_NOTICE:
             prefix_lodgement = 'CN'
-        elif self.type == self.TYPE_REMEDIATION_NOTICE:
+        elif self.type == SO_TYPE_REMEDIATION_NOTICE:
             prefix_lodgement = 'RN'
 
         return prefix_lodgement
