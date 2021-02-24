@@ -171,6 +171,9 @@ export const userStore = {
         isIdentifiedUser: (state, getters) => {
             return getters.current_user_id;
         },
+        hasCurrentLicence: (state, getters, rootState, rootGetters) => {
+            return rootGetters.application.on_active_licence;
+        },
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {

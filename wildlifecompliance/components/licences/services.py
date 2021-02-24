@@ -385,11 +385,16 @@ class LicenceService(object):
                     purpose.purpose_status = EXPIRED
                     purpose.save()
 
-            # Update licence status if all purposes expired.
             if not licence.has_purposes_in_current():
+                # Update licence status if all purposes expired.
                 new_status = licence.LICENCE_STATUS_EXPIRE
                 licence.set_property_cache_status(new_status)
                 licence.save()
+                # Prevent future proposals on recently opened applications.
+                activities = self.licence.latest_activities
+                for activity in activities:
+                    application = activity.application
+                    application.set_property_nonactive_licence(True)
 
             if purposes_to_expire:
                 # Re-generate licence.
@@ -979,20 +984,44 @@ class LicenceActioner(LicenceActionable):
                 selected_user_action =\
                     ApplicationUserAction.ACTION_SURRENDER_LICENCE_
 
+                if action_licence:
+                    # Prevent any open application future activity on the
+                    # Surrendered licence.
+                    self.actioned_application.set_property_nonactive_licence(
+                        True
+                    )
+
             elif action == self.CANCEL:
                 selected_activity.cancel_purposes(purpose_ids_list)
                 selected_user_action =\
                     ApplicationUserAction.ACTION_CANCEL_LICENCE_
+
+                if action_licence:
+                    # Prevent any open application future activity on the
+                    # Cancelled licence.
+                    self.actioned_application.set_property_nonactive_licence(
+                        True
+                    )
 
             elif action == self.SUSPEND:
                 selected_activity.suspend_purposes(purpose_ids_list)
                 selected_user_action =\
                     ApplicationUserAction.ACTION_SUSPEND_LICENCE_
 
+                if action_licence:
+                    # Allow any open application activity to continue on the
+                    # Suspended licence.
+                    self.actioned_application.set_property_nonactive_licence()
+
             elif action == self.REINSTATE:
                 selected_activity.reinstate_purposes(purpose_ids_list)
                 selected_user_action =\
                     ApplicationUserAction.ACTION_REINSTATE_LICENCE_
+
+                if action_licence:
+                    # Allow any open application activity to continue on the
+                    # Reinstated licence.
+                    self.actioned_application.set_property_nonactive_licence()
 
             elif action == self.REISSUE:
                 selected_activity.reissue_purposes(purpose_ids_list)
