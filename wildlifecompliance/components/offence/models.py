@@ -196,6 +196,10 @@ class AllegedOffence(RevisionedMixin):
         return self.section_regulation.retrieve_penalty_amounts_by_date(date_of_issue)
 
     @property
+    def act(self):
+        return self.section_regulation.act
+
+    @property
     def dotag_offence_code(self):
         return self.section_regulation.dotag_offence_code
 
