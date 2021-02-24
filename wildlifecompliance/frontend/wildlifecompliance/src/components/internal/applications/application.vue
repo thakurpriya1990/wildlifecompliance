@@ -739,6 +739,7 @@ export default {
             'id_check_status',
             'character_check_status',
             'return_check_status',
+            'hasCurrentLicence',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -811,8 +812,8 @@ export default {
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
                 });                                                                // processing_status.id not related to processing_status.name
 
-            if (this.application_workflow_state){
-                // presentation frontend state is incomplete.
+            if (this.application_workflow_state || !this.hasCurrentLicence){
+                // presentation frontend state is incomplete or no valid licence.
                 proposal = false;
             }
 

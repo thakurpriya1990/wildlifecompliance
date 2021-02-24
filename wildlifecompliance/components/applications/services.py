@@ -33,7 +33,7 @@ from wildlifecompliance.components.applications.models import (
 )
 
 logger = logging.getLogger(__name__)
-logger = logging
+# logger = logging
 
 
 class ApplicationService(object):

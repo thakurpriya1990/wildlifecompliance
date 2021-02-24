@@ -1648,6 +1648,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     total_paid_amount = serializers.SerializerMethodField()
     adjusted_paid_amount = serializers.SerializerMethodField()
     is_return_check_accept = serializers.SerializerMethodField(read_only=True)
+    on_active_licence = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -1693,6 +1694,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'total_paid_amount',
             'adjusted_paid_amount',
             'is_return_check_accept',
+            'on_active_licence',
         )
         read_only_fields = ('documents', 'conditions')
 
@@ -1792,6 +1794,14 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
 
         logger.debug('InternalApplicationSerializer.get_user_roles() - end')
         return roles
+
+    def get_on_active_licence(self, obj):
+        '''
+        Check status of licence (if existing) for application after submission.
+        '''
+        on_active = not obj.on_nonactive_licence()
+
+        return on_active
 
 
 class ApplicationUserActionSerializer(serializers.ModelSerializer):

@@ -904,6 +904,44 @@ class Application(RevisionedMixin):
         except AttributeError:
             return ''
 
+    def on_nonactive_licence(self):
+        '''
+        Method to verify that this application is for a cancelled, expired or 
+        surrendered licence.
+
+        :return boolean
+        '''
+        on_nonactive = self.get_property_nonactive_licence()
+
+        return on_nonactive
+
+    def set_property_nonactive_licence(self, is_nonactive=False):
+        '''
+        Setter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            data = 'True' if is_nonactive else 'False'
+            self.property_cache['nonactive_licence'] = data
+
+    def get_property_nonactive_licence(self):
+        '''
+        Getter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        is_nonactive = False
+        try:
+
+            is_nonactive = True if self.property_cache[
+                'nonactive_licence'] == 'True' else False
+
+        except KeyError:
+            pass
+
+        return is_nonactive
+
     def set_property_cache_assess(self, assess):
         '''
         Setter for assess status for conditions on the property cache.
