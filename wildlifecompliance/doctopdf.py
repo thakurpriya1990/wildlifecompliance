@@ -45,8 +45,8 @@ def retrieve_context(sanction_outcome):
     offence_time = sanction_outcome.offence.offence_occurrence_datetime.strftime('%I:%M %p') if sanction_outcome.offence.offence_occurrence_datetime else ''
     offence_location = sanction_outcome.offence.location if sanction_outcome.offence.location else ''
     responsible_officer_name = sanction_outcome.responsible_officer.get_full_name() if sanction_outcome.responsible_officer else ''
-    issue_date = sanction_outcome.date_of_issue.strftime('%d/%m/%Y')
-    issue_time = sanction_outcome.time_of_issue.strftime('%I:%M %p')
+    issue_date = sanction_outcome.date_of_issue.strftime('%d/%m/%Y') if sanction_outcome.date_of_issue else ''
+    issue_time = sanction_outcome.time_of_issue.strftime('%I:%M %p') if sanction_outcome.time_of_issue else ''
     context = {
         'lodgement_number': sanction_outcome.lodgement_number,
         'offender_family_name': offender_family_name,
@@ -78,9 +78,8 @@ def create_infringement_notice_pdf_contents(pdf_filename, sanction_outcome):
         raise Exception(str)
 
     # Retrieve the latest template which matches the Act and SanctionOutcome type.
-    try:
-        so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=alleged_offence.act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
-    except:
+    so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=alleged_offence.act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
+    if not so_outcome_template:
         raise Exception('Template not found for the Act: {} and Sanction Outcome type: {}'.format(alleged_offence.act, sanction_outcome.type))
 
     path_to_template = so_outcome_template._file.path
@@ -111,10 +110,64 @@ def create_caution_notice_pdf_contents(pdf_filename, sanction_outcome):
             if act != ao.act:
                 raise Exception('Different ACT types are present in the Sanction Outcome: {}'.format(sanction_outcome.lodgement_number))
 
-    try:
-        so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
-    except:
+    so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
+    if not so_outcome_template:
         raise Exception('Template not found for the Act: {} and Sanction Outcome type: {}'.format(act, sanction_outcome.type))
+
+    path_to_template = so_outcome_template._file.path
+    doc = DocxTemplate(path_to_template)
+    context = retrieve_context(sanction_outcome)
+    doc.render(context)
+
+    file_contents = convert_to_pdf(doc, pdf_filename)
+    return file_contents
+
+
+def create_letter_of_advice_pdf_contents(pdf_filename, sanction_outcome):
+    acos = AllegedCommittedOffence.objects.filter(sanction_outcome=sanction_outcome, included=True)
+    if acos.count() > 0:
+        alleged_offences = [item.alleged_offence for item in acos.all()]
+    else:
+        # Should not reach here.  For an infringement notice, there should be only one alleged offence.
+        str = 'Sanction Outcome: {} has no alleged offences.  Caution notices cannot be created.'.format(sanction_outcome.lodgement_nubmer)
+        logger.error(str)
+        raise Exception(str)
+
+    # Check the ACT type.  Act types cannot be mixed in a Sanction Outcome
+    act = None
+    for ao in alleged_offences:
+        if not act:
+            act = ao.act
+        else:
+            if act != ao.act:
+                raise Exception('Different ACT types are present in the Sanction Outcome: {}'.format(sanction_outcome.lodgement_number))
+
+    so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(act=act, sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
+    if not so_outcome_template:
+        raise Exception('Template not found for the Act: {} and Sanction Outcome type: {}'.format(act, sanction_outcome.type))
+
+    path_to_template = so_outcome_template._file.path
+    doc = DocxTemplate(path_to_template)
+    context = retrieve_context(sanction_outcome)
+    doc.render(context)
+
+    file_contents = convert_to_pdf(doc, pdf_filename)
+    return file_contents
+
+
+def create_remediation_notice_pdf_contents(pdf_filename, sanction_outcome):
+    acos = AllegedCommittedOffence.objects.filter(sanction_outcome=sanction_outcome, included=True)
+    if acos.count() > 0:
+        alleged_offences = [item.alleged_offence for item in acos.all()]
+    else:
+        # Should not reach here.  For an infringement notice, there should be only one alleged offence.
+        str = 'Sanction Outcome: {} has no alleged offences.  Caution notices cannot be created.'.format(sanction_outcome.lodgement_nubmer)
+        logger.error(str)
+        raise Exception(str)
+
+    so_outcome_template = SanctionOutcomeWordTemplate.objects.filter(sanction_outcome_type=sanction_outcome.type).order_by('-id').first()
+    if not so_outcome_template:
+        raise Exception('Template not found for the Sanction Outcome type: {}'.format(sanction_outcome.type))
 
     path_to_template = so_outcome_template._file.path
     doc = DocxTemplate(path_to_template)
