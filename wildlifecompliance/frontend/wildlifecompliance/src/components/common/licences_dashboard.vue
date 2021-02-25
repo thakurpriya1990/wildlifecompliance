@@ -944,10 +944,11 @@ export default {
                     row.data()['latest_activities_merged'].forEach(function(activity) {
                         activity_rows += `
                             <tr>
+                                <td>${activity['activity_purpose_no']}</td>
                                 <td>${activity['activity_name_str']}</td>
-                                <td>${activity['sequence']}. ${activity['activity_purpose_names_and_status'].
-                                    replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
+                                <td>${activity['activity_purpose_name']}</td>
                                 <td>${activity['expiry_date'].replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
+                                <td>${activity['activity_purpose_status']}</td>
                                 <td>`;
                                     if (vm.is_external && activity['can_action']['can_amend']) {
                                         activity_rows +=
@@ -1000,10 +1001,12 @@ export default {
                     child_row += `
                         <table class="table table-striped table-bordered child-row-table">
                             <tr>
+                                <th>Number</th>
                                 <th>Activity</th>
-                                <th class="width_55pc">Purposes</th>
-                                <th class="width_20pc">Expiry Date</th>
-                                <th class="width_20pc">Action</th>
+                                <th class="width_55pc">Purpose</th>
+                                <th>Expiry Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
                             </tr>
                             ${activity_rows}
                         </table>`;

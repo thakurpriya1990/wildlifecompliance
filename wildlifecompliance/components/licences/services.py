@@ -212,7 +212,6 @@ class LicenceService(object):
         the_list = None
         try:
             actioner = LicenceActioner(licence)
-            # the_list = actioner.get_latest_activities_for_request()
             the_list = actioner.get_latest_activity_purposes_for_request()
 
         except Exception as e:
@@ -714,9 +713,7 @@ class LicenceActioner(LicenceActionable):
         else:
             purposes_in_open_applications = None
 
-        sequence = 0
-
-        # for activity in latest_activities:
+         # for activity in latest_activities:
         for purpose in licence_purposes:
 
             activity = purpose.selected_activity
@@ -743,7 +740,6 @@ class LicenceActioner(LicenceActionable):
                     'can_reinstate': False,
                 }
 
-            sequence = sequence + 1
             latest_activity_purposes[purpose] = {
                 'id': activity.id,
                 'licence_activity_id': activity.licence_activity_id,
@@ -756,10 +752,9 @@ class LicenceActioner(LicenceActionable):
                     '{}'.format(purpose.expiry_date.strftime(
                         '%d/%m/%Y') if purpose.expiry_date else '')
                 ]),
-                'activity_purpose_names_and_status': '\n'.join([
-                    '{} ({})'.format(
-                        purpose.purpose.name, purpose.purpose_status)
-                ]),
+                'activity_purpose_name': purpose.purpose.name,
+                'activity_purpose_no': purpose.purpose_sequence,
+                'activity_purpose_status': purpose.purpose_status,
                 'can_action':
                     {
                         'licence_activity_id': activity.licence_activity_id,
@@ -771,111 +766,9 @@ class LicenceActioner(LicenceActionable):
                         'can_reissue': activity_can_action['can_reissue'],
                         'can_reinstate': activity_can_action['can_reinstate'],
                     },
-                'sequence': sequence,
             }
 
         return latest_activity_purposes.values()
-
-    def get_latest_activities_for_request(self, request=None):
-        '''
-        Gets a list of current selected licence activities available on this
-        licence for an action request. The list is a merged set of new and
-        amended activities which can be actioned.
-
-        :return a list of actionable current selected licence activities.
-        '''
-        licence_purposes = [
-            p for p in self.licence.get_purposes_in_sequence()
-            if p.is_issued
-            # if p.purpose_status in include and p.is_issued
-        ]
-        latest_activities = []
-        for purpose in licence_purposes:
-            latest_activities.append(purpose.selected_activity)
-
-        new_ids = [
-            a.id for a in latest_activities
-        ]
-
-        merged_activities = {}
-
-        if self.licence.is_latest_in_category:
-            purposes_in_open_applications = list(
-                self.licence.get_purposes_in_open_applications())
-        else:
-            purposes_in_open_applications = None
-
-        sequence = 0
-        for activity in latest_activities:
-
-            if purposes_in_open_applications or\
-                    purposes_in_open_applications == []:
-
-                activity_can_action = self.can_action_purposes(
-                    purposes_in_open_applications,
-                    activity,
-                )
-
-            else:
-                activity_can_action = {
-                    'licence_activity_id': activity.licence_activity_id,
-                    'can_renew': False,
-                    'can_amend': False,
-                    'can_surrender': False,
-                    'can_cancel': False,
-                    'can_suspend': False,
-                    'can_reissue': False,
-                    'can_reinstate': False,
-                }
-
-            sequence = sequence + 1
-
-            # Check if a record for the licence_activity_id already exists, if
-            # not, add.
-            if activity.id in new_ids:
-                issued_list = [
-                    p for p in activity.proposed_purposes.all() if p.is_issued]
-
-                if not len(issued_list):
-                    continue
-
-                merged_activities[activity] = {
-                    'id': activity.id,
-                    'licence_activity_id': activity.licence_activity_id,
-                    'activity_name_str': activity.licence_activity.name,
-                    'issue_date': activity.get_issue_date(),
-                    'start_date': activity.get_start_date(),
-                    'expiry_date': '\n'.join([
-                        '{}'.format(p.expiry_date.strftime(
-                            '%d/%m/%Y') if p.expiry_date else '')
-                        for p in activity.proposed_purposes.all()
-                        if p.is_issued
-                    ]),
-                    'activity_purpose_names_and_status': '\n'.join([
-                        '{} ({})'.format(p.purpose.name, p.purpose_status)
-                        for p in activity.proposed_purposes.all()
-                        if p.is_issued
-                    ]),
-                    'can_action':
-                        {
-                            'licence_activity_id':
-                                activity.licence_activity_id,
-                            'can_renew': activity_can_action['can_renew'],
-                            'can_amend': activity_can_action['can_amend'],
-                            'can_surrender':
-                                activity_can_action['can_surrender'],
-                            'can_cancel': activity_can_action['can_cancel'],
-                            'can_suspend': activity_can_action['can_suspend'],
-                            'can_reissue': activity_can_action['can_reissue'],
-                            'can_reinstate':
-                                activity_can_action['can_reinstate'],
-                        },
-                    'sequence': sequence,
-                }
-
-        merged_activities_list = merged_activities.values()
-
-        return merged_activities_list
 
     def get_latest_purposes_for_request(self, request):
         '''
