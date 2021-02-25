@@ -748,6 +748,7 @@ class LicenceActioner(LicenceActionable):
                 'id': activity.id,
                 'licence_activity_id': activity.licence_activity_id,
                 'activity_purpose_id': purpose.id,
+                'licence_purpose_id': purpose.purpose_id,
                 'activity_name_str': activity.licence_activity.name,
                 'issue_date': purpose.issue_date,
                 'start_date': purpose.start_date,
