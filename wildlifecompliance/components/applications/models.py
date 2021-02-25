@@ -2064,7 +2064,7 @@ class Application(RevisionedMixin):
         for activity in self.activities:
             for p in activity.proposed_purposes.all():
                 if p.is_payable:
-                    fees += p.get_payable_application_fee
+                    fees += p.get_payable_application_fee()
 
         logger.debug('Application.has_payable_fees() - end')       
         return fees
@@ -3484,7 +3484,7 @@ class Application(RevisionedMixin):
                         for activity in issued_activities:
                             # if activity.additional_fee > 0 \
                             refund = activity.get_refund_amount()
-                            if activity.has_payable_fees_at_issue \
+                            if activity.has_payable_fees_at_issue() \
                             and refund < 1:
                                 generate_invoice = True
                                 break
@@ -4886,7 +4886,7 @@ class ApplicationSelectedActivity(models.Model):
 
         for p in self.proposed_purposes.all():
             if p.is_payable:
-                fees += p.get_payable_application_fee
+                fees += p.get_payable_application_fee()
 
         logger.debug('ApplicationSelectedActivity.has_payable_fees() - end')    
         return fees

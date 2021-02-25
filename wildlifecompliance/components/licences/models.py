@@ -869,6 +869,46 @@ class WildlifeLicence(models.Model):
 
         return records
 
+    def get_activities_in_open_applications(self):
+        '''
+        Get selected activities which are currently in an application being 
+        processed.
+
+        :return list of ApplicationSelectedActivity records.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            Application, ApplicationSelectedActivity)
+
+        logger.debug('WildlifeLicence.get_activities_open_apps() - start')
+        open_activities = []
+
+        open_applications = Application.objects.filter(
+            Q(org_applicant=self.current_application.org_applicant)
+            if self.current_application.org_applicant
+            else Q(proxy_applicant=self.current_application.proxy_applicant)
+            if self.current_application.proxy_applicant
+            else Q(
+                submitter=self.current_application.submitter,
+                proxy_applicant=None,
+                org_applicant=None)
+        ).computed_filter(
+            licence_category_id=self.licence_category.id
+        ).exclude(
+            selected_activities__processing_status__in=[
+                ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+                ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED
+            ]
+        )
+
+        for application in open_applications:
+            activities = application.activities
+            if activities:
+                open_activities += activities
+
+        logger.debug('WildlifeLicence.get_activities_open_apps()  - end')
+        return open_activities
+
     def get_purposes_in_open_applications(self):
         """
         Return a list of LicencePurpose records for the licence that are

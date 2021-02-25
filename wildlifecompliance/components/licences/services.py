@@ -391,10 +391,11 @@ class LicenceService(object):
                 licence.set_property_cache_status(new_status)
                 licence.save()
                 # Prevent future proposals on recently opened applications.
-                activities = self.licence.latest_activities
+                activities = licence.get_activities_in_open_applications()
                 for activity in activities:
                     application = activity.application
                     application.set_property_nonactive_licence(True)
+                    application.save()
 
             if purposes_to_expire:
                 # Re-generate licence.
@@ -990,6 +991,7 @@ class LicenceActioner(LicenceActionable):
                     self.actioned_application.set_property_nonactive_licence(
                         True
                     )
+                    self.actioned_application.save()
 
             elif action == self.CANCEL:
                 selected_activity.cancel_purposes(purpose_ids_list)
@@ -1002,6 +1004,7 @@ class LicenceActioner(LicenceActionable):
                     self.actioned_application.set_property_nonactive_licence(
                         True
                     )
+                    self.actioned_application.save()
 
             elif action == self.SUSPEND:
                 selected_activity.suspend_purposes(purpose_ids_list)
@@ -1012,6 +1015,7 @@ class LicenceActioner(LicenceActionable):
                     # Allow any open application activity to continue on the
                     # Suspended licence.
                     self.actioned_application.set_property_nonactive_licence()
+                    self.actioned_application.save()
 
             elif action == self.REINSTATE:
                 selected_activity.reinstate_purposes(purpose_ids_list)
@@ -1022,6 +1026,7 @@ class LicenceActioner(LicenceActionable):
                     # Allow any open application activity to continue on the
                     # Reinstated licence.
                     self.actioned_application.set_property_nonactive_licence()
+                    self.actioned_application.save()
 
             elif action == self.REISSUE:
                 selected_activity.reissue_purposes(purpose_ids_list)
