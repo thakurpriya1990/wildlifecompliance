@@ -3,10 +3,13 @@ import os
 
 from io import BytesIO
 
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 # from ledger.payments.pdf import BrokenLine
 # from ledger.payments.pdf import BrokenLine
 from ledger.payments.pdf import BrokenLine
+
+from wildlifecompliance.doctopdf import create_caution_notice_pdf_contents
 from wildlifecompliance.settings import STATIC_ROOT
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.pagesizes import A4
@@ -232,21 +235,33 @@ def _create_pdf(invoice_buffer, sanction_outcome):
 
 
 def create_caution_notice_pdf_bytes(filename, sanction_outcome):
-    with BytesIO() as invoice_buffer:
-        _create_pdf(invoice_buffer, sanction_outcome)
+    value = create_caution_notice_pdf_contents(filename, sanction_outcome)
+    content = ContentFile(value)
 
-        # Get the value of the BytesIO buffer
-        value = invoice_buffer.getvalue()
+    # START: Save the pdf file to the database
+    document = sanction_outcome.documents.create(name=filename)
+    path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), content)
+    document._file = path
+    document.save()
+    # END: Save
 
-        # START: Save the pdf file to the database
-        document = sanction_outcome.documents.create(name=filename)
-        path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
-        document._file = path
-        document.save()
-        # END: Save
+    return document
 
-        invoice_buffer.close()
-
-        return document
+    # with BytesIO() as invoice_buffer:
+    #     _create_pdf(invoice_buffer, sanction_outcome)
+    #
+    #     # Get the value of the BytesIO buffer
+    #     value = invoice_buffer.getvalue()
+    #
+    #     # START: Save the pdf file to the database
+    #     document = sanction_outcome.documents.create(name=filename)
+    #     path = default_storage.save('wildlifecompliance/{}/{}/documents/{}'.format(sanction_outcome._meta.model_name, sanction_outcome.id, filename), invoice_buffer)
+    #     document._file = path
+    #     document.save()
+    #     # END: Save
+    #
+    #     invoice_buffer.close()
+    #
+    #     return document
 
 
