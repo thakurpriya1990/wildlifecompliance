@@ -275,7 +275,7 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
                                             <div class="col-sm-8">
-                                                <img width="100%" name="applicantIdentification" v-bind:src="application.submitter.identification.file" />
+                                                <span class="btn btn-link btn-file pull-left"><a :href="''+application.submitter.identification.file" target="_blank">{{application.submitter.identification.file}}</a></span>
                                             </div>
                                           </div>
                                       </form>
