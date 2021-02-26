@@ -327,6 +327,9 @@ export default {
           action: "",
           due_date: null
         },
+
+        act_name_of_selected_ao: '',  // when the user ticks the first one, only other alleged offences from the same Act will be available.
+                                      // No mixing of BCA and CALM
   
         // List for dropdown
         options_for_types: [],
@@ -386,10 +389,20 @@ export default {
                     // Chenck if this alleged offence has already a connection to the current offender selected
                     let current_offender_has_connection = false;
 
-                    if (full.connected || full.removed){
+                    // CALM and BCA should not be both included in a sanction outcome at the same time.
+                    let unselectable = true
+                    if (vm.sanction_outcome.type == 'infringement_notice'){
+                        unselectable = false
+                    } else if (!vm.act_name_of_selected_ao || vm.act_name_of_selected_ao == full.section_regulation.act){
+                        unselectable = false
+                    }
+                    let selected_str = ''
+                    if (vm.aco_ids_included.includes(full.id.toString())){
+                        selected_str = 'checked="checked"'
+                    }
 
+                    if (full.connected || full.removed || unselectable){
                         // Disabled
-
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
@@ -399,16 +412,15 @@ export default {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         }
                     } else {
-
                         // Enabled
-
                         if (vm.sanction_outcome.type == 'infringement_notice'){
-                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
+                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"' + selected_str + '></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
                             // Should not reach here
                             ret_line += '';
                         } else {
-                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
+                            //ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
+                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '"' + selected_str + '></input>';
                         }
                     }
 
@@ -565,18 +577,33 @@ export default {
             loadOffence: 'loadOffence',
         }),
         aco_include_clicked: function() {
+            console.log('in aco_include_clicked')
             let vm = this;
             vm.aco_ids_included = [];
             vm.aco_ids_excluded = [];
             let checkboxes = $(".alleged_offence_include");
+            console.log(checkboxes)
             for (let i = 0; i < checkboxes.length; i++) {
                 if (checkboxes[i].checked) {
                     vm.aco_ids_included.push(checkboxes[i].value);
+
                 } else {
                     vm.aco_ids_excluded.push(checkboxes[i].value);
                 }
             }
+            if (vm.aco_ids_included.length){
+                for (let alleged_offence of vm.sanction_outcome.current_offence.alleged_offences){
+                    if (alleged_offence.id == vm.aco_ids_included[0]){
+                        vm.act_name_of_selected_ao = alleged_offence.section_regulation.act
+                    }
+                }
+            } else {
+                // No alleged offences selected
+                vm.act_name_of_selected_ao = ''
+            }
+            console.log('act_name_of_selected_ao: ' + vm.act_name_of_selected_ao)
             vm.check_if_is_parking_offence();
+            vm.constructAllegedOffencesTable();
         },
         check_if_is_parking_offence: function() {
             this.is_parking_offence = false;
