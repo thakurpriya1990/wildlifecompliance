@@ -6,10 +6,9 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
-from wildlifecompliance.components.sanction_outcome.pdf_caution_notice import create_caution_notice_pdf_bytes
-from wildlifecompliance.components.sanction_outcome.pdf_infringement_notice_blue import create_infringement_notice_blue
-from wildlifecompliance.components.sanction_outcome.pdf_letter_of_advice import create_letter_of_advice_pdf_bytes
-from wildlifecompliance.components.sanction_outcome.pdf_remediation_notice import create_remediation_notice_pdf_bytes
+from wildlifecompliance.components.sanction_outcome.pdf import create_infringement_notice_pdf, \
+    create_letter_of_advice_pdf, \
+    create_caution_notice_pdf, create_remediation_notice_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +334,7 @@ def send_caution_notice(to_address, sanction_outcome, workflow_entry, request, c
     }
 
     pdf_file_name = 'caution_notice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_caution_notice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_caution_notice_pdf(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
@@ -369,7 +368,7 @@ def send_letter_of_advice(to_address, sanction_outcome, workflow_entry, request,
     }
 
     pdf_file_name = 'letter_of_advice_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document = create_letter_of_advice_pdf_bytes(pdf_file_name, sanction_outcome)
+    document = create_letter_of_advice_pdf(pdf_file_name, sanction_outcome)
 
     # Attach files (files from the modal, and the PDF file generated above)
     attachments = prepare_attachments(workflow_entry.documents)
@@ -563,7 +562,7 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
 
 def create_infringement_notice_ybw(sanction_outcome, workflow_entry):
     pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
-    document_b = create_infringement_notice_blue(pdf_file_name_b, sanction_outcome)
+    document_b = create_infringement_notice_pdf(pdf_file_name_b, sanction_outcome)
     attachments = prepare_attachments(workflow_entry.documents)
     attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
     doc = workflow_entry.documents.create(name=document_b.name)
