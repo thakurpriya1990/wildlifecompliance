@@ -1246,7 +1246,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     return True
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
-                fees[field] = fees[field] if fees[field] >= 0 else 0
+                # fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(field, amount):

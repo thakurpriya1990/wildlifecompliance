@@ -5779,6 +5779,7 @@ class ApplicationSelectedActivity(models.Model):
         previous = None
         prev_app = self.application.previous_application
 
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
@@ -5797,6 +5798,7 @@ class ApplicationSelectedActivity(models.Model):
                 if a.licence_activity_id == act_id
                 and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
+                and not a.application.application_type == RENEWAL
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -6442,6 +6444,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
 
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
@@ -6463,6 +6466,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 if a.licence_activity_id == act_id
                 # and a.activity_status in status
                 and a.processing_status == ACCEPT
+                # ignore activities for renewals.
+                and not a.application.application_type == RENEWAL
                 # replaced purposes are no longer issued.
                 # and self.purpose in a.issued_purposes
             ]
