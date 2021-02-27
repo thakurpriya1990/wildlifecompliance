@@ -1234,6 +1234,15 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return is_accept
 
     def get_can_pay_application(self, obj):
+        '''
+        Returns a flag to indicate whether this application has an outstanding
+        application fee when under review. It is used to provide link to ledger
+        screen from dashboard.
+
+        NOTE: not required. Application fees are paid up front. Internal staff
+        pay application fees only through proxy process. When applicant payment
+        is required for a requested amendment then pay and submit (no link).
+        '''
         can_pay = False
 
         pay_status = [
@@ -1246,7 +1255,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
             can_pay = True
 
-        return can_pay
+        return False
 
     def get_can_pay_licence(self, obj):
         can_pay = False
