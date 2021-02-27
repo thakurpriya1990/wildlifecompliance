@@ -1003,10 +1003,10 @@ export default {
                             <tr>
                                 <th>Number</th>
                                 <th>Activity</th>
-                                <th class="width_55pc">Purpose</th>
-                                <th>Expiry Date</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                                <th class="width_50pc">Purpose</th>
+                                <th class="width_10pc">Expiry Date</th>
+                                <th class="width_10pc">Status</th>
+                                <th class="width_10pc">Action</th>
                             </tr>
                             ${activity_rows}
                         </table>`;

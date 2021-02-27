@@ -740,6 +740,16 @@ class LicenceActioner(LicenceActionable):
                     'can_reinstate': False,
                 }
 
+            default_status = [
+                purpose.PURPOSE_STATUS_CURRENT
+            ]
+
+            purpose_status = [
+                s[1] for s in purpose.PURPOSE_STATUS_CHOICES
+                if s[0] == purpose.purpose_status or
+                (s[0] in default_status and not purpose.purpose_status)
+            ][0]
+
             latest_activity_purposes[purpose] = {
                 'id': activity.id,
                 'licence_activity_id': activity.licence_activity_id,
@@ -754,7 +764,7 @@ class LicenceActioner(LicenceActionable):
                 ]),
                 'activity_purpose_name': purpose.purpose.name,
                 'activity_purpose_no': purpose.purpose_sequence,
-                'activity_purpose_status': purpose.purpose_status,
+                'activity_purpose_status': purpose_status,
                 'can_action':
                     {
                         'licence_activity_id': activity.licence_activity_id,
