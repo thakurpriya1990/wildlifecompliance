@@ -183,7 +183,6 @@ export default {
                 // Actions
                 width: "10%",
                 mRender:function (data,type,full) {
-                    console.log(full)
                     let links = '';
                     if (!vm.is_external){
                         const finalised = ['approved', 'declined', 'awaiting_payment'].includes(full.processing_status.id);

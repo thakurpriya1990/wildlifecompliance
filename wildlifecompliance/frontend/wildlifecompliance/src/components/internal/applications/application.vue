@@ -41,7 +41,7 @@
                         <div class="row">
                             <div class="col-sm-12">
                                 <strong>Status</strong><br/>
-                                {{ application.processing_status.name }}<br/>
+                                {{ application.processing_status.name }} {{canProposeToOnlyDecline?'(attn: No Active License)':''}} <br/>
                                 <div class ="col-sm-12" v-for="item in licence_type_data">
                                     
                                     <div v-for="item1 in item">
@@ -141,7 +141,12 @@
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedLicence()">Propose Issue</button>
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
                                         </div>
-                                    </div> 
+                                    </div>
+                                    <div v-if="canProposeToOnlyDecline && isSendingToAssessor || isOfficerConditions" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="proposedDecline()">Propose Decline</button>
+                                        </div>
+                                    </div>  
                                 </template>
                             </div>
                         </div>
@@ -820,6 +825,13 @@ export default {
             // officer can Issue or Decline without conditions so set temporary status.
             return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
         },
+        canProposeToOnlyDecline: function() {
+            let decline_proposal = !this.hasCurrentLicence;
+            if (this.canProposeIssueOrDecline) {
+                decline_proposal = false;
+            }
+            return decline_proposal;
+        },
         contactsURL: function(){
             return this.application!= null ? helpers.add_endpoint_json(api_endpoints.organisations,this.application.org_applicant.id+'/contacts') : '';
         },
@@ -976,6 +988,7 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: async function(){
+            this.$refs.proposed_decline.noActiveLicense = !this.hasCurrentLicence;
             this.$refs.proposed_decline.isModalOpen = true;
         },
         isActivityVisible: function(activity_id) {
