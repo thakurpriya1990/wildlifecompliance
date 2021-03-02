@@ -1810,6 +1810,13 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
         '''
         on_active = not obj.on_nonactive_licence()
 
+        # The status of licence is not required for new activities on licence.
+        exclude = [ 
+            Application.APPLICATION_TYPE_ACTIVITY
+        ]
+        if obj.application_type in exclude:
+            on_active = True
+
         return on_active
 
 
