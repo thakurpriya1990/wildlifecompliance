@@ -3747,13 +3747,14 @@ class Application(RevisionedMixin):
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
             ],
-        ).first()
+        )
+        first_active = None
+        for a in application:
+            if a.licence.has_proposed_purposes_in_current():
+                first_active = a
+                break
 
-        if application \
-        and not application.licence.has_proposed_purposes_in_current():
-            application = None
-
-        return application
+        return first_active
 
     @staticmethod
     def get_open_applications(request):
