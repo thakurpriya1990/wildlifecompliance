@@ -509,8 +509,7 @@ class SanctionOutcome(models.Model):
             self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
             self.set_penalty_amounts()
             self.create_due_dates()
-            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId,
-                                                                SanctionOutcome.WORKFLOW_ENDORSE)
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
             self.allocated_group = new_group
         elif self.type == SO_TYPE_CAUTION_NOTICE:
             self.status = SanctionOutcome.STATUS_CLOSED
@@ -518,6 +517,9 @@ class SanctionOutcome(models.Model):
             self.status = SanctionOutcome.STATUS_CLOSED
         elif self.type == SO_TYPE_REMEDIATION_NOTICE:
             self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            # new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
+            self.allocated_group = new_group
 
         self.save()
 
@@ -549,10 +551,15 @@ class SanctionOutcome(models.Model):
             self.confirm_date_time_issue(raise_exception=True)
 
         elif self.type == SO_TYPE_REMEDIATION_NOTICE:
-            # self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
-            self.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
-            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
-            self.allocated_group = new_group
+            if self.issued_on_paper:
+                pass
+                # TODO: paper issued and endorsed
+                self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            else:
+                # self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+                self.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
+                new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
+                self.allocated_group = new_group
 
             id_suffix = 1
             for remediation_action in self.remediation_actions.all():

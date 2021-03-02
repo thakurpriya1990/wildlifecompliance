@@ -1032,26 +1032,32 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object() if not instance else instance
-                instance.endorse_parking_infringement()
+                # instance.endorse_parking_infringement()
 
                 workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                instance.endorse()
+                if not instance.issued_on_paper:
+                    attachments = create_infringement_notice_ybw(instance, workflow_entry)
+
+                    # Log action
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
 
                 # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
-                inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                inc_emails = [member.email for member in inc_group.members]
-                to_address = [instance.get_offender()[0].email, ]
-                cc = None
-                bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                # inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                # inc_emails = [member.email for member in inc_group.members]
+                # to_address = [instance.get_offender()[0].email, ]
+                # cc = None
+                # bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
+                # email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                 # Log the above email as a communication log entry
-                if email_data:
-                    email_data['sanction_outcome'] = instance.id
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                # if email_data:
+                #     email_data['sanction_outcome'] = instance.id
+                #     serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                #     serializer.is_valid(raise_exception=True)
+                #     serializer.save()
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number, ', '.join(to_address)), request)
+                # instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number, ', '.join(to_address)), request)
 
                 return Response(
                     # return_serializer.data,

@@ -72,7 +72,7 @@
                             <div v-if="visibilitySendParkingInfringementButton" class="row action-button">
                                 <div class="col-sm-12">
                                     <a @click="sendParkingInfringement()" class="btn btn-primary btn-block">
-                                        Send Parking Infringement
+                                        Endorse Parking Infringement
                                     </a>
                                 </div>
                             </div>

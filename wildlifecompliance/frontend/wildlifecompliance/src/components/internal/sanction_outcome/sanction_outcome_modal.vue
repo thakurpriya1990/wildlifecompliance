@@ -26,6 +26,17 @@
 
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-3">
+                                    <label class="control-label pull-left" for="identifier">Identifier</label>
+                                </div>
+                                <div class="col-sm-7">
+                                    <div v-show="sanction_outcome">
+                                        <input type="text" class="form-control" name="identifier" placeholder="" v-model="sanction_outcome.identifier" >
+                                    </div>
+                                </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
                                     <label class="control-label pull-left">Region</label>
                                 </div>
                                 <div class="col-sm-7">
@@ -47,17 +58,6 @@
                                       {{ option.display_name }} 
                                     </option>
                                   </select>
-                                </div>
-                            </div></div>
-
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-3">
-                                    <label class="control-label pull-left" for="identifier">Identifier</label>
-                                </div>
-                                <div class="col-sm-7">
-                                    <div v-show="sanction_outcome">
-                                        <input type="text" class="form-control" name="identifier" placeholder="" v-model="sanction_outcome.identifier" >
-                                    </div>
                                 </div>
                             </div></div>
 
