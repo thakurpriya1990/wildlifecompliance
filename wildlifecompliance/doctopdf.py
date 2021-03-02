@@ -55,6 +55,8 @@ def retrieve_context(sanction_outcome):
         'offender_postcode': offender_postcode,
         'offender_residential_address': offender_residential_address,
         'offender_email': offender_email,
+        'offender_phone_number': offender.phone_number,
+        'offender_mobile_number': offender.mobile_number,
         'registration_number': rego,
         'offence_location': offence_location,
         'offence_date': offence_date,

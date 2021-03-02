@@ -49,7 +49,7 @@ def create_letter_of_advice_pdf(filename, sanction_outcome):
     return document
 
 
-def create_remediation_notice_pdf_bytes(filename, sanction_outcome):
+def create_remediation_notice_pdf(filename, sanction_outcome):
     value = create_remediation_notice_pdf_contents(filename, sanction_outcome)
     content = ContentFile(value)
 
