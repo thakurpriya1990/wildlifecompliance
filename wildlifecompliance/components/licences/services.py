@@ -617,6 +617,7 @@ class LicenceActioner(LicenceActionable):
         surrenderable = [
             p for p in activity.proposed_purposes.all() 
             if p.is_issued and p.is_active and not p.is_replaced()
+            and p.purpose_id in purpose_list
         ]
 
         can_action['can_surrender'] = current and len(surrenderable)
@@ -632,6 +633,7 @@ class LicenceActioner(LicenceActionable):
         cancelable = [
             p for p in activity.proposed_purposes.all()
             if p.is_issued and p.is_active and not p.is_replaced()
+            and p.purpose_id in purpose_list
         ]
 
         can_action['can_cancel'] = current and len(cancelable)
@@ -647,6 +649,7 @@ class LicenceActioner(LicenceActionable):
         suspendable = [
             p for p in activity.proposed_purposes.all()
             if p.is_issued and p.is_active and not p.is_replaced()
+            and p.purpose_id in purpose_list
         ]
 
         can_action['can_suspend'] = current and len(suspendable)
@@ -666,7 +669,8 @@ class LicenceActioner(LicenceActionable):
 
             reissuable = [
                 p for p in activity.proposed_purposes.all() 
-                if p.is_issued and not p.is_replaced()
+                if p.is_issued and p.is_active and not p.is_replaced()
+                and p.purpose_id in purpose_list
             ]
 
             can_action['can_reissue'] = current and len(reissuable)
@@ -675,6 +679,7 @@ class LicenceActioner(LicenceActionable):
         # currently SUSPENDED, CANCELLED or SURRENDERED.
         reinstatable = [
             p for p in activity.proposed_purposes.all() if p.is_reinstatable
+            and p.purpose_id in purpose_list
         ]
         can_action['can_reinstate'] = len(reinstatable)
 
