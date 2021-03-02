@@ -384,6 +384,8 @@ export default {
             {
                 data: 'id',
                 render: function(data, type, full) {
+                    console.log('full: ')
+                    console.log(full)
                     let ret_line = '';
 
                     // Chenck if this alleged offence has already a connection to the current offender selected
@@ -419,8 +421,13 @@ export default {
                             // Should not reach here
                             ret_line += '';
                         } else {
+                            let disabled_str = ''
+                            if (full.section_regulation.is_parking_offence){
+                                disabled_str = ' disabled '
+                                selected_str = ''
+                            }
                             //ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
-                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '"' + selected_str + '></input>';
+                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '"' + selected_str + disabled_str + '></input>';
                         }
                     }
 

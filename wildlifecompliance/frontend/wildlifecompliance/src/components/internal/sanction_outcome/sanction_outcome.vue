@@ -140,6 +140,13 @@
                                     </a>
                                 </div>
                             </div>
+                            <div v-if="visibilityMarkDocumentPostedButton" class="row action-button">
+                                <div class="col-sm-12">
+                                    <a @click="addWorkflow('mark_document_posted')" class="btn btn-primary btn-block">
+                                        Mark Document Posted
+                                    </a>
+                                </div>
+                            </div>
 
                         </div>
                     </div>
@@ -494,6 +501,7 @@ export default {
         let vm = this;
         vm.STATUS_DRAFT = 'draft';
         vm.STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement';
+        vm.STATUS_AWAITING_PRINT_AND_POST = 'awaiting_print_and_post';
         vm.STATUS_AWAITING_REVIEW = 'awaiting_review';
         vm.STATUS_AWAITING_AMENDMENT = 'awaiting_amendment';
         vm.STATUS_AWAITING_PAYMENT = 'awaiting_payment';
@@ -998,6 +1006,15 @@ export default {
             }
             return visibility;
         },
+        visibilityMarkDocumentPostedButton: function(){
+            let visibility = false;
+            if (this.sanction_outcome.can_user_action){
+                if (this.sanction_outcome.status.id === this.STATUS_AWAITING_PRINT_AND_POST){
+                    visibility = true;
+                }
+            }
+            return visibility;
+        },
         visibilityEndorseButton: function() {
             //return true;
             let visibility = false;
@@ -1076,6 +1093,10 @@ export default {
             this.$nextTick(() => {
                 this.$refs.send_parking_infringement.isModalOpen = true;
             });
+        },
+        markDocumentPosted: function(){
+            console.log('in markDocumentPosted')
+
         },
         driverSelected: function(data) {
             console.log(data);
