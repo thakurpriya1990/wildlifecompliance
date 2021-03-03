@@ -361,6 +361,10 @@ class SanctionOutcome(models.Model):
     def regionDistrictId(self):
         return self.district.id if self.district else self.region.id
 
+    @property
+    def regionDistrictName(self):
+        return self.district.name if self.district else self.region.name
+
     @staticmethod
     def get_compliance_permission_group(regionDistrictId, workflow_type):
         region_district = RegionDistrict.objects.filter(id=regionDistrictId)
