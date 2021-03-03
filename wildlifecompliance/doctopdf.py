@@ -47,6 +47,8 @@ def retrieve_context(sanction_outcome):
     responsible_officer_name = sanction_outcome.responsible_officer.get_full_name() if sanction_outcome.responsible_officer else ''
     issue_date = sanction_outcome.date_of_issue.strftime('%d/%m/%Y') if sanction_outcome.date_of_issue else ''
     issue_time = sanction_outcome.time_of_issue.strftime('%I:%M %p') if sanction_outcome.time_of_issue else ''
+    remediation_actions = sanction_outcome.remediation_actions.all() if sanction_outcome.remediation_actions else ''
+    regionDistrict = sanction_outcome.regionDistrictName if sanction_outcome.regionDistrictName else ''
     context = {
         'lodgement_number': sanction_outcome.lodgement_number,
         'offender_family_name': offender_family_name,
@@ -65,6 +67,8 @@ def retrieve_context(sanction_outcome):
         'responsible_officer_name': responsible_officer_name,
         'issue_date': issue_date,
         'issue_time': issue_time,
+        'remediation_actions': remediation_actions,
+        'region_district': regionDistrict,
     }
     return context
 
