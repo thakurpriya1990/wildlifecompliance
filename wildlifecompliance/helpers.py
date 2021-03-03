@@ -46,6 +46,9 @@ def is_new_to_wildlifelicensing(request=None):
     if not is_wildlifelicensing_request(request):
          has_user_details = True
 
+    if is_internal(request):
+        has_user_details = True
+
     return not has_user_details
 
 def belongs_to(user, group_name):
