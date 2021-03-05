@@ -363,7 +363,7 @@ class SanctionOutcome(models.Model):
 
     @property
     def regionDistrictName(self):
-        return self.district.name if self.district else self.region.name
+        return self.district.display_name if self.district else self.region.display_name
 
     @staticmethod
     def get_compliance_permission_group(regionDistrictId, workflow_type):
