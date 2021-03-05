@@ -4,6 +4,7 @@
             <div class="container-fluid">
                 <div class="row col-sm-12">
 
+<!--
                     <div class="form-group"><div class="row">
                         <div class="col-sm-3">
                             <label class="control-label pull-left">Recipient</label>
@@ -12,6 +13,7 @@
                             {{ recipient_details }}
                         </div>
                     </div></div>
+-->
 
                     <div class="form-group"><div class="row">
                         <div class="col-sm-3">
@@ -130,7 +132,8 @@ export default {
                 this.processingDetails = true;
                 const response = await this.sendData();
                 this.close();
-                this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
+                //this.$parent.loadSanctionOutcome({ sanction_outcome_id: this.$parent.sanction_outcome.id });
+                this.$router.push({ name: 'internal-sanction-outcome-dash' });
             } catch (err){
                 this.processError(err);
             } finally {
