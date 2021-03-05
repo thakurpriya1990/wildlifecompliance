@@ -14,6 +14,7 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
+                                        <div v-if="canAssignOfficerFor(a.licence_activity)">
                                         <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b>
                                         <div v-show="checkedActivities.find(checked => checked===a.id)">
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
@@ -28,24 +29,26 @@
                                                     </div>
                                                     <div class="panel-body panel-collapse collapse" :id="`${p_idx}${index}`+purposeBody">
                                                         <div class="row">
-                                                            <div class="col-sm-3">
-                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
-                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                            <div class="col-sm-12">
+                                                                <div class="col-sm-3">
+                                                                    <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                    <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-sm-3">                                                        
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                                <div class="col-sm-3">
+                                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                        <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                        <span class="input-group-addon">
+                                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-sm-3">                                                        
+                                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                        <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                        <span class="input-group-addon">
+                                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed">
@@ -83,19 +86,19 @@
                                                                 </div>
                                                                 -->
                                                                 <div class="col-sm-12">
-                                                                    <div class="col-sm-2">
+                                                                    <div class="col-sm-3">
                                                                         <label class="control-label pull-left" for="Name">Details</label>
+                                                                        <div v-show="free_text.is_additional_info" ><br/><br/>
+                                                                            <input type="checkbox" checked disabled/>
+                                                                            <label>Is additional info</label>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="col-sm-8">
+                                                                    <div class="col-sm-9">
                                                                         <!--
                                                                         <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
                                                                         -->
                                                                         <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
 
-                                                                    </div>
-                                                                    <div v-show="free_text.is_additional_info" class="col-sm-2">
-                                                                        <input type="checkbox" checked disabled/>
-                                                                        <label>Is additional info</label>
                                                                     </div>
                                                                 </div>
 
@@ -107,6 +110,7 @@
 
                                             </div>
                                         </div>
+                                        </div> <!-- end of canAssignOfficerFor(activity.licence_activity) -->
                                     </div>
                                 </div>
                             </div>
@@ -540,8 +544,3 @@ export default {
 }
 </script>
 
-<style lang="css">
-    br {
-        padding-bottom: 5px;
-    }
-</style>
