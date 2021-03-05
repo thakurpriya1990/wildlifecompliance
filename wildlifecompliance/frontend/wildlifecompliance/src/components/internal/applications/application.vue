@@ -66,10 +66,12 @@
                                 <strong>Assigned Approver</strong><br/>
                                 <div class="form-group">
                                     <template>
+                                        <div>
                                         <select ref="assigned_approver" class="form-control" v-model="selectedActivity.assigned_approver" >
                                             <option v-for="member in selectedActivity.issuing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
+                                        </div>
                                     </template>                                    
                                 </div>
                             </div>
@@ -167,7 +169,11 @@
                     <div>
                     <ul class="nav nav-pills mb-3" id="tabs-main">
                         <li class="nav-item"><a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab">Applicant</a></li>
-                        <li class="nav-item"><a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab">Application</a></li>
+                        <!-- <li class="nav-item"><a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab">Application</a></li> -->
+                        <li class="nav-item" v-for="(activity, index) in allCurrentActivities">
+                            <a :class="{'nav-link amendment-highlight': application.has_amendment}"
+                                data-toggle="pill" v-on:click="selectTab(activity)" :href="'#'+activityTab">{{activity.label}}</a>
+                        </li>
                     </ul>
                     <div class="tab-content">
                     <div :id="applicantTab" class="tab-pane fade in active">
@@ -513,6 +519,19 @@
 
                     </div>
                 </div>
+
+                <div :id="activityTab" class="tab-pane fade">
+                    <div v-for="(activity, index) in allCurrentActivities">
+                        <AmendmentRequestDetails :activity_id="activity.id" />
+                        <renderer-block
+                            :component="activity"
+                            v-if="activity.id == selected_activity_tab_id"
+                            v-bind:key="`renderer_block_${index}`"
+                            />
+                    </div>
+                    {{ this.$slots.default }}
+                </div>
+
                 <div :id="applicationTab" class="tab-pane fade">
                     <div class="col-md-12">
                         <div class="row">
@@ -617,6 +636,7 @@ import datatable from '@vue-utils/datatable.vue';
 import ProposedLicence from './proposed_issuance.vue';
 import IssueLicence from './application_issuance.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
+import AmendmentRequestDetails from '@/components/forms/amendment_request_details.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
 import {
     api_endpoints,
@@ -630,6 +650,7 @@ export default {
         return {
             applicantTab: 'applicantTab'+vm._uid,
             applicationTab: 'applicationTab'+vm._uid,
+            activityTab: 'activityTab'+vm._uid+'_'+0,
             detailsBody: 'detailsBody'+vm._uid,
             identificationBody: 'identificationBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
@@ -707,6 +728,7 @@ export default {
         ProposedLicence,
         IssueLicence,
         CommsLogs,
+        AmendmentRequestDetails,
     },
     filters: {
         formatDate: function(data){
@@ -745,6 +767,7 @@ export default {
             'character_check_status',
             'return_check_status',
             'hasCurrentLicence',
+            'allCurrentActivities',
         ]),
         applicationDetailsVisible: function() {
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
@@ -943,6 +966,10 @@ export default {
             'resetUpdateFeeStatus',
             'setAssessStatus',
         ]),
+        selectTab: function(component) {
+            this.section_tab_id = component.id;
+            this.setActivityTab({id: component.id, name: component.label});
+        },
         eventListeners: function(){
             let vm = this;
             $("[data-target!=''][data-target]").off("click").on("click", function (e) {
@@ -1551,9 +1578,11 @@ export default {
         }
     },
     mounted: function() {
+        console.log('mounted application.vue')
         // console.log(this.application)
     },
     updated: function(){
+        console.log('updated application.vue')
         let vm = this;
         if (!vm.panelClickersInitialised){
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
