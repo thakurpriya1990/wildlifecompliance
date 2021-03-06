@@ -59,11 +59,7 @@
                                                                                         <span class="glyphicon glyphicon-calendar"></span>
                                                                                     </span>
                                                                                 </div>
-                                                                            </div>                                                
-                                                                        </div>                                                
-                                                                            </div>                                                
-                                                                            <div class="col-sm-3">                                                        
-                                                                        <div class="col-sm-3">                                                        
+                                                                            </div>                                                                                                                                                 
                                                                             <div class="col-sm-3">                                                        
                                                                                 <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
                                                                                     <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
@@ -819,5 +815,8 @@ export default {
 <style scoped>
     .confirmation-checkbox {
         margin-top: 10px;
+    }
+    br {
+        padding-bottom: 5px;
     }
 </style>

@@ -1578,11 +1578,9 @@ export default {
         }
     },
     mounted: function() {
-        console.log('mounted application.vue')
         // console.log(this.application)
     },
     updated: function(){
-        console.log('updated application.vue')
         let vm = this;
         if (!vm.panelClickersInitialised){
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {

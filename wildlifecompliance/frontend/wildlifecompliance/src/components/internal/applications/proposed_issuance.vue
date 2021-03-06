@@ -543,4 +543,8 @@ export default {
    }
 }
 </script>
-
+<style lang="css">
+    br {
+        padding-bottom: 5px;
+    }
+</style>
