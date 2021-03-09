@@ -93,6 +93,23 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
+                            <template v-if="canIssueDecline && approvingApplication">
+                                <div>
+                                    <div class="col-sm-12">
+                                        <div class="separator"></div>
+                                    </div>                                    
+                                    <div class="col-sm-12">
+                                        <strong>Application</strong><br/>
+                                        <a class="actionBtn" v-if="!showingApplication" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleIssue()">Hide Application</a>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-if="canIssueDecline && approvingApplication">
+                                <div class="col-sm-12">
+                                    <div class="separator"></div>
+                                </div>
+                            </template>
                               <div class="col-sm-12 top-buffer-s" >
                                 <template v-if="showingApplication">
                                     <div class="row">
@@ -112,7 +129,7 @@
                                             <button v-else class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
-                                    <div v-if="canIssueDecline" class="row">
+                                    <div v-show="showIssueDeclineButton" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
                                             <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
@@ -133,7 +150,7 @@
                                             <strong>Action</strong><br/>
                                         </div>
                                     </div>
-                                    <div v-if="isSendingToAssessor || isOfficerConditions || isofficerfinalisation" class="row">
+                                    <div v-if="isSendingToAssessor || isOfficerConditions" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
                                         </div>
@@ -668,6 +685,7 @@ export default {
             showingApplication:true,
             isOfficerConditions:false,
             isofficerfinalisation:false,
+            approvingApplication:false,
             contacts_table_id: vm._uid+'contacts-table',
             application_assessor_datatable:vm._uid+'assessment-table',
             spinner: false,
@@ -921,10 +939,36 @@ export default {
         },
         showAssessmentConditionButton: function() {
 
+            if (this.selectedActivity.processing_status.id === 'with_officer_finalisation') {
+                return false
+            }
+
             return this.showingApplication 
                 && !this.applicationIsDraft 
                 && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
 
+        },
+        showIssueDeclineButton: function() {
+
+            if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
+                return false;
+            }
+
+            // check user is authorised to issue/allocate for selected activity.
+            if (!this.canAssignApproverFor(this.selected_activity_tab_id)) {
+                return false;
+            };
+            // check activity is not assigned to another approver.
+            if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
+                return false;
+            };
+
+            // check correct workflow.
+            if (this.approvingApplication) {
+                return false;
+            }
+
+            return true;
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
@@ -1037,6 +1081,7 @@ export default {
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
 
+            this.approvingApplication=true;
             this.isofficerfinalisation=true;
         },
         acceptIdRequest: async function() {
@@ -1268,15 +1313,24 @@ export default {
                 this.isOfficerConditions = !show;
             }
             if(this.isofficerfinalisation){
+                this.approvingApplication = true;
                 this.isofficerfinalisation = !show;
             }
             this.toggleFinalisedTabs(showFinalised);
             setTimeout(() => {
-                const firstTab = $('#tabs-main li a')[1];
-                if(firstTab != null) {
-                    firstTab.click();
+                // const firstTab = $('#tabs-main li a')[0];
+                let main_tabs = $('#tabs-main li')
+                let tabno = 0;
+                for(let i=0; i<main_tabs.length; i++){
+                    if (main_tabs[i].innerText === this.selected_activity_tab_name) {
+                        tabno = i
+                    }
                 }
-                this.initFirstTab(true);
+                const selected = $('#tabs-main li a')[tabno]
+                if(selected != null) {
+                    selected.click();
+                }
+                this.initFirstTab();
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
@@ -1575,10 +1629,13 @@ export default {
             }
             this.$refs.applicantTab.click();
             this.initFirstTab(true);
+        },
+        initWorkflowState: function() {
+            console.log('initWorkflowState')
+            console.log(this.selectedActivity.processing_status.id);
         }
     },
     mounted: function() {
-        // console.log(this.application)
     },
     updated: function(){
         let vm = this;
