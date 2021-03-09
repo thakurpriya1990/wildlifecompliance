@@ -101,7 +101,9 @@
                                     <div class="col-sm-12">
                                         <strong>Application</strong><br/>
                                         <a class="actionBtn" v-if="!showingApplication" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
-                                        <a class="actionBtn" v-else @click.prevent="toggleIssue()">Hide Application</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleIssue()">Hide Application</a><br/>
+                                        <a class="actionBtn" v-if="!showingApplication && !showingConditions" @click.prevent="toggleShowingConditions()">Show Conditions</a>
+                                        <a class="actionBtn" v-else-if="!showingApplication && showingConditions" @click.prevent="toggleShowingConditions()">Hide Conditions</a>
                                     </div>
                                 </div>
                             </template>
@@ -683,6 +685,7 @@ export default {
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingApplication:true,
+            showingConditions:false,
             isOfficerConditions:false,
             isofficerfinalisation:false,
             approvingApplication:false,
@@ -1334,10 +1337,24 @@ export default {
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
-        toggleConditions:function(){
-            this.showingApplication = false;
-            this.isSendingToAssessor=false;
-            this.isOfficerConditions=false;
+        toggleShowingConditions: function(){
+            console.log('toggleConditions')
+            this.showingConditions = !this.showingConditions;
+            setTimeout(() => {
+                // const firstTab = $('#tabs-main li a')[0];
+                let main_tabs = $('#tabs-main li')
+                let tabno = 0;
+                for(let i=0; i<main_tabs.length; i++){
+                    if (main_tabs[i].innerText === this.selected_activity_tab_name) {
+                        tabno = i
+                    }
+                }
+                const selected = $('#tabs-main li a')[tabno]
+                if(selected != null) {
+                    selected.click();
+                }
+                this.initFirstTab();
+            }, 50);
         },
         returnToOfficerConditions: async function(){
 

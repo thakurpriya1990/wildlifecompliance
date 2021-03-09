@@ -246,6 +246,15 @@
 
                     <p>Click <a href="#" @click.prevent="preview()">here</a> to preview the licence document.</p>
 
+
+                    <div v-show="showConditions" :id="`${selectedApplicationActivity.id}`" class="row">
+                        <Conditions
+                            :key="`assessor_condition_${selected_activity_tab_id}`"
+                            :final_view_conditions="final_view_conditions"
+                            :activity="selectedApplicationActivity"/>
+                    </div>
+
+
                     <div class="row" style="margin-bottom:50px;">
                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                             <div class="navbar-inner">
@@ -276,15 +285,21 @@ import {
 from '@/utils/hooks'
 import { mapGetters, mapActions } from 'vuex'
 import filefield from '@/components/common/compliance_file.vue'
+import Conditions from './application_conditions.vue';
 
 export default {
     name: 'InternalApplicationIssuance',
     components:{
         filefield,
+        Conditions,
     },    
     props: {
         application: Object,
-        licence_activity_tab:Number
+        licence_activity_tab:Number,
+        final_view_conditions: {
+            type: Boolean,
+            default: false,
+        },        
     },
     data: function() {
         let vm = this;
@@ -460,6 +475,9 @@ export default {
         preview_licence_url: function() {
             return (this.application.id) ? `/preview/licence-pdf/${this.application.id}` : ''
         },
+        showConditions: function() {
+            return this.$parent.showingConditions;
+        }
     },
     methods:{
         ...mapActions({
