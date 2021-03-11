@@ -198,9 +198,6 @@ export default {
             var selectedActivity = this.application.activities.find(activity => {
                 return activity.licence_activity === this.selected_activity_tab_id;
             });
-            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
-                return false;
-            };
 
             let required_role = false;
             if (this.activity.processing_status.id === 'with_assessor') {
@@ -209,22 +206,17 @@ export default {
 
             } else if (this.activity.processing_status.id === 'with_officer') {
                 required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+                if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                    required_role = false;
+                };
+
             } else if (this.activity.processing_status.id === 'with_officer_conditions') {
                 required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+                if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                    required_role = false;
+                };
             }
 
-            // switch(this.activity.processing_status.id) {
-            //     case 'with_assessor':
-            //         console.log('with_assessor')
-            //         let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
-            //         required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
-            //     break;
-            //     case 'with_officer_conditions':
-            //         console.log('with_officer_condit')
-            //         required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
-            //     break;
-            // }
-      
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
