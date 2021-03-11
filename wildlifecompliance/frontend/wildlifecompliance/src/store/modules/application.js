@@ -256,5 +256,19 @@ export const applicationStore = {
         resetUpdateFeeStatus({ commit }) {
             commit(UPDATE_APPLICATION_FEE_STATUS, false);
         },
+        setLicenceTypeData({ dispatch, state, getters, rootGetters }, activity_data) {
+            Vue.http.post('/api/application/' + getters.application_id + '/update_licence_type_data/', {
+                    'application_id': getters.application_id,
+                    'licence_activity_id': activity_data.licence_activity_id,
+                    'licence_activity_workflow': activity_data.workflow,
+            }).then(res => {
+                dispatch('setApplication', {
+                    ...state.application,
+                    licence_type_data: res.body.licence_type_data,
+                });
+            }, err => {
+                console.log(err);
+            });
+        },
     }
 }
