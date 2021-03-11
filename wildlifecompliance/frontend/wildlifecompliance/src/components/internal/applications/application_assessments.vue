@@ -46,7 +46,7 @@
                 </div>
             </modal>
 
-            <div>
+            <div v-if="applicationDetailsVisible">
                 <ul id="tabs-assessor" class="nav nav-pills mb-3">
                     <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
                         <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
@@ -186,6 +186,12 @@ export default {
             'allCurrentActivities',
             'allCurrentActivitiesWithAssessor',
         ]),
+        applicationDetailsVisible: function() {
+            this.$nextTick(() => {
+                this.eventListeners();
+            });
+            return true;
+        },
         isCompleteAssessmentAction: function() {
             return this.$router.currentRoute.name==='complete-assessment'
         },
@@ -645,10 +651,10 @@ export default {
     },
     mounted: function() {
         this.fetchAssessorGroup();
-        this.initFirstTab(true);
-        this.$nextTick(() => {
-            this.eventListeners();
-        });
+        //this.initFirstTab(true);
+        // this.$nextTick(() => {
+        //     this.eventListeners();
+        // });
     },
 }
 

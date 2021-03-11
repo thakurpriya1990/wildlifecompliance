@@ -162,9 +162,9 @@
                                             <strong>Action</strong><br/>
                                         </div>
                                     </div>
-                                    <div class="row">
+                                    <div v-show="showBackToProcessingButton" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="backToProcessing()">Back to Processing</button><br/>
                                         </div>
                                     </div>
                                     <div class="row" v-show="showRequestInspectionButton">
@@ -192,9 +192,15 @@
                     <ApplicationAssessments v-if="!applicationDetailsVisible" />
 
                     <template v-if="applicationDetailsVisible">
-                        <a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab"></a>
-                        <a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab"></a>
-                        <div :id="applicationTab" class="tab-pane fade in active">
+                        <ul class="nav nav-pills mb-3" id="tabs-main">
+                            <li class="nav-item" v-for="(activity, index) in allCurrentActivities">
+                                <a :class="{'nav-link amendment-highlight': application.has_amendment}"
+                                    data-toggle="pill" v-on:click="selectTab(activity)" :href="'#'+activityTab">{{activity.label}}</a>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                        <div :id="activityTab" class="tab-pane fade in active">
                             <div class="col-md-12">
                                 <div class="row">
                                     <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
@@ -204,6 +210,16 @@
                                             <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                                             <input type='hidden' name="application_id" :value="1" />
                                             <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
+
+                                            <div v-for="(activity, index) in allCurrentActivities">
+                                                <renderer-block
+                                                    :component="activity"
+                                                    v-if="activity.id == selected_activity_tab_id"
+                                                    v-bind:key="`renderer_block_${index}`"
+                                                    />
+                                            </div>
+                                            {{ this.$slots.default }}
+
                                             <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
                                                 <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                                                     <div class="navbar-inner">
@@ -221,7 +237,7 @@
                                 </div>
                             </div>
                         </div>
-
+                        </div>
                     </template>
 
                     <InspectionRequest ref="inspection"  @inspection-created="requestedInspection"></InspectionRequest>                    
@@ -255,6 +271,7 @@ export default {
         return {
             applicantTab: 'applicantTab'+vm._uid,
             applicationTab: 'applicationTab'+vm._uid,
+            activityTab: 'activityTab'+vm._uid+'_'+0,
             detailsBody: 'detailsBody'+vm._uid,
             identificationBody: 'identificationBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
@@ -324,6 +341,7 @@ export default {
             'current_user',
             'canEditAssessmentFor',
             'canAssignAssessorFor',
+            'allCurrentActivities',
         ]),
         activitiesWithAssessment: function() {
             return this.application.activities.filter(activity => {
@@ -333,6 +351,22 @@ export default {
             })
         },
         applicationDetailsVisible: function() {
+            let vm = this;
+            if (!vm.panelClickersInitialised){
+                $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+                    var chev = $(this).children()[0];
+                    window.setTimeout(function () {
+                        $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+                    },100);
+                }); 
+                vm.panelClickersInitialised = true;
+            }
+            this.$nextTick(() => {
+                vm.initialiseSelects();
+                vm.form = document.forms.new_application;
+                vm.eventListeners();
+            });
+
             return this.showingApplication;
         },
         applicationIsDraft: function(){
@@ -380,7 +414,7 @@ export default {
             }
         },
         showNavBarBottom: function() {
-            return !this.applicationIsDraft && this.canSaveApplication
+            return true;
         },
         showCompleteAssessmentsButton: function() {
             return this.isWithAssessor && this.activeAssessments.find(assessment => {
@@ -414,6 +448,10 @@ export default {
         form_data_application_url: function() {
             return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
         },
+        showBackToProcessingButton: function() {
+            let show = true;
+            return show
+        },
     },
     methods: {
         ...mapActions({
@@ -428,6 +466,11 @@ export default {
             'toggleFinalisedTabs',
             'saveFormData',
         ]),
+        selectTab: function(component) {
+            this.section_tab_id = component.id;
+            this.setActivityTab({id: component.id, name: component.label});
+            this.showingApplicant = false;
+        },
         eventListeners: function(){ // Listens on children components.
             let vm = this;
             let application_tabs = $('#tabs-section li a')[0]
@@ -534,14 +577,24 @@ export default {
                 this.isOfficerConditions = !show;
             }
             if(this.isofficerfinalisation){
+                this.approvingApplication = true;
                 this.isofficerfinalisation = !show;
             }
             this.toggleFinalisedTabs(showFinalised);
             setTimeout(() => {
-                const firstTab = $('#applicationTab');
-                if(firstTab != null) {
-                    firstTab.click();
+                // const firstTab = $('#tabs-main li a')[0];
+                let main_tabs = $('#tabs-main li')
+                let tabno = 0;
+                for(let i=0; i<main_tabs.length; i++){
+                    if (main_tabs[i].innerText === this.selected_activity_tab_name) {
+                        tabno = i
+                    }
                 }
+                const selected = $('#tabs-main li a')[tabno]
+                if(selected != null) {
+                    selected.click();
+                }
+                this.initFirstTab();
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
@@ -640,6 +693,12 @@ export default {
 
             });
         },
+        canSaveApplication: function() {
+            return true;
+        },
+        backToProcessing: async function(){
+            this.toggleApplication({show: true})          
+        },
         initialiseAssignedAssessorSelect: function(reinit=false){
             let vm = this;
             if (reinit){
@@ -677,6 +736,23 @@ export default {
             }
             this.initialiseAssignedAssessorSelect();
         },
+        initFirstTab: function(force){
+            if(this.selected_activity_tab_id && !force) {
+                return;
+            }
+            const tab = $('#tabs-section li:first-child a')[0];
+            if(tab) {
+                tab.click();
+            }
+            else {
+                this.licenceActivities().filter(activity => {
+                    this.setActivityTab({
+                        id: activity.id,
+                        name: activity.name
+                    });
+                })
+            }
+        },
         initMainTab: function() {
             if(!this.$refs.applicationTab) {
                 return;
@@ -688,21 +764,21 @@ export default {
         },
     },
     updated: function(){
-        let vm = this;
-        if (!vm.panelClickersInitialised){
-            $('.panelClicker[data-toggle="collapse"]').on('click', function () {
-                var chev = $(this).children()[0];
-                window.setTimeout(function () {
-                    $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
-                },100);
-            }); 
-            vm.panelClickersInitialised = true;
-        }
-        this.$nextTick(() => {
-            vm.initialiseSelects();
-            vm.form = document.forms.new_application;
-            vm.eventListeners();
-        });
+        // let vm = this;
+        // if (!vm.panelClickersInitialised){
+        //     $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+        //         var chev = $(this).children()[0];
+        //         window.setTimeout(function () {
+        //             $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+        //         },100);
+        //     }); 
+        //     vm.panelClickersInitialised = true;
+        // }
+        // this.$nextTick(() => {
+        //     vm.initialiseSelects();
+        //     vm.form = document.forms.new_application;
+        //     vm.eventListeners();
+        // });
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

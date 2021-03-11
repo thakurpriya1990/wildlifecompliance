@@ -540,18 +540,6 @@
                 </div>
 
                 <div :id="activityTab" class="tab-pane fade">
-                    <div v-for="(activity, index) in allCurrentActivities">
-                        <AmendmentRequestDetails :activity_id="activity.id" />
-                        <renderer-block
-                            :component="activity"
-                            v-if="activity.id == selected_activity_tab_id"
-                            v-bind:key="`renderer_block_${index}`"
-                            />
-                    </div>
-                    {{ this.$slots.default }}
-                </div>
-
-                <div :id="applicationTab" class="tab-pane fade">
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
@@ -560,6 +548,17 @@
                                     <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                                     <input type='hidden' name="application_id" :value="1" />
                                     <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
+
+                                    <div v-for="(activity, index) in allCurrentActivities">
+                                        <AmendmentRequestDetails :activity_id="activity.id" />
+                                        <renderer-block
+                                            :component="activity"
+                                            v-if="activity.id == selected_activity_tab_id"
+                                            v-bind:key="`renderer_block_${index}`"
+                                            />
+                                    </div>
+                                    {{ this.$slots.default }}
+
                                     <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
                                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                                             <div class="navbar-inner">
