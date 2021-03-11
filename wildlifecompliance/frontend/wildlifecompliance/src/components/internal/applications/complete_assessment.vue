@@ -344,13 +344,6 @@ export default {
             'allCurrentActivities',
         ]),
         activitiesWithAssessment: function() {
-            return this.application.activities.filter(activity => {
-
-                return this.canEditAssessmentFor(activity.licence_activity)
-                    && this.canAssignAssessorFor(activity.licence_activity)
-            })
-        },
-        applicationDetailsVisible: function() {
             let vm = this;
             if (!vm.panelClickersInitialised){
                 $('.panelClicker[data-toggle="collapse"]').on('click', function () {
@@ -367,6 +360,15 @@ export default {
                 vm.eventListeners();
             });
 
+            let activities = this.application.activities.filter(activity => {
+
+                return this.canEditAssessmentFor(activity.licence_activity)
+                    && this.canAssignAssessorFor(activity.licence_activity)
+            })
+
+            return activities
+        },
+        applicationDetailsVisible: function() {
             return this.showingApplication;
         },
         applicationIsDraft: function(){
@@ -414,7 +416,11 @@ export default {
             }
         },
         showNavBarBottom: function() {
-            return true;
+            let can_save = false;
+            if (this.selectedActivity.processing_status.id === 'with_assessor'){
+                can_save = true;
+            }
+            return can_save;
         },
         showCompleteAssessmentsButton: function() {
             return this.isWithAssessor && this.activeAssessments.find(assessment => {
@@ -517,6 +523,9 @@ export default {
                     }
                 })
 
+            } else {
+                let activity = this.licenceActivities();
+                this.setActivityTab({ id: activity[0].id, name: activity[0].name });
             }
         },
         close: function () {
