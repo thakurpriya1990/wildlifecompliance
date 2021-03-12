@@ -820,12 +820,17 @@ export default {
 
                 this.initFirstTab()     // Each Tab is a Licence Activity.
             }
-            return this.application.activities.find(activity => {
+            let selected = this.application.activities.find(activity => {
 
                 return activity.licence_activity === this.selected_activity_tab_id                
             })
+            return selected;
         },
         canIssueDecline: function(){
+            if (this.showingApplicant) {
+                return false;
+            }
+
             if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
                 return false;
             }
@@ -980,6 +985,10 @@ export default {
             return this.showingApplication && !this.applicationIsDraft;
         },
         showIssueDeclineButton: function() {
+
+            if (this.showingApplicant) {
+                return false;
+            }
 
             if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
                 return false;
@@ -1305,7 +1314,8 @@ export default {
 
             if (is_saved) {
                 await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-                    this.condition_spinner = false;   
+                    this.condition_spinner = false;
+                    this.spinner = false;   
                     $('#tabs-main li').removeClass('active');
                     this.setAssessStatus(false);
                     this.isSendingToAssessor = !this.isSendingToAssessor;
@@ -1327,7 +1337,7 @@ export default {
             // await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
                 await this.saveFormData({ url: this.form_data_application_url }).then(response => {
-                    this.spinner = false;
+                    // this.spinner = false;
                     this.resetUpdateFeeStatus();
                     showNotification && swal(
                         'Saved',
@@ -1448,6 +1458,7 @@ export default {
         },
         toggleOfficerConditions: async function(){
             let is_saved = await this.save_wo();
+            this.spinner = false;
             this.showingApplication = false;
             this.isSendingToAssessor=false;
 
@@ -1629,7 +1640,7 @@ export default {
             let workflow = ['with_officer','with_officer_conditions'].includes(this.selectedActivity.processing_status.id)
             if (authorised && workflow) {
                 this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'process'})
-            }           
+            }
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
             let vm = this;

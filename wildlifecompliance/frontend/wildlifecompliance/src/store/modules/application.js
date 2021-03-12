@@ -262,9 +262,13 @@ export const applicationStore = {
                     'licence_activity_id': activity_data.licence_activity_id,
                     'licence_activity_workflow': activity_data.workflow,
             }).then(res => {
+                dispatch('setApplication', res.body);
                 dispatch('setApplication', {
                     ...state.application,
-                    licence_type_data: res.body.licence_type_data,
+                    application_fee: res.body.adjusted_paid_amount.application_fee,
+                    licence_fee: res.body.adjusted_paid_amount.licence_fee,
+                    update_fee: false,
+                    assess: false,
                 });
             }, err => {
                 console.log(err);

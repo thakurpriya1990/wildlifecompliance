@@ -1455,8 +1455,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         a selected Licence Activity.
 
         NOTE: there is no check whether user has correct privileges.
-
-        :return updated instance.licence_type_data property.
         '''
         PROCESS = 'process'
         ASSESS = 'assess'
@@ -1480,10 +1478,13 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS,
                 )
 
-            return Response(
-                {'licence_type_data': instance.licence_type_data}, 
-                status=status.HTTP_200_OK,
+            serializer = InternalApplicationSerializer(
+                instance, 
+                context={'request': request}
             )
+            response = Response(serializer.data)
+
+            return response
 
         except serializers.ValidationError:
             print(traceback.print_exc())
