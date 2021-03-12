@@ -143,6 +143,25 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
+
+                            <template v-if="!showBackToProcessingButton">
+                                <div>
+                                    <div class="col-sm-12">
+                                        <div class="separator"></div>
+                                    </div>                                    
+                                    <div class="col-sm-12">
+                                        <strong>Application</strong><br/>
+                                        <a class="actionBtn" v-if="!showingApplication" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleApplication({show: false, showFinalised: false})">Hide Application</a><br/>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-if="!showBackToProcessingButton">
+                                <div class="col-sm-12">
+                                    <div class="separator"></div>
+                                </div>
+                            </template>
+
                               <div class="col-sm-12 top-buffer-s" >
                                 <template v-if="showingApplication">
                                     <div class="row">
@@ -455,7 +474,7 @@ export default {
             return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
         },
         showBackToProcessingButton: function() {
-            let show = true;
+            let show = this.selectedActivity.processing_status.id === 'with_assessor';
             return show
         },
     },
