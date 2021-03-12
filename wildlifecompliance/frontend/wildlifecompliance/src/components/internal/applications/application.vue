@@ -118,11 +118,6 @@
                                         <div class="col-sm-12">
                                             <strong>Action</strong><br/>
                                         </div>
-                                    </div>
-                                    <div v-if="canReturnToConditions" class="row">
-                                        <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
-                                        </div>
                                     </div>   
                                     <div v-show="showRequestAmendmentButton" class="row">
                                         <div class="col-sm-12">
@@ -155,6 +150,11 @@
                                     <div v-show="showBackToProcessingButton" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="backToProcessing()">Back to Processing</button><br/>
+                                        </div>
+                                    </div>
+                                    <div v-if="canReturnToConditions" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
                                     </div>
                                     <div v-if="canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions" class="row">
@@ -967,7 +967,7 @@ export default {
             return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
         },
         showAssignToApprover: function(){
-            return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
+            return !this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
         },
         showAssessmentConditionButton: function() {
             if (this.showingApplicant) {
