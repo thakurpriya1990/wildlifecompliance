@@ -7,17 +7,21 @@ from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 logger = logging.getLogger(__name__)
 
+LOGFILE = 'logs/cron_tasks.log'
 
 class Command(BaseCommand):
     help = 'Run the Wildlife Compliance Cron tasks'
 
     def handle(self, *args, **options):
+        stdout_redirect = ' | tee -a {}'.format(LOGFILE)
+        subprocess.call('cat /dev/null > {}'.format(LOGFILE), shell=True)  # empty the log file
+
         logger.info('Running command {}'.format(__name__))
 
-        subprocess.call('python manage_wc.py verify_due_returns', shell=True)
-        subprocess.call('python manage_wc.py verify_expired_licences', shell=True)
-        subprocess.call('python manage_wc.py verify_licence_renewals', shell=True)
-        subprocess.call('python manage_wc.py verify_species', shell=True)
+        subprocess.call('python manage_wc.py verify_due_returns' + stdout_redirect, shell=True)
+        subprocess.call('python manage_wc.py verify_expired_licences' + stdout_redirect, shell=True)
+        subprocess.call('python manage_wc.py verify_licence_renewals' + stdout_redirect, shell=True)
+        subprocess.call('python manage_wc.py verify_species' + stdout_redirect, shell=True)
 
         # subprocess.call('python manage_wc.py send_unpaid_infringements_file', shell=True)
         # subprocess.call('python manage_wc.py extend_due_date_from_1st_to_2nd', shell=True)
@@ -27,6 +31,17 @@ class Command(BaseCommand):
         # subprocess.call('python manage_wc.py notification_overdue_remediation_action', shell=True)
 
         logger.info('Command {} completed'.format(__name__))
+        self.send_email()
+
+    def send_email(self):
+        '''
+        Reads stdout_redirect (LOGFILE) and emails to notification list.
+        '''
+        log_txt = Path(LOGFILE).read_text()
+        subject = '{0} - Cronjob'.format(settings.SYSTEM_NAME)
+        body = ''
+        to = settings.NOTIFICATION_EMAIL if isinstance(settings.NOTIFICATION_EMAIL, list) else [settings.NOTIFICATION_EMAIL]
+        send_mail(subject, body, settings.EMAIL_FROM, to, fail_silently=False, html_message=log_txt)
 
 
 def get_infringement_notice_coordinators():
