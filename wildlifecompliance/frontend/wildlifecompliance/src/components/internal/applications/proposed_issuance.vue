@@ -320,10 +320,8 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             return this.application.activities.filter( activity => { 
-                // if (activity.additional_fee==null){
-                //     activity.additional_fee = '0.00'
-                // }
-                return activity.processing_status.name.match(/with officer/gi) 
+
+                    return activity.processing_status.id === 'with_officer_conditions'
                 } // only non-processed activities.
             );
         },

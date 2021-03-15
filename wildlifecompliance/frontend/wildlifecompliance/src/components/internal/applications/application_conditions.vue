@@ -217,6 +217,10 @@ export default {
                 };
             }
 
+            if (selectedActivity.processing_status.id !== 'with_officer_conditions') {
+                required_role = false;
+            }
+
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
@@ -241,6 +245,11 @@ export default {
                     required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
                 break;
             }
+
+            if (selectedActivity.processing_status.id !== 'with_officer_conditions') {
+                required_role = false;
+            }
+
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },    
         isLicensingOfficer: function() {

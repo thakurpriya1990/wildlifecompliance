@@ -1610,10 +1610,18 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 )
 
             logger.debug('assessment_data() - response success')
-            return Response(
-                {'licence_type_data': instance.licence_type_data}, 
-                status=status.HTTP_200_OK,
+
+            serializer = InternalApplicationSerializer(
+                instance, 
+                context={'request': request}
             )
+            response = Response(serializer.data)
+            return response
+
+            # return Response(
+            #     {'licence_type_data': instance.licence_type_data}, 
+            #     status=status.HTTP_200_OK,
+            # )
 
         except MissingFieldsException as e:
             return Response({

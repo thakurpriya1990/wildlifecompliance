@@ -176,9 +176,13 @@ export const rendererStore = {
                 const post_data = Object.assign({'__draft': draft, '__assess': rootGetters.application.assess, '__licence_activity': rootGetters.selected_activity_tab_id}, getters.renderer_form_data);
                 Vue.http.post(url, post_data).then(res => {
                     resolve(res);
+                    dispatch('setApplication', res.body);
                     dispatch('setApplication', {
                         ...rootGetters.application,
-                        licence_type_data: res.body.licence_type_data,
+                        application_fee: res.body.adjusted_paid_amount.application_fee,
+                        licence_fee: res.body.adjusted_paid_amount.licence_fee,
+                        update_fee: false,
+                        assess: false,
                     });
                 },
                 err => {
