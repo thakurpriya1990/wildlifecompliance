@@ -100,10 +100,10 @@
                                     </div>                                    
                                     <div class="col-sm-12">
                                         <strong>Application</strong><br/>
-                                        <a class="actionBtn" v-if="!showingApplication" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
-                                        <a class="actionBtn" v-else @click.prevent="toggleIssue()">Hide Application</a><br/>
+                                        <a class="actionBtn" v-if="!showingApplication && !showingConditions" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
+                                        <a class="actionBtn" v-else-if="!showingApplication && showingConditions" @click.prevent="toggleShowingConditions()">Hide Conditions</a>        
+                                        <a class="actionBtn" v-else-if="showingApplication && !showingConditions" @click.prevent="toggleIssue()">Hide Application</a><br/>
                                         <a class="actionBtn" v-if="!showingApplication && !showingConditions" @click.prevent="toggleShowingConditions()">Show Conditions</a>
-                                        <a class="actionBtn" v-else-if="!showingApplication && showingConditions" @click.prevent="toggleShowingConditions()">Hide Conditions</a>
                                     </div>
                                 </div>
                             </template>
@@ -873,7 +873,13 @@ export default {
         },
         canReturnToConditions: function(){
             // required when issuing or declining.
-            return this.canIssueDecline;
+            let can_return = this.canIssueDecline;
+
+            if (!this.showingApplication && this.showingConditions) {
+                can_return = false;
+            }
+
+            return can_return;
         },
         canProposeIssueOrDecline: function(){
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
@@ -967,7 +973,13 @@ export default {
             return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
         },
         showAssignToApprover: function(){
-            return !this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
+            let show = !this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity);
+
+            if (this.showingApplication || this.showingConditions) {
+                return false;
+            }
+
+            return show;
         },
         showAssessmentConditionButton: function() {
             if (this.showingApplicant) {
@@ -1033,13 +1045,23 @@ export default {
         },
         showBackToProcessingButton: function() {
             let show = this.isSendingToAssessor || this.isOfficerConditions;
+            if (this.selectedActivity.processing_status.id === 'with_officer_finalisation') {
+                return false;
+            }
+
             return show
         },
         showRequestAmendmentButton: function() {
+            let show = !this.applicationIsDraft && this.canRequestAmendment;
+
+            if (this.selectedActivity.processing_status.id !== 'with_officer') {
+                return false;
+            }
+
             if (this.showingApplicant) {
                 return false;
             }
-            let show = !this.applicationIsDraft && this.canRequestAmendment;           
+
             return show
         },
     },
@@ -1399,8 +1421,13 @@ export default {
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
         toggleShowingConditions: function(){
-            console.log('toggleConditions')
             this.showingConditions = !this.showingConditions;
+            if (this.showingConditions) {
+                this.isofficerfinalisation = false;
+                this.togglesendtoAssessor();
+            } else {
+                this.toggleIssue();
+            }
             setTimeout(() => {
                 // const firstTab = $('#tabs-main li a')[0];
                 let main_tabs = $('#tabs-main li')
