@@ -44,16 +44,21 @@ def update_compliance_workflow_log_filename(instance, filename):
 
 
 class Classification(models.Model):
+    CLASSIFICATION_COMPLAINT = 'complaint'
+    CLASSIFICATION_ENQUIRY = 'enquiry'
+    CLASSIFICATION_INCIDENT = 'incident'
+
     NAME_CHOICES = (
-        ('complaint', 'Complaint'),
-        ('enquiry', 'Enquiry'),
-        ('incident', 'Incident'),
+        (CLASSIFICATION_COMPLAINT, 'Complaint'),
+        (CLASSIFICATION_ENQUIRY, 'Enquiry'),
+        (CLASSIFICATION_INCIDENT, 'Incident'),
     )
 
     name = models.CharField(
         max_length=30,
         choices=NAME_CHOICES,
-        default='complaint'
+        default=CLASSIFICATION_COMPLAINT,
+        unique=True
     )
 
     class Meta:
