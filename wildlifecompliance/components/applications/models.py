@@ -904,6 +904,44 @@ class Application(RevisionedMixin):
         except AttributeError:
             return ''
 
+    def on_nonactive_licence(self):
+        '''
+        Method to verify that this application is for a cancelled, expired or 
+        surrendered licence.
+
+        :return boolean
+        '''
+        on_nonactive = self.get_property_nonactive_licence()
+
+        return on_nonactive
+
+    def set_property_nonactive_licence(self, is_nonactive=False):
+        '''
+        Setter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            data = 'True' if is_nonactive else 'False'
+            self.property_cache['nonactive_licence'] = data
+
+    def get_property_nonactive_licence(self):
+        '''
+        Getter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        is_nonactive = False
+        try:
+
+            is_nonactive = True if self.property_cache[
+                'nonactive_licence'] == 'True' else False
+
+        except KeyError:
+            pass
+
+        return is_nonactive
+
     def set_property_cache_assess(self, assess):
         '''
         Setter for assess status for conditions on the property cache.
@@ -1185,6 +1223,8 @@ class Application(RevisionedMixin):
         Copies the Selected Activity Purposes from the selected to the target.
         To ensure effective dates are carried over to new (target) activity.
 
+        :param new is the target Selected Activity to be updated with self.
+        :param p_id is the identifier for LicencePurpose to be copied.
         '''
         # update Application Selected Activity Purposes
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
@@ -1224,6 +1264,8 @@ class Application(RevisionedMixin):
         Copies the licence condition identifier associated with this
         application to another application (renewal, admendment, reissue).
         '''
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
+
         if not target_application:
             raise ValidationError('Target application must be specified')
 
@@ -1235,6 +1277,10 @@ class Application(RevisionedMixin):
         for condition in conditions:
             condition.id = None
             condition.application_id = target_application.id
+
+            if target_application.application_type == RENEWAL:
+                condition.due_date = None
+
             condition.save()
 
     def copy_application_purpose_to_target_application(
@@ -1380,11 +1426,15 @@ class Application(RevisionedMixin):
 
                         '''
                         Process Selected Activity Purposes for the selected
-                        Activity for amended licences. Set proposed dates to
+                        Activity for applicable licences. Set proposed dates to
                         the previous date period.
                         '''
-                        AMEND_LICENCE = self.APPLICATION_TYPE_AMENDMENT
-                        if self.application_type == AMEND_LICENCE:
+                        APPLICABLE_TYPES = [
+                            self.APPLICATION_TYPE_AMENDMENT,
+                            self.APPLICATION_TYPE_RENEWAL,
+                        ]
+                        if self.application_type in APPLICABLE_TYPES:
+
                             for p in selected_activity.proposed_purposes.all():
                                 prev = p.get_purpose_from_previous()
                                 p.proposed_start_date = prev.start_date
@@ -2014,7 +2064,7 @@ class Application(RevisionedMixin):
         for activity in self.activities:
             for p in activity.proposed_purposes.all():
                 if p.is_payable:
-                    fees += p.get_payable_application_fee
+                    fees += p.get_payable_application_fee()
 
         logger.debug('Application.has_payable_fees() - end')       
         return fees
@@ -2080,10 +2130,25 @@ class Application(RevisionedMixin):
     def get_owe_amount(self):
         '''
         Get owing amount for this application where the last invoice has a
-        balance amount exceeding the payment amount.
+        balance amount exceeding the payment amount. Balance amount will exceed
+        payment only with cash payments (ie non online application submission).
+
+        NOTE: Cash payments have pre-paid invoices.
         '''
+        under_paid = 0
+
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            # Under paid amount will not exist for online card payments.
+            return under_paid
+
         under_paid = \
             self.latest_invoice.amount - self.latest_invoice.payment_amount
+
+        if self.submit_type == self.SUBMIT_TYPE_PAPER \
+        and self.processing_status == self.PROCESSING_STATUS_APPROVED:
+            # When officer enters and approves a paper based application 
+            # allow for under_paid amounts be paid from ledger refund.
+            under_paid = 0
 
         return under_paid if under_paid > 0 else 0
 
@@ -2918,7 +2983,7 @@ class Application(RevisionedMixin):
         all_purpose_ids = [p.purpose_id for p in all_purpose]
 
         # Set previous activity if selected_activity is replacing. Required
-        # when issuing activity for licence amendments.
+        # when issuing activity for licence amendments and renewals.
         licence_latest_activities_for_licence_activity_id = []
         replace_activity = selected_activity.get_activity_to_replace()
         if replace_activity:
@@ -3058,6 +3123,8 @@ class Application(RevisionedMixin):
                 self.update_customer_approval_status()
 
                 parent_licence.current_application = latest_application_in_function
+                licence_status = parent_licence.LICENCE_STATUS_CURRENT
+                parent_licence.set_property_cache_status(licence_status)
                 parent_licence.save()
 
                 if generate_licence:
@@ -3416,7 +3483,9 @@ class Application(RevisionedMixin):
                         generate_invoice = False
                         for activity in issued_activities:
                             # if activity.additional_fee > 0 \
-                            if activity.has_payable_fees_at_issue:
+                            refund = activity.get_refund_amount()
+                            if activity.has_payable_fees_at_issue() \
+                            and refund < 1:
                                 generate_invoice = True
                                 break
 
@@ -3678,13 +3747,14 @@ class Application(RevisionedMixin):
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
             ],
-        ).first()
+        )
+        first_active = None
+        for a in application:
+            if a.licence.has_proposed_purposes_in_current():
+                first_active = a
+                break
 
-        if application \
-        and not application.licence.has_proposed_purposes_in_current():
-            application = None
-
-        return application
+        return first_active
 
     @staticmethod
     def get_open_applications(request):
@@ -4817,7 +4887,7 @@ class ApplicationSelectedActivity(models.Model):
 
         for p in self.proposed_purposes.all():
             if p.is_payable:
-                fees += p.get_payable_application_fee
+                fees += p.get_payable_application_fee()
 
         logger.debug('ApplicationSelectedActivity.has_payable_fees() - end')    
         return fees
@@ -5467,9 +5537,17 @@ class ApplicationSelectedActivity(models.Model):
         Get the previously issued licence Activity with the correct license
         Purpose that this Application Selected Activity will replace.
 
+        NOTE: Replacing only occurs for application Amendments and Renewals.
+
         :return an ApplicationSelectedActivity with correct license purpose.
         '''
         activity_to_replace = None
+
+        if not self.application.application_type in [
+            Application.APPLICATION_TYPE_RENEWAL,
+            Application.APPLICATION_TYPE_AMENDMENT,
+        ]:
+            return activity_to_replace
 
         valid_status = [
             ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
@@ -5702,6 +5780,7 @@ class ApplicationSelectedActivity(models.Model):
         previous = None
         prev_app = self.application.previous_application
 
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
             ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
@@ -5720,6 +5799,7 @@ class ApplicationSelectedActivity(models.Model):
                 if a.licence_activity_id == act_id
                 and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
+                and not a.application.application_type == RENEWAL
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -6336,9 +6416,16 @@ class ApplicationSelectedActivityPurpose(models.Model):
             Application.PROCESSING_STATUS_DISCARDED,
         ]
 
+        app_application_type = [                # Only types which can replace.
+            Application.APPLICATION_TYPE_AMENDMENT,
+            Application.APPLICATION_TYPE_REISSUE,
+            Application.APPLICATION_TYPE_RENEWAL,
+        ]
+
         applications = Application.objects.filter(
             previous_application_id=self.selected_activity.application_id,
-            customer_status__in=app_customer_status
+            application_type__in=app_application_type,
+            customer_status__in=app_customer_status,
         )
 
         is_replacing = len(
@@ -6358,6 +6445,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         previous = None
         prev_app = self.selected_activity.application.previous_application
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
 
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
@@ -6379,6 +6467,8 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 if a.licence_activity_id == act_id
                 # and a.activity_status in status
                 and a.processing_status == ACCEPT
+                # ignore activities for renewals.
+                and not a.application.application_type == RENEWAL
                 # replaced purposes are no longer issued.
                 # and self.purpose in a.issued_purposes
             ]

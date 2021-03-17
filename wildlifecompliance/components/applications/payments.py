@@ -595,11 +595,18 @@ class ApplicationFeePolicyForAmendment(ApplicationFeePolicy):
         purpose.base_application_fee = purpose.amendment_application_fee
 
     @staticmethod
-    def set_base_application_fee_for(purpose):
+    def set_base_application_fee_for(licence=None):
         '''
-        Set the application fee to the amendment fee.
+        Set the base application fee to the amendment fee without using
+        payment dynamic attributes.
         '''
-        purpose.base_application_fee = purpose.amendment_application_fee
+        from wildlifecompliance.components.licences.models import (
+            LicencePurpose,
+        )
+        if isinstance(licence, LicencePurpose):
+            # For licence purpose do not save only use as temporary setting to
+            # override admin base fee (display purposes).
+            licence.base_application_fee = licence.amendment_application_fee
 
     def get_licence_for(self):
         '''
@@ -930,11 +937,44 @@ class ApplicationFeePolicyForRenew(ApplicationFeePolicy):
         )
 
     @staticmethod
-    def set_base_application_fee_for(purpose):
+    def set_base_application_fee_for(licence=None):
         '''
-        Set the application fee to the renewal fee.
+        Set the license base application fee to the renewal fee without using
+        payment dynamic attributes.
         '''
-        purpose.base_application_fee = purpose.renewal_application_fee
+        from wildlifecompliance.components.licences.models import (
+            LicencePurpose,
+        )
+        from wildlifecompliance.components.applications.services import (
+            IncreaseRenewalFeeFieldElement,
+            CheckboxAndRadioButtonCompositor,
+        )
+
+        if isinstance(licence, LicencePurpose):
+            # For licence purpose do not save only use as temporary setting to
+            # override admin base fee (display purposes).
+            licence.base_application_fee = licence.renewal_application_fee
+
+        elif isinstance(licence, Application):
+            # For renewal application include any adjustments to the base for
+            # the initial application creation purposes.
+            purposes = licence.licence_purposes
+            fees = Application.calculate_base_fees(
+                purposes.values_list('id', flat=True),
+                licence.application_type,
+            )
+            compositor = CheckboxAndRadioButtonCompositor
+            components = compositor.get_application_schema_components(licence)
+            adjust = 0
+            for component in components:
+                try:
+                    adjust += component[IncreaseRenewalFeeFieldElement.NAME]
+
+                except KeyError:
+                    pass
+            
+            licence.application_fee = fees['application'] + adjust
+            licence.save()
 
     def get_licence_for(self):
         '''
@@ -1282,6 +1322,13 @@ class ApplicationFeePolicyForNew(ApplicationFeePolicy):
             'fees': fees,
             'activity_attributes': {},
         }
+
+    @staticmethod
+    def set_base_application_fee_for(licence=None):
+        '''
+        Set the base application fee without using payment dynamic attributes.
+        '''
+        pass
 
     def set_application_fee(self):
         '''

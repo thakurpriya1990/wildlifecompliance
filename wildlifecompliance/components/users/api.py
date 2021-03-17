@@ -42,6 +42,7 @@ from wildlifecompliance.components.users.serializers import (
     ComplianceManagementSaveUserSerializer,
     ComplianceManagementUserSerializer,
     ComplianceManagementSaveUserAddressSerializer,
+    FirstTimeUserSerializer,
 )
 from wildlifecompliance.components.organisations.serializers import (
     OrganisationRequestDTSerializer,
@@ -344,7 +345,11 @@ class UserViewSet(viewsets.ModelViewSet):
                             instance.last_name,
                             instance.email)),
                     request)
-            serializer = UserSerializer(instance)
+
+            serializer = FirstTimeUserSerializer(
+                instance, context={'request': request}
+            )
+
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -380,7 +385,9 @@ class UserViewSet(viewsets.ModelViewSet):
                             instance.last_name,
                             instance.email)),
                     request)
-            serializer = UserSerializer(instance)
+            serializer = FirstTimeUserSerializer(
+                instance, context={'request': request}
+            )
             return Response(serializer.data)
         except serializers.ValidationError:
             print(traceback.print_exc())
