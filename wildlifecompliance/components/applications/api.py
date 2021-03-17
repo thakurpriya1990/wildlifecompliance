@@ -1779,6 +1779,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         from wildlifecompliance.components.licences.models import (
             WildlifeLicence, LicencePurpose
         )
+        from wildlifecompliance.components.applications.payments import (
+            ApplicationFeePolicy,
+        )
 
         try:
             org_applicant = request.data.get('organisation_id')
@@ -1790,6 +1793,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             # Amendment to licence purpose requires the selected activity it
             # belongs to - allows for multiple purposes of same type.
             selected_activity = request.data.get('selected_activity', None)
+            selected_purpose = request.data.get('selected_purpose', None)
 
             # establish the submit type from the payment method.
             CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH
@@ -1849,6 +1853,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     Application.APPLICATION_TYPE_RENEWAL,
                     Application.APPLICATION_TYPE_REISSUE,
                 ]:
+                    # Check an Application Selected Activity has been chosen.
+                    if not (selected_activity and selected_purpose):
+                        raise serializers.ValidationError(
+                            'Cannot create application: licence not found!'
+                        )
+
                     # Check that at least one active application exists in this
                     # licence category for amendment/renewal.
                     if not latest_active_licence:
@@ -1870,7 +1880,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     # Although multiple purposes of the same type can exist for
                     # a licence, only one can be created for selected activity.
                     previous_application = licence_activities.filter(
-                        id=selected_activity
+                        id=int(selected_activity)
                     ).values_list(
                         'application_id',
                         flat=True
@@ -1890,40 +1900,42 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-                # Pre-fill the ApplicationFormDataRecord table with data from
-                # latest current applications.
-                # for selected purpose ids
+                # Pre-fill the Application Form and Conditions with data from
+                # current Application Selected Activity (selected_activity).
+                # NOTE: Only selected purpose can be amended or renewed.
                 if application_type in [
                     Application.APPLICATION_TYPE_AMENDMENT,
                     Application.APPLICATION_TYPE_RENEWAL,
                 ]:
                     target_application = serializer.instance
                     copied_purpose_ids = []
-                    # FIXME: Copying the first licence purpose from list.
-                    # duplicates can exist for multi. Correctly select the
-                    # required activity and pass in for amend and renewal.
-                    for activity in licence_activities:
-                        activity_purpose_ids = [
-                            p.purpose.id
-                            for p in activity.proposed_purposes.all()
-                            if p.is_issued
-                        ]
-                        copy_purpose_ids = list(
-                           set(activity_purpose_ids) - set(copied_purpose_ids)
-                        )
-                        purposes_to_copy = set(
-                            cleaned_purpose_ids) & set(copy_purpose_ids)
+                    activity = licence_activities.filter(
+                        id=int(selected_activity)).first() 
+                    # selected_purpose = [
+                    #     p
+                    #     for p in activity.proposed_purposes.all()
+                    #     if p.is_issued and p.id == int(selected_purpose)
+                    # ][0]
+                    selected_purpose = activity.proposed_purposes.filter(
+                        id=int(selected_purpose)).first()
+                    # activity_purpose_ids = [selected_purpose.purpose.id]
+                    # copy_purpose_ids = list(
+                    #     set(activity_purpose_ids) - set(copied_purpose_ids)
+                    # )
+                    # purposes_to_copy = set(
+                    #     cleaned_purpose_ids) & set(copy_purpose_ids)
 
-                        for purpose_id in purposes_to_copy:
+                    # for purpose_id in purposes_to_copy:
 
-                            activity.application.copy_application_purpose_to_target_application(
-                                target_application, purpose_id)
-
-                            activity.application.copy_conditions_to_target(
-                                target_application,
-                                purpose_id,
-                            )
-                            copied_purpose_ids.append(purpose_id)
+                    activity.application.copy_application_purpose_to_target_application(
+                        target_application, 
+                        selected_purpose.purpose_id,
+                    )
+                    activity.application.copy_conditions_to_target(
+                        target_application,
+                        selected_purpose.purpose_id,
+                    )
+                    # copied_purpose_ids.append(purpose_id)
 
                 # Set previous_application to the latest active application if
                 # exists
@@ -1936,6 +1948,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 # serializer.instance.update_dynamic_attributes()
                 ApplicationService.update_dynamic_attributes(
                     serializer.instance)
+
+                # Use fee policy to set initial base fee for the application.
+                policy = \
+                ApplicationFeePolicy.get_fee_policy_for(serializer.instance)
+                policy.set_base_application_fee_for(serializer.instance)
+
                 response = Response(serializer.data)
 
             return response

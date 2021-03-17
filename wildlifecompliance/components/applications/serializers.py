@@ -1234,6 +1234,15 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return is_accept
 
     def get_can_pay_application(self, obj):
+        '''
+        Returns a flag to indicate whether this application has an outstanding
+        application fee when under review. It is used to provide link to ledger
+        screen from dashboard.
+
+        NOTE: not required. Application fees are paid up front. Internal staff
+        pay application fees only through proxy process. When applicant payment
+        is required for a requested amendment then pay and submit (no link).
+        '''
         can_pay = False
 
         pay_status = [
@@ -1246,7 +1255,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
             can_pay = True
 
-        return can_pay
+        return False
 
     def get_can_pay_licence(self, obj):
         can_pay = False
@@ -1648,6 +1657,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     total_paid_amount = serializers.SerializerMethodField()
     adjusted_paid_amount = serializers.SerializerMethodField()
     is_return_check_accept = serializers.SerializerMethodField(read_only=True)
+    on_active_licence = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -1693,6 +1703,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'total_paid_amount',
             'adjusted_paid_amount',
             'is_return_check_accept',
+            'on_active_licence',
         )
         read_only_fields = ('documents', 'conditions')
 
@@ -1792,6 +1803,21 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
 
         logger.debug('InternalApplicationSerializer.get_user_roles() - end')
         return roles
+
+    def get_on_active_licence(self, obj):
+        '''
+        Check status of licence (if existing) for application after submission.
+        '''
+        on_active = not obj.on_nonactive_licence()
+
+        # The status of licence is not required for new activities on licence.
+        exclude = [ 
+            Application.APPLICATION_TYPE_ACTIVITY
+        ]
+        if obj.application_type in exclude:
+            on_active = True
+
+        return on_active
 
 
 class ApplicationUserActionSerializer(serializers.ModelSerializer):
