@@ -69,7 +69,7 @@
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <i v-if="showCompletion && uploadedID" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="!uploadedID" class="fa fa-times fa-2x pull-left" style="color:red"></i>
+                    <i v-else-if="!uploadedID && !current_user.has_complete_first_time" class="fa fa-times fa-2x pull-left" style="color:red"></i>
                     <h3 class="panel-title">Identification <small>Upload your photo ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -465,6 +465,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            showCompleteMsg:false,
         }
     },
     watch: {
@@ -507,6 +508,9 @@ export default {
         //     return this.uploadedID != null ? this.uploadedID.name: id_file;
         // },
         showCompletion: function() {
+            // if (!this.showCompleteMsg) {
+            //     this.showCompleteMsg = this.$route.name == 'first-time' ? true : this.current_user.identification == null ? true : false
+            // }
             return this.$route.name == 'first-time'
         },
         completedProfile: function(){
@@ -1103,7 +1107,8 @@ export default {
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.my_user_details).then((response) => {
-            if (response.body.address_details && response.body.personal_details && response.body.contact_details && to.name == 'first-time'){
+            console.log(response.body)
+            if (to.name == 'first-time' && response.body.address_details && response.body.personal_details && response.body.contact_details && response.body.has_complete_first_time){
                 window.location.href='/';
             }
             else{
