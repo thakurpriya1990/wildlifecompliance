@@ -112,6 +112,9 @@ export default {
                 case 'withdraw_by_branch_manager':
                     return "Withdraw";
                     break;
+                case 'mark_document_posted':
+                    return "Mark Document Posted";
+                    break;
                 default:
                     return "---";
             }
