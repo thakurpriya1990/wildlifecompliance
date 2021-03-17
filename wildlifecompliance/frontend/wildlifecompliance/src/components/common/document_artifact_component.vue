@@ -5,7 +5,7 @@
             <div class="form-group">
                 <div class="row">
 -->
-                    <div v-if="!legalCaseExists">
+                    <div v-if="!legalCaseExists || !parentModal">
                         <ul class="nav nav-pills">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+rTab">Related Items</a></li>
