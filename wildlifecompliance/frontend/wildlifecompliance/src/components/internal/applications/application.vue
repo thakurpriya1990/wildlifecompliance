@@ -842,6 +842,11 @@ export default {
             if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
                 return false;
             };
+            // set link/button flags to match the workflow.
+            if (this.selectedActivity.processing_status.id=='with_officer_finalisation') {
+                this.approvingApplication = true;
+                this.showingConditions = !this.showingApplication;
+            }
             return true;
         },
         canSaveApplication: function() {
