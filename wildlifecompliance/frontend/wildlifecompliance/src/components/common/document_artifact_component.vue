@@ -1,8 +1,10 @@
 <template lang="html">
     <div class="container-fluid">
         <div :class="componentClass">
-            <!--div class="form-group"-->
-                <!--div class="row"-->
+<!--
+            <div class="form-group">
+                <div class="row">
+-->
                     <div v-if="!legalCaseExists">
                         <ul class="nav nav-pills">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
@@ -19,9 +21,9 @@
                         <div :id="newTab" class="tab-pane fade in active">
                         <FormSection :formCollapse="false" :label="artifactTypeDisplay" Index="0" :hideHeader="!documentArtifactIdExists">
                             <div :id="objectTab" class="tab-pane fade in active li-top-buffer">
-                                <!--div class="col-sm-12"-->
-                                    <div class="row">
-                                      <div class="form-group">
+                                <div class="col-sm-12">
+                                    <div class="form-group">
+                                      <div class="row">
                                         <div class="col-sm-3">
                                           <label>Document Type</label>
                                         </div>
@@ -34,8 +36,8 @@
                                         </div>
                                       </div>
                                     </div>
-                                <!--/div-->
-                                <!--div class="col-sm-12"-->
+                                </div>
+                                <div class="col-sm-12">
                                     <div class="form-group">
                                         <div class="row">
                                             <div class="col-sm-3">
@@ -193,7 +195,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                <!--/div-->
+                                </div>
                             </div>
                         </FormSection>
                         </div>
@@ -219,8 +221,10 @@
                             </FormSection>
                         </div>
                     </div>
-                <!--/div-->
-            <!--/div-->
+<!--
+                </div>
+            </div>
+-->
         </div>
 
     </div>
