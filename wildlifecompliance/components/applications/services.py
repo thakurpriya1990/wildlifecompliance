@@ -175,7 +175,15 @@ class ApplicationService(object):
         logger.debug('ApplicationService.calculate_fees() - start')
         # Get all fee adjustments made with checkboxes and radio buttons.
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
-        for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+        # Utilise correct Fee Field Element for Renewal Applications.
+        if application.application_type == Application.APPLICATION_TYPE_RENEWAL:
+           for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+
+        else:
+           for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+        # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
         for_increase_fee_fields.accept(checkbox)
         # set fee exemption for migrations.
         MIGRATE = Application.SUBMIT_TYPE_MIGRATE
@@ -323,6 +331,37 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
     def do_algorithm(self, special_field_element):
         self._field = special_field_element
         self.render()
+
+    @staticmethod
+    def get_application_schema_components(application):
+        '''
+        Get all radio and checkboxes selected on an application.
+
+        :param an application with schema to search.
+        '''
+        components = []
+
+        schema_fields = application.get_schema_fields_for_purposes(
+             application.licence_purposes.values_list('id', flat=True),
+        )
+
+        for record in application.form_data_records.all():
+
+            if record.component_type not in ['checkbox', 'radiobuttons']:
+                continue
+
+            component = schema_fields[record.field_name]
+            if 'options' in component:
+
+                for option in component['options']:
+                    if option['value'] != record.value:
+                        continue
+                    components.append(option)
+
+            elif record.value == 'on':
+                components.append(record)
+
+        return components
 
     def render(self):
         logger.debug('CheckboxAndRadioButtonCompositor.render()')
@@ -864,6 +903,227 @@ class StandardConditionFieldElement(SpecialFieldElement):
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
 
+class IncreaseRenewalFeeFieldElement(SpecialFieldElement):
+    '''
+    An implementation of an SpecialFieldElement operation that takes an
+    ApplicationFormVisitor as an argument and dynamically updates any increased
+    adjustments to the renewal application fee for the Activity/Purpose.
+
+    NOTE: Adjustment fees from the previous application are not included.
+    '''
+    NAME = 'IncreaseRenewalFee'
+    LICENCE = 'IncreaseLicenceFee'
+
+    fee_policy = None           # Policy applied to the fee update.
+    dynamic_attributes = None   # Attributes on the Activity Purpose.
+    is_updating = False         # Flag indicating if update or retrieval.
+    is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
+
+    adjusted_fee = 0
+    adjusted_licence_fee = 0
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self.NAME)
+
+    def accept(self, application_form_visitor):
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() - start')
+        self._app = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        # Add relevant Fee policy to impact the Increase Application Fee.
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() #2')
+        self.fee_policy = ApplicationFeePolicy.get_fee_policy_for(self._app)
+        if not self._data_source:  # No form data set fee from application fee.
+            self.fee_policy.set_application_fee()
+            self.is_refreshing = True
+        self.dynamic_attributes = self.fee_policy.get_dynamic_attributes()
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() #3')
+        application_form_visitor.visit_increase_application_fee_field(self)
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() - end')
+
+    def set_updating(self, is_update):
+        '''
+        Sets the flag indicating that this visit is an update and not retrieve
+        for estimate calculation.
+        '''
+        self.is_updating = is_update
+
+    def set_has_fee_exemption(self, is_exempt):
+        '''
+        Sets the flag indicating that this visit will force a zero amount to be
+        calculated for invoicing (zero amount invoice). The fee stored is only
+        for the adjusted amounts on the licence purpose.
+        '''
+        self.has_fee_exemption = is_exempt
+        self.fee_policy.set_has_fee_exemption(is_exempt)
+
+    def reset(self, licence_activity):
+        '''
+        Reset the fees for the licence activity to the base fee amount.
+        '''
+        logger.debug('IncreaseRenewalFeeFieldElement.reset()')
+        self.adjusted_fee = 0
+        self.adjusted_licence_fee = 0
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            self.dynamic_attributes[
+                'activity_attributes'][licence_activity] = {
+                    'fees': licence_activity.base_fees
+                }
+
+            if self.is_updating:
+                licence_activity.save_without_cache()
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        logger.debug(
+            'IncreaseRenewalFeeFieldElement.reset_licence_purpose()'
+        )
+        if self.is_refreshing or not self.is_updating:
+            # No user update with a page refesh.
+            return
+
+        # reset purpose adjusted fee amount.
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity=licence_activity,
+        )
+        for p in purposes:
+            p.adjusted_fee = self.adjusted_fee
+            p.adjusted_licence_fee = self.adjusted_licence_fee
+            p.save()
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity,
+            purpose_id):
+        '''
+        Aggregate adjusted fees for the Activity/Purpose.
+        '''
+        from decimal import Decimal as D
+        from decimal import ROUND_DOWN
+
+        logger.debug('IncreaseApplicationFeeFieldElement.parse_component()')
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if set([self.NAME]).issubset(component) \
+                or set([self.LICENCE]).issubset(component):
+
+            def increase_fee(fees, field, amount):
+                if self.has_fee_exemption:
+                    return True
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
+                fees[field] += amount
+                # increase_fee is for dynamic attributes so include negatives. 
+                # fees[field] = fees[field] if fees[field] >= 0 else D(0)
+                logger.debug('fees[field] = {}'.format(fees[field]))
+                return True
+
+            def adjusted_fee(field, amount):
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
+                if field == 'application':
+                    self.adjusted_fee += amount
+                return True
+
+            fee_modifier_keys = {
+                self.LICENCE: 'licence',
+                self.NAME: 'application',
+            }
+            increase_limit_key = 'IncreaseTimesLimit'
+            try:
+                increase_count = adjusted_by_fields[schema_name]
+            except KeyError:
+                increase_count = adjusted_by_fields[schema_name] = 0
+
+            if increase_limit_key in component:
+                max_increases = int(component[increase_limit_key])
+                if increase_count >= max_increases:
+                    return
+
+            adjustments_performed = sum(key in component and increase_fee(
+                self.dynamic_attributes['fees'],
+                field,
+                component[key]
+            ) and increase_fee(
+                self.dynamic_attributes[
+                    'activity_attributes'][activity]['fees'],
+                field,
+                component[key]
+            ) and adjusted_fee(
+                field,
+                component[key]
+            ) for key, field in fee_modifier_keys.items())
+
+            if adjustments_performed:
+                adjusted_by_fields[schema_name] += 1
+
+            if adjustments_performed and self.is_updating:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
+                )
+                # update adjusted fee for the activity purpose.
+                p, c = ApplicationSelectedActivityPurpose.objects.\
+                    get_or_create(purpose=purpose, selected_activity=activity)
+
+                if c:  # Only save base fees for those not created.
+                    p.application_fee = purpose.renewal_application_fee
+                    p.licence_fee = purpose.base_licence_fee
+
+                p.adjusted_fee = self.adjusted_fee
+                p.adjusted_licence_fee = self.adjusted_licence_fee
+                p.save()
+
+    def get_adjusted_fees(self):
+        '''
+        Gets the new dynamic attributes after the Increase Application Fee has
+        been applied with the relevant fee policy.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes['fees']
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
+
+        return self.dynamic_attributes['fees']
+
+    def set_adjusted_fees_for(self, activity):
+        '''
+        Sets the Increase Application Fee on the licence activity applying the
+        relevant fee policy.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes_for(activity)
+
+    def get_dynamic_attributes(self):
+        '''
+        Gets the current dynamic attributes created by this Field Element.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_has_fee_exemption(self.has_fee_exemption)
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
+
+        return self.dynamic_attributes
+
 
 class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     """
@@ -887,7 +1147,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         pass
 
     def __str__(self):
-        return 'Field Element: {0}'.format(self._NAME)
+        return 'Field Element: {0}'.format(self.NAME)
 
     def accept(self, application_form_visitor):
         logger.debug('IncreaseApplicationFeeFieldElement.accept() - start')
@@ -987,7 +1247,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     return True
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
-                fees[field] = fees[field] if fees[field] >= 0 else 0
+                # fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(field, amount):
@@ -1222,7 +1482,15 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
 
     # Get all fee adjustments made with check boxes and radio buttons.
     checkbox = CheckboxAndRadioButtonVisitor(application, application.data)
-    for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+    # Utilise correct Fee Field Element for Renewal Applications. 
+    if application.application_type == Application.APPLICATION_TYPE_RENEWAL:
+       for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+
+    else:
+       for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+    # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
     for_increase_fee_fields.set_updating(True)
     for_increase_fee_fields.accept(checkbox)
     for_increase_fee_fields.set_has_fee_exemption(fee_exemption)
