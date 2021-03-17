@@ -131,6 +131,7 @@ export default {
                         }
                     },
                     {
+                        data: 'number',
                         searchable: false,
                         orderable: false,
                         mRender: function (data, type,full){
