@@ -124,7 +124,7 @@ const ExpanderTable = {
             this.updateVisibleTables(
                 this.existingTables.filter(table => table != tableId)
             );
-            this.refreshApplicationFees();
+            // this.refreshApplicationFees();
         },
         addNewTable: function(params={}) {
             let { tableId } = params;
@@ -135,7 +135,7 @@ const ExpanderTable = {
             this.updateVisibleTables(
                 this.existingTables
             );
-            this.refreshApplicationFees();
+            // this.refreshApplicationFees();
         },
         updateVisibleTables: function(tableList) {
             this.setFormValue({

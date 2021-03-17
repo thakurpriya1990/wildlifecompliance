@@ -1,11 +1,13 @@
 <template id="application_issuance">
                 <div class="col-md-12">
 
+                    <div class="row">
                     <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
                         <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
                             <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
                     </ul>
+                    </div>
                     <div class="tab-content">
                         <div class="row" v-for="(item, index) in selectedActivity" v-bind:key="`issue_activity_content_${index}`">
                             <div class="panel panel-default">
@@ -45,25 +47,26 @@
                                                                 </div>
                                                                 <div class="panel-body panel-collapse collapse" :id="`${index}`+purposeBody">
                                                                     <div class="row">
-                                                                        <div class="col-sm-3">
-                                                                            <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
-                                                                            <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
-                                                                        </div>
-
-                                                                        <div class="col-sm-3">
-                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                                <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                                <span class="input-group-addon">
-                                                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                                                </span>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3">
+                                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
                                                                             </div>
-                                                                        </div>                                                
-                                                                        <div class="col-sm-3">                                                        
-                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                                <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                                <span class="input-group-addon">
-                                                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                                                </span>
+                                                                            <div class="col-sm-3">
+                                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                                    <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                                    <span class="input-group-addon">
+                                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>                                                                                                                                                 
+                                                                            <div class="col-sm-3">                                                        
+                                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                                    <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                                    <span class="input-group-addon">
+                                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                                    </span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-sm-12">
@@ -102,19 +105,20 @@
                                                                             </div>
                                                                             -->
                                                                             <div class="col-sm-12">
-                                                                                <div class="col-sm-2">
+                                                                                <div class="col-sm-3">
                                                                                     <label class="control-label pull-left" for="Name">Details</label>
+                                                                                    <div v-show="free_text.is_additional_info" ><br/><br/>
+                                                                                        <input type="checkbox" checked disabled/>
+                                                                                        <label>Is additional info</label>
+                                                                                    </div>
                                                                                 </div>
-                                                                                <div class="col-sm-8">
+                                                                                <div class="col-sm-9">
                                                                                     <!--
                                                                                     <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
                                                                                     -->
                                                                                     <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
                                                                                 </div>
-                                                                                <div v-show="free_text.is_additional_info" class="col-sm-2">
-                                                                                    <input type="checkbox" checked disabled/>
-                                                                                    <label>Is additional info</label>
-                                                                                </div>
+
                                                                             </div>
 
                                                                         </div>
@@ -144,12 +148,12 @@
                             <div class="panel panel-default">
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Emailing
-                                        <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
+                                        <a class="panelClicker" :href="'#'+emailPanelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="emailPanelBody">
                                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
-                                <div class="panel-body panel-collapse collapse in" :id="panelBody">
+                                <div class="panel-body panel-collapse collapse in" :id="emailPanelBody">
                                     <div class="row">
                                         <div class="col-sm-3">
                                             
@@ -186,18 +190,18 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- end of tab content -->
 
                     <div class="row" v-if="licence.activity.some(activity => activity.final_status === 'issued')">
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                 <h3 class="panel-title">Issue
-                                    <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
+                                    <a class="panelClicker" :href="'#'+issuePanelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="issuePanelBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
                                 </h3>
                             </div>
-                            <div class="panel-body panel-collapse collapse in" :id="panelBody">
+                            <div class="panel-body panel-collapse collapse in" :id="issuePanelBody">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="details">ID Check</label>
@@ -280,7 +284,11 @@ export default {
     },    
     props: {
         application: Object,
-        licence_activity_tab:Number
+        licence_activity_tab:Number,
+        final_view_conditions: {
+            type: Boolean,
+            default: false,
+        },        
     },
     data: function() {
         let vm = this;
@@ -304,6 +312,8 @@ export default {
 
         return {
             panelBody: "application-issuance-"+vm._uid,
+            issuePanelBody: "app-issuance-check-"+vm._uid,
+            emailPanelBody: "app-issuance-email-"+vm._uid,
             purposeBody: `purposeBody${vm._uid}`,
             proposed_licence:{},
             licence:{
@@ -809,8 +819,7 @@ export default {
 <style scoped>
     .confirmation-checkbox {
         margin-top: 10px;
-    },
-
+    }
     br {
         padding-bottom: 5px;
     }

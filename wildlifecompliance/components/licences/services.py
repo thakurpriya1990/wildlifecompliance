@@ -230,7 +230,7 @@ class LicenceService(object):
 
         :return a count of total renew notification sent.
         '''
-        licence_ids_count = 0               # count of licences verified.
+        verified = []
         today = date.today()
         issued_status = [
             ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
@@ -262,13 +262,14 @@ class LicenceService(object):
                 this_licence = LicenceService.verify_licence_renewal_for(
                     licence_id['licence_id']
                 )
-                licence_ids_count = licence_ids_count + this_licence
+                if this_licence:
+                    verified.append(this_licence)
 
         except Exception as e:
             logger.error('ERR verify_licence_renewals: {0}'.format(e))
             raise Exception('Failed verifying licence renewal.')
 
-        return licence_ids_count
+        return verified
 
     @staticmethod
     def verify_licence_renewal_for(licence_id, request=None):
@@ -276,8 +277,8 @@ class LicenceService(object):
         Verifies a licence requiring renewal and send a notification to the
         applicant.
         '''
-        has_sent_notification = 0       # Count of notification sent.
         try:
+            verified = None
             period_days = GlobalSettings.objects.values('value').filter(
                 key=GlobalSettings.LICENCE_RENEW_DAYS
             ).first()
@@ -299,7 +300,7 @@ class LicenceService(object):
                 # Send out renewal notice. (only with request)
                 send_licence_renewal_notification(
                     licence, purposes_to_renew, request)
-                has_sent_notification = 1
+                verified = licence
 
         except Exception as e:
             logger.error('ERR verify_licence_renewal_for {0}: {1}'.format(
@@ -308,7 +309,7 @@ class LicenceService(object):
             ))
             raise Exception('Failed verifying licence renewal.')
 
-        return has_sent_notification
+        return verified
 
     @staticmethod
     def verify_expired_licences(request=None):
@@ -318,6 +319,7 @@ class LicenceService(object):
 
         :return a count of licenses expired and re-generated.
         '''
+        verified = []
         try:
             # raise Exception('LicenceService not implemented')
 
@@ -354,15 +356,17 @@ class LicenceService(object):
                 # for each licence id verify if renewal required.
                 if not licence_id['licence_id']:
                     continue
-                LicenceService.verify_expired_licence_for(
+                this_licence = LicenceService.verify_expired_licence_for(
                     licence_id['licence_id']
                 )
+                if this_licence:
+                    verified.append(this_licence)
 
         except Exception as e:
             logger.error('ERR verify_licence_renewal: {0}'.format(e))
             raise Exception('Failed verifying licence renewal.')
 
-        return licence_ids.count()
+        return verified
 
     @staticmethod
     def verify_expired_licence_for(licence_id, request=None):
@@ -372,6 +376,7 @@ class LicenceService(object):
         '''
         EXPIRED = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_EXPIRED
         try:
+            verified = None
             # raise Exception('LicenceService not implemented')
             licence = WildlifeLicence.objects.get(
                 id=licence_id
@@ -406,12 +411,13 @@ class LicenceService(object):
                     'Licence {0} re-generated with expired purpose.'.format(
                         licence.licence_number,
                     ))
+                verified = licence
 
         except Exception as e:
             logger.error('ERR verify_licence_renewal: {0}'.format(e))
             raise Exception('Failed verifying licence renewal.')
 
-        return True
+        return verified
 
 
 class LicenceActionable(object):
