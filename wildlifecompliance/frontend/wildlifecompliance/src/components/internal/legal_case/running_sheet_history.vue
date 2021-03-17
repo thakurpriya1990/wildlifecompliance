@@ -64,30 +64,35 @@ export default {
 
                 columns: [
                     {
+                        data: 'id',
                         visible: false,
                         mRender: function(data, type, row) {
                             return row.date_modified;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = '';
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
@@ -99,6 +104,7 @@ export default {
                         }
                     },
                     {
+                        data: 'id',
                         visible: false,
                         mRender: function(data, type, row) {
                             return row.deleted;
