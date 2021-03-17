@@ -30,7 +30,7 @@
                             <div class="col-sm-12">
                               <select :disabled="!legal_case.user_in_group" class="form-control" v-model="legal_case.assigned_to_id" @change="updateAssignedToId()">
                                 <option  v-for="option in legal_case.allocated_group" :value="option.id" v-bind:key="option.id">
-                                  {{ option.full_name }} 
+                                  {{ option.full_name }}
                                 </option>
                               </select>
                             </div>
@@ -47,7 +47,7 @@
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        Action 
+                        Action
                     </div>
                     <div class="panel-body panel-collapse">
                         <div class="row">
@@ -66,16 +66,16 @@
                         </div>
                         <div class="row">
                           <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
-                                <input 
-                                :disabled="!sanctionOutcomeVisibility" 
-                                type="button" 
-                                class="btn btn-primary btn-block" 
-                                value="Sanction Outcome" 
-                                @click.prevent="openSanctionOutcome()" 
+                                <input
+                                :disabled="!sanctionOutcomeVisibility"
+                                type="button"
+                                class="btn btn-primary btn-block"
+                                value="Sanction Outcome"
+                                @click.prevent="openSanctionOutcome()"
                                 />
                           </div>
                         </div>
-                        
+
                         <div  class="row">
                           <div v-if="canUserAction && openStatus" class="col-sm-12 action-button">
                                 <a @click="addWorkflow('brief_of_evidence')" class="btn btn-primary btn-block">
@@ -225,10 +225,10 @@
                                               </a>
                                         </div>
                                     </div>
-                                    <datatable 
-                                    ref="running_sheet_table" 
-                                    id="running-sheet-table" 
-                                    :dtOptions="dtOptionsRunningSheet" 
+                                    <datatable
+                                    ref="running_sheet_table"
+                                    id="running-sheet-table"
+                                    :dtOptions="dtOptionsRunningSheet"
                                     :dtHeaders="dtHeadersRunningSheet"
                                     parentStyle=" "
                                     />
@@ -251,11 +251,11 @@
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div v-if="legal_case.defaultDocumentUrl">
                                         <label class="col-sm-10">Documents
-                                            <filefield 
-                                            ref="legal_case_documents" 
-                                            name="legal-case-documents" 
-                                            :isRepeatable="true" 
-                                            :documentActionUrl="legal_case.defaultDocumentUrl" 
+                                            <filefield
+                                            ref="legal_case_documents"
+                                            name="legal-case-documents"
+                                            :isRepeatable="true"
+                                            :documentActionUrl="legal_case.defaultDocumentUrl"
                                             :readonly="readonlyForm"
                                             />
                                         </label>
@@ -264,12 +264,12 @@
                             </FormSection>
                         </div>
                         <div :id="bTab" class="tab-pane fade in">
-                            <BriefOfEvidence 
+                            <BriefOfEvidence
                             ref="brief_of_evidence"
                             :readonly="briefOfEvidenceReadonly"/>
                         </div>
                         <div :id="pTab" class="tab-pane fade in">
-                            <ProsecutionBrief 
+                            <ProsecutionBrief
                             ref="prosecution_brief"
                             :readonly="prosecutionBriefReadonly"/>
                         </div>
@@ -281,9 +281,9 @@
                             <FormSection :formCollapse="false" label="Related Items">
                                 <div class="col-sm-12 form-group"><div class="row">
                                     <div class="col-sm-12" v-if="relatedItemsVisibility">
-                                        <RelatedItems 
-                                        v-bind:key="relatedItemsBindId" 
-                                        :parent_update_related_items="setRelatedItems" 
+                                        <RelatedItems
+                                        v-bind:key="relatedItemsBindId"
+                                        :parent_update_related_items="setRelatedItems"
                                         :readonlyForm="readonlyForm"
                                         parentComponentName="legal_case"
                                         />
@@ -298,7 +298,7 @@
                                         <filefield
                                         ref="generated_documents"
                                         name="generated-documents"
-                                        :isRepeatable="true" 
+                                        :isRepeatable="true"
                                         :readonly="true"
                                         :documentActionUrl="legal_case.generatedDocumentsUrl"
                                         />
@@ -326,32 +326,32 @@
             </div>
         </div>
         <div v-if="offenceInitialised">
-            <Offence 
-            ref="offence" 
-            :parent_update_function="loadLegalCase" 
-            :region_id="legal_case.region_id" 
-            :district_id="legal_case.district_id" 
-            :allocated_group_id="legal_case.allocated_group_id" 
-            v-bind:key="offenceBindId" 
+            <Offence
+            ref="offence"
+            :parent_update_function="loadLegalCase"
+            :region_id="legal_case.region_id"
+            :district_id="legal_case.district_id"
+            :allocated_group_id="legal_case.allocated_group_id"
+            v-bind:key="offenceBindId"
             />
         </div>
         <div v-if="sanctionOutcomeInitialised">
-            <SanctionOutcome 
-            ref="sanction_outcome" 
+            <SanctionOutcome
+            ref="sanction_outcome"
             :parent_update_function="loadLegalCase"
-            v-bind:key="sanctionOutcomeBindId" 
+            v-bind:key="sanctionOutcomeBindId"
             />
         </div>
         <div v-if="inspectionInitialised">
             <Inspection
-            ref="inspection" 
+            ref="inspection"
             :parent_update_function="loadLegalCase"
-            v-bind:key="inspectionBindId" 
+            v-bind:key="inspectionBindId"
             />
         </div>
         <Magic ref="magic" />
         <div v-if="personOrArtifactInitialised">
-            <PersonOrArtifactModal 
+            <PersonOrArtifactModal
             ref="person_or_artifact_modal"
             :readonlyForm="readonlyForm"
             v-bind:key="personOrArtifactBindId"
@@ -362,21 +362,21 @@
             />
         </div>
         <div v-if="runningSheetHistoryEntryBindId">
-            <RunningSheetHistory 
+            <RunningSheetHistory
             ref="running_sheet_history"
             :runningSheetHistoryEntryInstance="runningSheetHistoryEntryInstance"
             v-bind:key="runningSheetHistoryEntryBindId"
             />
         </div>
         <div v-if="legalCaseWorkflowBindId">
-            <LegalCaseWorkflow 
+            <LegalCaseWorkflow
             ref="legal_case_workflow"
             :workflow_type="workflow_type"
             v-bind:key="legalCaseWorkflowBindId"
             />
         </div>
         <div v-if="generateDocumentBindId">
-            <GenerateDocument 
+            <GenerateDocument
             ref="generate_document"
             :document_type="documentTypeToGenerate"
             v-bind:key="generateDocumentBindId"
@@ -499,41 +499,47 @@ export default {
                     ],
                 columns: [
                     {
+                        data: 'id',
                         visible: false,
                         mRender: function(data, type, row) {
                             return row.id;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.number;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.date_mod;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.time_mod;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = row.user_full_name;
                             return retStr;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = '';
                             retStr = `<div id=${row.number} style="min-height:20px" contenteditable="true">${row.description}</div>`
                             if (row.deleted) {
-                                retStr = '<strike>' + 
+                                retStr = '<strike>' +
                                     `<div id=${row.number} style="min-height:20px" contenteditable="false">${row.description}</div>`
                                     '</strike>';
                             } else if (!row.action) {
@@ -543,12 +549,14 @@ export default {
                         }
                     },
                     {
+                        data: 'id',
                         visible: false,
                         mRender: function(data, type, row) {
                             return row.deleted;
                         }
                     },
                     {
+                        data: 'id',
                         mRender: function(data, type, row) {
                             let retStr = '';
                             let rowIdDel = row.number.replace('-', 'D')
@@ -624,7 +632,7 @@ export default {
     backToOfficerVisibility: function() {
         let visibility = false;
         if (this.canUserAction && (
-            this.withProsecutionCoordinatorStatus || 
+            this.withProsecutionCoordinatorStatus ||
             this.withProsecutionCoordinatorProsecutionBriefStatus ||
             this.withManagerStatus)
             //this.withProsecutionCouncilStatus)
@@ -804,11 +812,11 @@ export default {
     },
     briefOfEvidenceVisibility: function() {
         let visible = false;
-        if (this.legal_case && 
-            this.legal_case.id && 
-            this.legal_case.brief_of_evidence && 
+        if (this.legal_case &&
+            this.legal_case.id &&
+            this.legal_case.brief_of_evidence &&
             !this.openStatus
-        ) 
+        )
         {
             visible = true;
         }
@@ -832,11 +840,11 @@ export default {
         let visible = false;
         if (this.legal_case &&
             this.legal_case.id &&
-            this.legal_case.brief_of_evidence && 
+            this.legal_case.brief_of_evidence &&
             this.legal_case.prosecution_brief &&
             // following status values are excluded
             !([
-                'open', 
+                'open',
                 'brief_of_evidence',
                 'with_manager',
                 'with_prosecution_coordinator',
@@ -851,7 +859,7 @@ export default {
         let visible = false;
         if (this.legal_case &&
             this.legal_case.id &&
-            this.legal_case.brief_of_evidence && 
+            this.legal_case.brief_of_evidence &&
             this.legal_case.prosecution_brief &&
             this.legal_case.court_proceedings &&
             // following status values are included
@@ -942,8 +950,8 @@ export default {
         await this.setRunningSheetTransform(runningSheet)
     },
     receivePersonOrArtifactEntity: function({
-        "row_number_selected": row_number_selected, 
-        "entity": entity, 
+        "row_number_selected": row_number_selected,
+        "entity": entity,
         "action": action
     }) {
         // destroy modal
@@ -1045,7 +1053,7 @@ export default {
         if (this.runningSheetUrl){
             for(let i = 0;i < this.runningSheetUrl.length; i++){
                 if (!pk || this.runningSheetUrl[i].id === pk) {
-                    this.$refs.running_sheet_table.vmDataTable.row.add({ 
+                    this.$refs.running_sheet_table.vmDataTable.row.add({
                         "id": this.runningSheetUrl[i].id,
                         "number": this.runningSheetUrl[i].number,
                         "date_mod": this.runningSheetUrl[i].date_mod,
@@ -1094,7 +1102,7 @@ export default {
     createNewRunningSheetEntry: async function() {
         // save changes to running sheet
         //await this.save({ "createNewRow": true})
-        
+
         // add new entry and add to datatable
         let payload = {
             "legal_case_id": this.legal_case.id,
@@ -1113,7 +1121,7 @@ export default {
             this.runningSheetUrl.push(returnPayload);
             this.constructRunningSheetTable(returnPayload.id);
         }
-        
+
     },
     openInspection() {
       this.uuid += 1;
@@ -1160,14 +1168,14 @@ export default {
         /*
         if (['brief_of_evidence', 'prosecution_brief'].includes(workflow_type)) {
             // Save legal_case first
-            await this.save({ 
-                "create": false, 
-                "internal": true 
+            await this.save({
+                "create": false,
+                "internal": true
             })
             // workflow_action api method
             //let post_url = '/api/legal_case/' + this.legal_case.id + '/workflow_action/'
             let postUrl = helpers.add_endpoint_join(
-                api_endpoints.legal_case, 
+                api_endpoints.legal_case,
                 this.legal_case.id + '/workflow_action/'
             );
             let payload = new FormData();
@@ -1206,8 +1214,8 @@ export default {
     saveExit: async function() {
         await this.save({ "returnToDash": true })
     },
-    save: async function({ 
-        returnToDash=false, 
+    save: async function({
+        returnToDash=false,
         createBriefOfEvidence=false,
         createProsecutionBrief=false,
         fullHttpResponse=false,
@@ -1233,7 +1241,7 @@ export default {
           //await this.saveLegalCase({ create: false, internal: true, createNewRow: true });
           await this.saveLegalCase({ internal: true, createNewRow: true });
           */
-      await this.saveLegalCase({ 
+      await this.saveLegalCase({
           internal: internalFlag,
           createBriefOfEvidence: createBriefOfEvidence,
           createProsecutionBrief: createProsecutionBrief,
@@ -1309,7 +1317,7 @@ export default {
                 if (r.number === recordNumber) {
                     this.updateRunningSheetUrlEntry({
                         "recordNumber": recordNumber,
-                        "recordDescription": recordDescriptionHtml, 
+                        "recordDescription": recordDescriptionHtml,
                         "redraw": false
                     })
                     //this.searchPersonKeyPressed = false;
@@ -1510,7 +1518,7 @@ export default {
           (e) => {
               this.openModalEntityEdit(e)
           });
-      
+
       runningSheetTable.on(
           'click',
           '.row_history',
@@ -1523,9 +1531,9 @@ export default {
           (e) => {
               this.runningSheetRowReinstate(e)
           });
-        
+
       runningSheetTable.on(
-          'paste', 
+          'paste',
           (e) => {
               console.log("plain text only");
               // cancel paste
@@ -1536,7 +1544,7 @@ export default {
               // insert text manually
               document.execCommand("insertHTML", false, transformedText);
           });
-          
+
       window.addEventListener('beforeunload', this.leaving);
       window.addEventListener('onblur', this.leaving);
     },
@@ -1574,7 +1582,7 @@ export default {
                 i += 1
             }
             this.constructRunningSheetTableEntry(rowNumber);
-            
+
         }
         this.showSpinner = false;
     },
