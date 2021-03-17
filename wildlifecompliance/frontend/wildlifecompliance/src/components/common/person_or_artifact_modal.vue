@@ -16,13 +16,13 @@
                 </div>
                 <div class="tab-content ul-top-buffer">
                     <div v-if="legalCaseId" :id="pTab" :class="personTabClass"><div class="row">
-                        <div class="col-sm-12 form-group"><div class="row">
+                        <div class="col-sm-12 form-group">
                             <div class="col-sm-12">
-                                <SearchPersonOrganisation 
+                                <SearchPersonOrganisation
                                 personOnly
-                                :excludeStaff="true" 
-                                :isEditable="!readonlyForm" 
-                                classNames="form-control" 
+                                :excludeStaff="true"
+                                :isEditable="!readonlyForm"
+                                classNames="form-control"
                                 @entity-selected="entitySelected"
                                 showCreateUpdate
                                 ref="search_person_organisation"
@@ -32,7 +32,7 @@
                                 :entityEdit="entityEdit"
                                 />
                             </div>
-                        </div></div>
+                        </div>
                     </div></div>
                     <div :id="aTab" :class="artifactTabClass">
                         <div class="col-sm-12">
@@ -49,8 +49,9 @@
                                 <option value="physical">Physical Object</option>
                               </select-->
                         </div>
-                        <div v-if="showDocumentArtifactComponent" class="row">
-                            <DocumentArtifact 
+                        <!-- div v-if="showDocumentArtifactComponent" class="row" -->
+                        <div v-if="showDocumentArtifactComponent">
+                            <DocumentArtifact
                             ref="document_artifact"
                             @entity-selected="entitySelected"
                             @existing-entity-selected="existingEntitySelected"
@@ -60,8 +61,9 @@
                             :entityEdit="entityEdit"
                             />
                         </div>
-                        <div v-if="showPhysicalArtifactComponent" class="row">
-                            <PhysicalArtifact 
+                        <!-- div v-if="showPhysicalArtifactComponent" class="row" -->
+                        <div v-if="showPhysicalArtifactComponent">
+                            <PhysicalArtifact
                             ref="physical_artifact"
                             @entity-selected="entitySelected"
                             @existing-entity-selected="existingEntitySelected"
@@ -70,7 +72,7 @@
                             :entityEdit="entityEdit"
                             />
                         </div>
-                        <!--Artifact 
+                        <!--Artifact
                         ref="artifact"
                         @entity-selected="entitySelected"
                         /-->
@@ -295,7 +297,7 @@ export default {
         emitModalAction: function() {
             console.log(this.entity)
             this.$nextTick(() => {
-                if ((this.entity.id || this.urlTabSelected && this.urlText) && 
+                if ((this.entity.id || this.urlTabSelected && this.urlText) &&
                     !(this.entityEdit && this.entityEdit.id)) {
                     this.$emit('modal-action', {
                         entity: this.entity,

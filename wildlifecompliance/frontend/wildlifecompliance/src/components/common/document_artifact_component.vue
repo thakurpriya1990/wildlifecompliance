@@ -1,8 +1,10 @@
 <template lang="html">
     <div class="container-fluid">
         <div :class="componentClass">
+<!--
             <div class="form-group">
                 <div class="row">
+-->
                     <div v-if="!legalCaseExists">
                         <ul class="nav nav-pills">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+newTab">Object</a></li>
@@ -219,8 +221,10 @@
                             </FormSection>
                         </div>
                     </div>
+<!--
                 </div>
             </div>
+-->
         </div>
 
     </div>
