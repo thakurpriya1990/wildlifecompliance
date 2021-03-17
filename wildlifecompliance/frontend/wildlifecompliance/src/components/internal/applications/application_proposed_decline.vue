@@ -65,6 +65,7 @@ export default {
         let vm = this;
         return {
             isModalOpen:false,
+            noActiveLicense:false,
             form:null,
             propose_decline:{
                 activity:[],
@@ -96,9 +97,9 @@ export default {
             return 'Proposed Decline';
         },
         visibleLicenceActivities: function() {
-            return this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
-                activity => { return this.canAssignOfficerFor(activity.id); }
-            );
+            let visible = this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
+                    activity => { return this.canAssignOfficerFor(activity.id); });
+            return this.noActiveLicense ? this.licence_type_data.activity : visible;
         },
     },
     methods:{
