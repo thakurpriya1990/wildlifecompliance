@@ -30,6 +30,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
     latest_activities_merged = serializers.SerializerMethodField(
         read_only=True)
     can_add_purpose = serializers.SerializerMethodField(read_only=True)
+    status = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -43,6 +44,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
             'last_issue_date',
             'latest_activities_merged',
             'can_add_purpose',
+            'status',
         )
 
     def get_last_issue_date(self, obj):
@@ -71,6 +73,20 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
 
         return is_latest and has_available_purposes and has_current_purposes
 
+    def get_status(self, obj):
+
+        default_status = [
+            obj.LICENCE_STATUS_CURRENT
+        ]
+
+        status = [
+            s[1] for s in obj.LICENCE_STATUS_CHOICES
+            if s[0] == obj.get_property_cache_status() or
+            (s[0] in default_status and not obj.get_property_cache_status())
+        ][0]
+
+        return status
+
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
     licence_document = serializers.CharField(
@@ -93,6 +109,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_add_purpose',
             'invoice_url',
             'has_inspection_open',
+            'status',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
@@ -186,6 +203,7 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_action',
             'can_add_purpose',
             'invoice_url',
+            'status',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
