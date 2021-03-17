@@ -449,8 +449,7 @@ class LegalCaseViewSet(viewsets.ModelViewSet):
                     for entry in running_sheet_entries:
                         entry_copy = dict(entry)
                         description = entry_copy.get('description', '')
-                        ascii_description = description.encode('ascii', 'xmlcharrefreplace')
-                        entry_copy.update({'description': ascii_description})
+                        entry_copy.update({'description': description})
                         entry_id = LegalCaseRunningSheetEntry.objects.get(id = entry_copy.get('id'))
                         running_sheet_entry_serializer = SaveLegalCaseRunningSheetEntrySerializer(
                                 instance=entry_id, 
