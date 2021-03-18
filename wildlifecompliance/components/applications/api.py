@@ -203,21 +203,59 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                     selected_activities__licence_activity__licence_category__name__icontains=category_name
                 )
                 queryset = queryset.filter(id__in=category_name_app_ids)
+
             processing_status = processing_status.lower() if processing_status else 'all'
             if processing_status != 'all':
-                # processing_status_app_ids = []
-                processing_status_app_ids = [
-                    application.id for application in queryset.all()
-                    if processing_status in application.processing_status.lower()
-                    or (
-                        processing_status == Application.PROCESSING_STATUS_DRAFT
-                        and Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE in application.processing_status.lower()
+
+                if processing_status \
+                == Application.CUSTOMER_STATUS_UNDER_REVIEW:
+                    exclude = [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
+                    ]
+
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter().exclude(
+                        selected_activities__processing_status__in=exclude,
                     )
-                ]
-                # for application in queryset:
-                #     if processing_status in application.processing_status.lower():
-                #         processing_status_app_ids.append(application.id)
+
+                elif processing_status \
+                == Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
+                    include = [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                    ]
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        selected_activities__processing_status__in=include,
+                    )
+
+                elif processing_status \
+                == Application.CUSTOMER_STATUS_PARTIALLY_APPROVED:
+                    include = [
+                        Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+                    ]
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        customer_status__in=include,
+                    )
+
+                else:
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        selected_activities__processing_status__in=[
+                            processing_status
+                        ]
+                    )
+
                 queryset = queryset.filter(id__in=processing_status_app_ids)
+
             customer_status = customer_status.lower() if customer_status else 'all'
             if customer_status != 'all':
                 customer_status_app_ids = []
@@ -225,11 +263,13 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                     if customer_status in application.customer_status.lower():
                         customer_status_app_ids.append(application.id)
                 queryset = queryset.filter(id__in=customer_status_app_ids)
+
             if date_from:
                 queryset = queryset.filter(lodgement_date__gte=date_from)
             if date_to:
                 date_to = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__lte=date_to)
+
             submitter = submitter.lower() if submitter else 'all'
             if submitter != 'all':
                 queryset = queryset.filter(submitter__email__iexact=submitter)
