@@ -552,7 +552,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
 
             instance = Application.objects.last()
-            serializer = DTApplicationSelectSerializer(instance)
+            serializer = DTApplicationSelectSerializer(
+                instance, context={'is_internal': is_internal(request)}
+            )
 
             return Response(serializer.data)
 

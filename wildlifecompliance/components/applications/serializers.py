@@ -94,6 +94,7 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
         returns all status types available for either internal or external
         application.
         '''
+        is_internal = self.context['is_internal']
         # Displayable text for drop-down.
         N1 = 'Draft'
         N2 = 'Under Review'
