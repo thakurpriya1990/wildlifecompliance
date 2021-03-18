@@ -217,7 +217,7 @@ export default {
                 };
             }
 
-            if (selectedActivity.processing_status.id !== 'with_officer_conditions') {
+            if (required_role && !['with_assessor', 'with_officer_conditions'].includes(selectedActivity.processing_status.id)) {
                 required_role = false;
             }
 
