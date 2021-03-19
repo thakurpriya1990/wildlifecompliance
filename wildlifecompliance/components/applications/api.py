@@ -1449,23 +1449,43 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST', ])
-    def update_activity_status(self, request, *args, **kwargs):
+    def update_licence_type_data(self, request, *args, **kwargs):
+        '''
+        Update the Licence Type Data on the application to set the status for 
+        a selected Licence Activity.
 
+        NOTE: there is no check whether user has correct privileges.
+        '''
+        PROCESS = 'process'
+        ASSESS = 'assess'
         try:
             instance = self.get_object()
-            activity_id = request.data.get('activity_id')
-            status = request.data.get('status')
-            if not status or not activity_id:
+            licence_activity_id = request.data.get('licence_activity_id', None)
+            workflow = request.data.get('licence_activity_workflow', None)
+
+            if not workflow or not licence_activity_id:
                 raise serializers.ValidationError(
-                    'Status and activity id is required')
-            else:
-                if not ApplicationSelectedActivity.is_valid_status(status):
-                    raise serializers.ValidationError(
-                        'The status provided is not allowed')
-            instance.set_activity_processing_status(activity_id, status)
+                    'Activity workflow and activity id is required')
+
+            if workflow.lower() == PROCESS:
+                instance.set_activity_processing_status(
+                    licence_activity_id, 
+                    ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+                )
+            elif workflow.lower() == ASSESS:
+                instance.set_activity_processing_status(
+                    licence_activity_id, 
+                    ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS,
+                )
+
             serializer = InternalApplicationSerializer(
-                instance, context={'request': request})
-            return Response(serializer.data)
+                instance, 
+                context={'request': request}
+            )
+            response = Response(serializer.data)
+
+            return response
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -1473,7 +1493,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
                 raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
@@ -1549,10 +1568,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def assessment_data(self, request, *args, **kwargs):
+        '''
+        Process assessment data for officer management by setting the workflow
+        status to Officer with Conditions.
+
+        NOTE: there is no check whether user has correct privileges.
+
+        :param __assess is a boolean indicating whether assessing or viewing.
+        :param __licence_activity is Licence Activity identifier.
+
+        :return updated instance.licence_type_data property.        
+        '''
         logger.debug('assessment_data()')
+        STAT = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
         try:
             instance = self.get_object()
             assess = request.data.pop('__assess', False)
+            licence_activity_id = request.data.pop('__licence_activity', None)
             with transaction.atomic():
                 is_initial_assess = instance.get_property_cache_assess()
                 if assess or is_initial_assess:
@@ -1572,8 +1604,24 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         instance.set_property_cache_assess(False)
                         instance.save()
 
+                instance.set_activity_processing_status(
+                    licence_activity_id, 
+                    STAT,
+                )
+
             logger.debug('assessment_data() - response success')
-            return Response({'success': True})
+
+            serializer = InternalApplicationSerializer(
+                instance, 
+                context={'request': request}
+            )
+            response = Response(serializer.data)
+            return response
+
+            # return Response(
+            #     {'licence_type_data': instance.licence_type_data}, 
+            #     status=status.HTTP_200_OK,
+            # )
 
         except MissingFieldsException as e:
             return Response({

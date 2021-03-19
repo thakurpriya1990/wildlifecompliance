@@ -66,10 +66,12 @@
                                 <strong>Assigned Approver</strong><br/>
                                 <div class="form-group">
                                     <template>
+                                        <div>
                                         <select ref="assigned_approver" class="form-control" v-model="selectedActivity.assigned_approver" >
                                             <option v-for="member in selectedActivity.issuing_officers" :value="member.id" v-bind:key="member.id">{{member.first_name}} {{member.last_name}}</option>
                                         </select>
                                         <a @click.prevent="makeMeApprover()" class="actionBtn pull-right">Assign to me</a>
+                                        </div>
                                     </template>                                    
                                 </div>
                             </div>
@@ -91,26 +93,40 @@
                                     <div class="separator"></div>
                                 </div>
                             </template>
+                            <template v-if="canIssueDecline && approvingApplication">
+                                <div>
+                                    <div class="col-sm-12">
+                                        <div class="separator"></div>
+                                    </div>                                    
+                                    <div class="col-sm-12">
+                                        <strong>Application</strong><br/>
+                                        <a class="actionBtn" v-if="!showingApplication && !showingConditions" @click.prevent="toggleApplication({show: true, showFinalised: false})">Show Application</a>
+                                        <a class="actionBtn" v-else-if="!showingApplication && showingConditions" @click.prevent="toggleShowingConditions()">Hide Conditions</a>        
+                                        <a class="actionBtn" v-else-if="showingApplication && !showingConditions" @click.prevent="toggleIssue()">Hide Application</a><br/>
+                                        <a class="actionBtn" v-if="!showingApplication && !showingConditions" @click.prevent="toggleShowingConditions()">Show Conditions</a>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-if="canIssueDecline && approvingApplication">
+                                <div class="col-sm-12">
+                                    <div class="separator"></div>
+                                </div>
+                            </template>
                               <div class="col-sm-12 top-buffer-s" >
                                 <template v-if="showingApplication">
                                     <div class="row">
                                         <div class="col-sm-12">
                                             <strong>Action</strong><br/>
                                         </div>
-                                    </div>
-                                    <div v-if="canReturnToConditions" class="row">
-                                        <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
-                                        </div>
                                     </div>   
-                                    <div v-if="!applicationIsDraft && canRequestAmendment" class="row">
+                                    <div v-show="showRequestAmendmentButton" class="row">
                                         <div class="col-sm-12">
                                             <button v-if="showRequestSpinner && showSpinner" class="btn btn-primary top-buffer-s col-xs-12" ><i class="fa fa-spinner fa-spin"/>Request Amendment</button>
                                             <button v-else-if="!showRequestSpinner && showSpinner" disabled type="button" class="btn btn-primary top-buffer-s col-xs-12" >Request Amendment</button>
                                             <button v-else class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="amendmentRequest()">Request Amendment</button><br/>
                                         </div>
                                     </div>                            
-                                    <div v-if="canIssueDecline" class="row">
+                                    <div v-show="showIssueDeclineButton" class="row">
                                         <div class="col-sm-12">
                                             <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleIssue()">Issue/Decline</button>
                                             <!-- v-if="!userIsAssignedOfficer" was removed to enforce permission at group membership only. -->
@@ -131,9 +147,14 @@
                                             <strong>Action</strong><br/>
                                         </div>
                                     </div>
-                                    <div v-if="isSendingToAssessor || isOfficerConditions || isofficerfinalisation" class="row">
+                                    <div v-show="showBackToProcessingButton" class="row">
                                         <div class="col-sm-12">
-                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="toggleApplication({show: true})">Back to Application</button><br/>
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="backToProcessing()">Back to Processing</button><br/>
+                                        </div>
+                                    </div>
+                                    <div v-if="canReturnToConditions" class="row">
+                                        <div class="col-sm-12">
+                                            <button class="btn btn-primary top-buffer-s col-xs-12" @click.prevent="returnToOfficerConditions()">Return to Officer - Conditions</button>                                   
                                         </div>
                                     </div>
                                     <div v-if="canProposeIssueOrDecline && isSendingToAssessor || isOfficerConditions" class="row">
@@ -166,8 +187,12 @@
                 <template v-if="applicationDetailsVisible && showingApplication">
                     <div>
                     <ul class="nav nav-pills mb-3" id="tabs-main">
-                        <li class="nav-item"><a ref="applicantTab" class="nav-link" data-toggle="pill" :href="'#'+applicantTab">Applicant</a></li>
-                        <li class="nav-item"><a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab">Application</a></li>
+                        <li class="nav-item"><a ref="applicantTab" class="nav-link" data-toggle="pill" v-on:click="selectApplicantTab()" :href="'#'+applicantTab">Applicant</a></li>
+                        <!-- <li class="nav-item"><a ref="applicationTab" class="nav-link" data-toggle="pill" :href="'#'+applicationTab">Application</a></li> -->
+                        <li class="nav-item" v-for="(activity, index) in allCurrentActivities">
+                            <a :class="{'nav-link amendment-highlight': application.has_amendment}"
+                                data-toggle="pill" v-on:click="selectTab(activity)" :href="'#'+activityTab">{{activity.label}}</a>
+                        </li>
                     </ul>
                     <div class="tab-content">
                     <div :id="applicantTab" class="tab-pane fade in active">
@@ -513,7 +538,8 @@
 
                     </div>
                 </div>
-                <div :id="applicationTab" class="tab-pane fade">
+
+                <div :id="activityTab" class="tab-pane fade">
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
@@ -522,6 +548,17 @@
                                     <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                                     <input type='hidden' name="application_id" :value="1" />
                                     <input type='hidden' id="selected_activity_tab_id" v-model="selected_activity_tab_id" />
+
+                                    <div v-for="(activity, index) in allCurrentActivities">
+                                        <AmendmentRequestDetails :activity_id="activity.id" />
+                                        <renderer-block
+                                            :component="activity"
+                                            v-if="activity.id == selected_activity_tab_id"
+                                            v-bind:key="`renderer_block_${index}`"
+                                            />
+                                    </div>
+                                    {{ this.$slots.default }}
+
                                     <div v-if="showNavBarBottom" class="row" style="margin-bottom:50px;">
                                         <div class="navbar navbar-fixed-bottom" style="background-color: #f5f5f5 ">
                                             <div class="navbar-inner">
@@ -533,7 +570,7 @@
                                                         </span>
                                                         <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
                                                         <button v-else-if="showSpinner && !showRequestSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
-                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save_button()">Save Changes</button>
                                                     </p>
                                                 </div>
                                             </div>
@@ -617,6 +654,7 @@ import datatable from '@vue-utils/datatable.vue';
 import ProposedLicence from './proposed_issuance.vue';
 import IssueLicence from './application_issuance.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
+import AmendmentRequestDetails from '@/components/forms/amendment_request_details.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
 import {
     api_endpoints,
@@ -630,6 +668,7 @@ export default {
         return {
             applicantTab: 'applicantTab'+vm._uid,
             applicationTab: 'applicationTab'+vm._uid,
+            activityTab: 'activityTab'+vm._uid+'_'+0,
             detailsBody: 'detailsBody'+vm._uid,
             identificationBody: 'identificationBody'+vm._uid,
             addressBody: 'addressBody'+vm._uid,
@@ -645,8 +684,11 @@ export default {
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingApplication:true,
+            showingApplicant:false,
+            showingConditions:false,
             isOfficerConditions:false,
             isofficerfinalisation:false,
+            approvingApplication:false,
             contacts_table_id: vm._uid+'contacts-table',
             application_assessor_datatable:vm._uid+'assessment-table',
             spinner: false,
@@ -707,6 +749,7 @@ export default {
         ProposedLicence,
         IssueLicence,
         CommsLogs,
+        AmendmentRequestDetails,
     },
     filters: {
         formatDate: function(data){
@@ -745,8 +788,27 @@ export default {
             'character_check_status',
             'return_check_status',
             'hasCurrentLicence',
+            'allCurrentActivities',
         ]),
         applicationDetailsVisible: function() {
+            // set initalise
+            // let vm = this;
+            // if (!vm.panelClickersInitialised){
+            //     $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+            //         var chev = $(this).children()[0];
+            //         window.setTimeout(function () {
+            //             $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+            //         },100);
+            //     }); 
+            //     vm.panelClickersInitialised = true;
+            // }
+            // this.$nextTick(() => {
+            //     vm.initialiseOrgContactTable();
+            //     vm.initialiseSelects();
+            //     vm.form = document.forms.new_application;
+            //     vm.eventListeners();
+            // });
+
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
         },
         applicationIsDraft: function(){
@@ -758,12 +820,17 @@ export default {
 
                 this.initFirstTab()     // Each Tab is a Licence Activity.
             }
-            return this.application.activities.find(activity => {
+            let selected = this.application.activities.find(activity => {
 
                 return activity.licence_activity === this.selected_activity_tab_id                
             })
+            return selected;
         },
         canIssueDecline: function(){
+            if (this.showingApplicant) {
+                return false;
+            }
+
             if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
                 return false;
             }
@@ -775,6 +842,11 @@ export default {
             if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
                 return false;
             };
+            // set link/button flags to match the tabs workflow.
+            if (this.selectedActivity.processing_status.id=='with_officer_finalisation') {
+                this.approvingApplication = true;
+                this.showingConditions = !this.showingApplication && !this.isofficerfinalisation;
+            }
             return true;
         },
         canSaveApplication: function() {
@@ -783,6 +855,10 @@ export default {
                 this.userHasRole('assessor', this.selected_activity_tab_id) &&
                 this.selectedActivity.processing_status.id == 'with_assessor') {
                     return true;
+            }
+            let workflow = ['with_officer'].includes(this.selectedActivity.processing_status.id)
+            if (!workflow || !this.selectedActivity) {
+                return false;
             }
 
             // Licensing officers can save officer comments.
@@ -802,7 +878,13 @@ export default {
         },
         canReturnToConditions: function(){
             // required when issuing or declining.
-            return this.canIssueDecline;
+            let can_return = this.canIssueDecline;
+
+            if (!this.showingApplication && this.showingConditions) {
+                can_return = false;
+            }
+
+            return can_return;
         },
         canProposeIssueOrDecline: function(){
             let auth_activity = this.canAssignOfficerFor(this.selected_activity_tab_id);
@@ -888,27 +970,70 @@ export default {
             return (this.application.application_fee !== 0 || this.application.licence_fee !== 0) ? true : false
         },
         showNavBarBottom: function() {
-            return this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
+            // let show = this.canReturnToConditions || (!this.applicationIsDraft && this.canSaveApplication)
+            let show = !this.applicationIsDraft && this.canSaveApplication
+            return show
         },
         showAssignToOfficer: function(){
             return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
         },
         showAssignToApprover: function(){
-            return this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity)
+            let show = !this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity);
+
+            if (this.showingApplication || this.showingConditions) {
+                return false;
+            }
+
+            return show;
         },
         showAssessmentConditionButton: function() {
+            if (this.showingApplicant) {
+                return false;
+            }
+            let workflow_officer = ['with_officer','with_officer_conditions'].includes(this.selectedActivity.processing_status.id)
+            let workflow_assessor = ['with_assessor'].includes(this.selectedActivity.processing_status.id)
+            if (!workflow_officer && !workflow_assessor) {
+                return false;
+            }
+            if (!this.canAssignOfficerFor(this.selectedActivity.licence_activity) && !workflow_assessor) {
+                return false;
+            }
 
-            return this.showingApplication 
-                && !this.applicationIsDraft 
-                && (this.hasRole('licensing_officer') || this.hasRole('issuing_officer'))
+            return this.showingApplication && !this.applicationIsDraft;
+        },
+        showIssueDeclineButton: function() {
 
+            if (this.showingApplicant) {
+                return false;
+            }
+
+            if (this.selectedActivity.processing_status.id=='awaiting_licence_fee_payment') {
+                return false;
+            }
+
+            // check user is authorised to issue/allocate for selected activity.
+            if (!this.canAssignApproverFor(this.selected_activity_tab_id)) {
+                return false;
+            };
+            // check activity is not assigned to another approver.
+            if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
+                return false;
+            };
+
+            // check correct workflow.
+            if (this.approvingApplication) {
+                return false;
+            }
+
+            return true;
         },
         showFinalDecision: function() {
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
                 this.toggleApplication({show: false})
                 this.isSendingToAssessor=false
             }
-            return (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
+            let show = (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
+            return show
         },
         showSpinner: function() {
             return this.spinner
@@ -922,7 +1047,28 @@ export default {
         showReturnCheckButton: function() {
             // return this.application.is_return_check_accept ? false : true
             return this.return_check_status !== 'accepted';
-        }
+        },
+        showBackToProcessingButton: function() {
+            let show = this.isSendingToAssessor || this.isOfficerConditions;
+            if (this.selectedActivity.processing_status.id === 'with_officer_finalisation') {
+                return false;
+            }
+
+            return show
+        },
+        showRequestAmendmentButton: function() {
+            let show = !this.applicationIsDraft && this.canRequestAmendment;
+
+            if (this.selectedActivity.processing_status.id !== 'with_officer') {
+                return false;
+            }
+
+            if (this.showingApplicant) {
+                return false;
+            }
+
+            return show
+        },
     },
     methods: {
         ...mapActions({
@@ -942,7 +1088,16 @@ export default {
             'setReturnCheckStatus',
             'resetUpdateFeeStatus',
             'setAssessStatus',
+            'setLicenceTypeData',
         ]),
+        selectTab: function(component) {
+            this.section_tab_id = component.id;
+            this.setActivityTab({id: component.id, name: component.label});
+            this.showingApplicant = false;
+        },
+        selectApplicantTab: function() {
+            this.showingApplicant = true;
+        },
         eventListeners: function(){
             let vm = this;
             $("[data-target!=''][data-target]").off("click").on("click", function (e) {
@@ -1010,6 +1165,7 @@ export default {
             this.isSendingToAssessor=false;
             this.isOfficerConditions=false;
 
+            this.approvingApplication=true;
             this.isofficerfinalisation=true;
         },
         acceptIdRequest: async function() {
@@ -1169,9 +1325,15 @@ export default {
             
             if (this.canRequestAmendment) {
                 is_saved = await this.save_wo();
+                // FIXME: replace with actual call.
 
             } else {
-                this.condition_spinner = false;   
+                let authorised = this.canAssignOfficerFor(this.selectedActivity.licence_activity);
+                let workflow = ['with_officer'].includes(this.selectedActivity.processing_status.id)
+                if (authorised && workflow) {
+                    this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'assess'})
+                } 
+                this.condition_spinner = false;
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;
@@ -1179,7 +1341,8 @@ export default {
 
             if (is_saved) {
                 await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
-                    this.condition_spinner = false;   
+                    this.condition_spinner = false;
+                    this.spinner = false;   
                     $('#tabs-main li').removeClass('active');
                     this.setAssessStatus(false);
                     this.isSendingToAssessor = !this.isSendingToAssessor;
@@ -1201,7 +1364,7 @@ export default {
             // await this.saveFormData({ url: this.form_data_comments_url }).then( async response => {
 
                 await this.saveFormData({ url: this.form_data_application_url }).then(response => {
-                    this.spinner = false;
+                    // this.spinner = false;
                     this.resetUpdateFeeStatus();
                     showNotification && swal(
                         'Saved',
@@ -1227,6 +1390,10 @@ export default {
             //     )
             // });
         },
+        save_button: async function() {
+            await this.save()
+            this.spinner = false;
+        },
         save_wo: async function() {
             await this.save({ showNotification: false });
             return true
@@ -1241,22 +1408,50 @@ export default {
                 this.isOfficerConditions = !show;
             }
             if(this.isofficerfinalisation){
+                this.approvingApplication = true;
                 this.isofficerfinalisation = !show;
             }
             this.toggleFinalisedTabs(showFinalised);
             setTimeout(() => {
-                const firstTab = $('#tabs-main li a')[1];
-                if(firstTab != null) {
-                    firstTab.click();
+                // const firstTab = $('#tabs-main li a')[0];
+                let main_tabs = $('#tabs-main li')
+                let tabno = 0;
+                for(let i=0; i<main_tabs.length; i++){
+                    if (main_tabs[i].innerText === this.selected_activity_tab_name) {
+                        tabno = i
+                    }
                 }
-                this.initFirstTab(true);
+                const selected = $('#tabs-main li a')[tabno]
+                if(selected != null) {
+                    selected.click();
+                }
+                this.initFirstTab();
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
         },
-        toggleConditions:function(){
-            this.showingApplication = false;
-            this.isSendingToAssessor=false;
-            this.isOfficerConditions=false;
+        toggleShowingConditions: function(){
+            this.showingConditions = !this.showingConditions;
+            if (this.showingConditions) {
+                this.isofficerfinalisation = false;
+                this.togglesendtoAssessor();
+            } else {
+                this.toggleIssue();
+            }
+            setTimeout(() => {
+                // const firstTab = $('#tabs-main li a')[0];
+                let main_tabs = $('#tabs-main li')
+                let tabno = 0;
+                for(let i=0; i<main_tabs.length; i++){
+                    if (main_tabs[i].innerText === this.selected_activity_tab_name) {
+                        tabno = i
+                    }
+                }
+                const selected = $('#tabs-main li a')[tabno]
+                if(selected != null) {
+                    selected.click();
+                }
+                this.initFirstTab();
+            }, 50);
         },
         returnToOfficerConditions: async function(){
 
@@ -1299,6 +1494,7 @@ export default {
         },
         toggleOfficerConditions: async function(){
             let is_saved = await this.save_wo();
+            this.spinner = false;
             this.showingApplication = false;
             this.isSendingToAssessor=false;
 
@@ -1474,6 +1670,14 @@ export default {
                 )
             });
         },
+        backToProcessing: async function(){
+            this.toggleApplication({show: true})
+            let authorised = this.canAssignOfficerFor(this.selectedActivity.licence_activity);
+            let workflow = ['with_officer','with_officer_conditions'].includes(this.selectedActivity.processing_status.id)
+            if (authorised && workflow) {
+                this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'process'})
+            }
+        },
         initialiseAssignedOfficerSelect: function(reinit=false){
             let vm = this;
             if (reinit){
@@ -1548,10 +1752,7 @@ export default {
             }
             this.$refs.applicantTab.click();
             this.initFirstTab(true);
-        }
-    },
-    mounted: function() {
-        // console.log(this.application)
+        },
     },
     updated: function(){
         let vm = this;
@@ -1570,6 +1771,8 @@ export default {
             vm.form = document.forms.new_application;
             vm.eventListeners();
         });
+    },
+    mounted: function() {
     },
     beforeRouteEnter: function(to, from, next) {
         next(vm => {

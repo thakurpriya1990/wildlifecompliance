@@ -46,7 +46,7 @@
                 </div>
             </modal>
 
-            <div>
+            <div v-if="applicationDetailsVisible">
                 <ul id="tabs-assessor" class="nav nav-pills mb-3">
                     <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
                         <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
@@ -186,6 +186,12 @@ export default {
             'allCurrentActivities',
             'allCurrentActivitiesWithAssessor',
         ]),
+        applicationDetailsVisible: function() {
+            this.$nextTick(() => {
+                this.eventListeners();
+            });
+            return true;
+        },
         isCompleteAssessmentAction: function() {
             return this.$router.currentRoute.name==='complete-assessment'
         },
@@ -196,7 +202,7 @@ export default {
                 // filtered activity list for application when completing assessments.
                 return this.allCurrentActivitiesWithAssessor
             }
-            return this.licenceActivities()
+            return this.licenceActivities();
         },
         selectedActivity: function(){
             const activities_list = this.licence_type_data.activity;
@@ -236,6 +242,10 @@ export default {
             if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
                 return false;
             };
+            
+            if (selectedActivity.processing_status.id !== 'with_officer_conditions') {
+                return false;
+            }
             
             return this.sendToAssessorActivities.filter(visible_activity => {
                 if(visible_activity.id != this.selected_activity_tab_id) {
@@ -340,7 +350,15 @@ export default {
             return this.visibleConditionsFor(for_role, processing_status, tab_id);
         },
         initFirstTab: function(force){
-            if(this.selected_activity_tab_id && !force) {
+            if(this.selected_activity_tab_id && !force) { 
+                let tabs = $('#tabs-assessor li')
+                for (let i=0; i < tabs.length; i++){
+                    if (tabs[i].innerText===this.selected_activity_tab_name){
+                        // set parent tab to selected tab.
+                        tab = $('#tabs-assessor li a')[i]
+                    }
+                }
+                tab.click();
                 return;
             }
             let tab = null
@@ -378,7 +396,7 @@ export default {
         },
         isActivityVisible: function(activity_id) {
             //return this.isApplicationActivityVisible({ activity_id: activity_id });
-            return 1
+            return 1;
         },
         isAssessorRelevant(assessor, activity_id) {
             if(!activity_id) {
@@ -645,10 +663,10 @@ export default {
     },
     mounted: function() {
         this.fetchAssessorGroup();
-        this.initFirstTab(true);
-        this.$nextTick(() => {
-            this.eventListeners();
-        });
+        //this.initFirstTab(true);
+        // this.$nextTick(() => {
+        //     this.eventListeners();
+        // });
     },
 }
 

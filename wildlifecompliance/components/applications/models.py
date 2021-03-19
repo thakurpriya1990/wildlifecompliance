@@ -1011,6 +1011,12 @@ class Application(RevisionedMixin):
         return status
 
     def set_activity_processing_status(self, activity_id, processing_status):
+        '''
+        Sets the processing status for this application Selected Activity.
+
+        :param activity_id is the Licence Activity for the Selected Activity.
+        :param processing_status is from ASA.PROCESSING_STATUS_CHOICES.
+        '''
         if not activity_id:
             logger.error("Application: %s cannot update processing status (%s) for an empty activity_id!" %
                          (self.id, processing_status))

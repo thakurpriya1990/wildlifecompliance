@@ -224,7 +224,7 @@ class ReturnService(object):
         :return a count of total returns due.
         '''
         DUE_DAYS = 7
-
+        verified = []
         today_plus_7 = date.today() + timedelta(days=DUE_DAYS)
         today = date.today()
         due_returns = Return.objects.filter(
@@ -251,6 +251,7 @@ class ReturnService(object):
             utils.set_species_list_future(raw_specie_names)
             # update status for the return.
             a_return.set_processing_status(status)
+            verified.append(a_return)
 
         overdue_returns = Return.objects.filter(
             due_date__lt=today,
@@ -266,7 +267,7 @@ class ReturnService(object):
                 continue
             a_return.set_processing_status(status)
 
-        return due_returns.count()
+        return verified
 
     @staticmethod
     def get_details_for(a_return):

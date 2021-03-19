@@ -10,8 +10,38 @@
                 </ul>
             </div>
 
+              <!-- <div :id="activityTab" class="tab-pane fade">
+                  <div v-for="(activity, index) in allCurrentActivities">
+                      <renderer-block
+                          :component="activity"
+                          v-if="activity.id == selected_activity_tab_id"
+                          v-bind:key="`renderer_block_${index}`"
+                          />
+                  </div>
+                  {{ this.$slots.default }}
+              </div> -->
               <Application v-if="isApplicationLoaded">
-            
+
+                <div :class="`${form_width ? form_width : 'col-md-9'}`" id="tabs">
+                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                        <li class="nav-item" v-for="(activity, index) in allCurrentActivities">
+                            <a :class="{'nav-link amendment-highlight': application.has_amendment}"
+                                data-toggle="pill" v-on:click="selectTab(activity)">{{activity.label}}</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div v-for="(activity, index) in allCurrentActivities">
+                            <AmendmentRequestDetails :activity_id="activity.id" />
+                            <renderer-block
+                                :component="activity"
+                                v-if="activity.id == selected_activity_tab_id"
+                                v-bind:key="`renderer_block_${index}`"
+                                />
+                        </div>
+                        {{ this.$slots.default }}
+                    </div>
+                </div>
+           
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                 <input type='hidden' name="application_id" :value="1" />
@@ -57,6 +87,7 @@
 import Application from '../form.vue'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
+import AmendmentRequestDetails from '@/components/forms/amendment_request_details.vue';
 import {
   api_endpoints,
   helpers
@@ -64,6 +95,7 @@ import {
 from '@/utils/hooks';
 export default {
   data: function() {
+    let vm = this;
     return {
       form: null,
       isProcessing: false,
@@ -72,10 +104,18 @@ export default {
       missing_fields: [],
       adjusted_application_fee: 0,
       payment_method: null,
+      activityTab: 'activityTab'+vm._uid+'_'+0,
     }
   },
   components: {
     Application,
+    AmendmentRequestDetails,
+  },
+  props:{
+    form_width: {
+        type: String,
+        default: 'col-md-9'
+    }
   },
   computed: {
     ...mapGetters([
@@ -88,6 +128,7 @@ export default {
         'unfinishedActivities',
         'current_user',
         'reception_method_id',
+        'allCurrentActivities',
     ]),
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
@@ -138,6 +179,10 @@ export default {
         'saveFormData',
         'refreshApplicationFees',
     ]),
+    selectTab: function(component) {
+        this.section_tab_id = component.id;
+        this.setActivityTab({id: component.id, name: component.label});
+    },
     eventListeners: function(){
       if(!this.tabSelected) {
         $('#tabs-section li:first-child a').click();
