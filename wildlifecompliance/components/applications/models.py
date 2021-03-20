@@ -3169,6 +3169,10 @@ class Application(RevisionedMixin):
                 parent_licence.save()
 
                 if generate_licence:
+                    # When issued exists set application licence to parent
+                    # before licence generation.
+                    latest_application_in_function.licence = parent_licence
+
                     # Re-generate PDF document using all finalised activities
                     parent_licence.generate_doc()
                     send_application_issue_notification(
