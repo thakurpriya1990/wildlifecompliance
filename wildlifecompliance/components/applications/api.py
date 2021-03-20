@@ -107,13 +107,25 @@ def application_refund_callback(invoice_ref, bpoint_tid):
     logger.info(
         'application_refund_callback: Inv {0}'.format(invoice_ref)
     )
+    AMENDMENT = Application.APPLICATION_TYPE_AMENDMENT
     try:
         ai = ApplicationInvoice.objects.filter(
             invoice_reference=invoice_ref
         )
 
         for i in ai:
-            i.application.save()
+            # Check where invoice is for an amendment application as refunds
+            # are paid back to previous application invoice.
+            amend = Application.objects.filter(
+                previous_application_id=i.application_id,
+                application_type=AMENDMENT,
+            ).first()
+
+            if (amend):
+                logger.info('refund_callback on Amendment {0}'.format(amend))
+                amend.save()
+            else:
+                i.application.save()
 
     except Exception as e:
         logger.error(

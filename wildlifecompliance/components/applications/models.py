@@ -2165,7 +2165,7 @@ class Application(RevisionedMixin):
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
         """
-        logger.debug('Application.requires_refund()')
+        logger.debug('Application.requires_refund() - start')
         approved = [
             # Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
             # Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
@@ -2181,6 +2181,21 @@ class Application(RevisionedMixin):
         # at invoicing.
         # outstanding = self.additional_fees - self.get_refund_amount()
         outstanding = self.get_refund_amount()
+
+        # Check against previous fees on previous application for Amendment
+        # where outstanding is negative (ie overpaid).
+        if outstanding < 0 and self.requires_refund_amendment():
+            app_fee = 0
+            lic_fee = 0
+            for activity in self.activities:
+                for purpose in activity.proposed_purposes.all():
+                    prev = purpose.get_purpose_from_previous()
+                    app_fee += prev.total_paid_adjusted_application_fee
+                    lic_fee += prev.total_paid_adjusted_licence_fee
+
+            outstanding = outstanding + (app_fee + lic_fee)
+
+        logger.debug('Application.requires_refund() - end')
         return True if outstanding < 0 else False
 
     def requires_refund_at_submit(self):
@@ -5301,6 +5316,10 @@ class ApplicationSelectedActivity(models.Model):
         if self.is_licence_fee_paid():
             return True
 
+        # when fee has been overpaid allow processing (refund is required).
+        if self.get_refund_amount() < 0:
+            return True
+
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
         card_owner_id = applicant.id
         card_token = BpointToken.objects.filter(user_id=card_owner_id).order_by('-id').first()
@@ -6009,6 +6028,11 @@ class ApplicationSelectedActivityPurpose(models.Model):
                     and self.selected_activity.total_paid_amount < 1:
 
                 _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+            elif self.selected_activity.application_fee < 0 \
+                    and self.selected_activity.total_paid_amount < 1:
+
+                _status = ActivityInvoice.PAYMENT_STATUS_OVERPAID
 
             return _status
 
