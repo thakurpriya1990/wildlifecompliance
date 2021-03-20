@@ -570,7 +570,7 @@
                                                         </span>
                                                         <button v-if="showSpinner && showRequestSpinner" type="button" disabled class="btn btn-primary" >Save Changes</button> 
                                                         <button v-else-if="showSpinner && !showRequestSpinner" type="button" class="btn btn-primary" ><i class="fa fa-spinner fa-spin"/>Saving</button>                                                    
-                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save()">Save Changes</button>
+                                                        <button v-else="!applicationIsDraft && canSaveApplication" class="btn btn-primary" @click.prevent="save_button()">Save Changes</button>
                                                     </p>
                                                 </div>
                                             </div>
@@ -792,22 +792,22 @@ export default {
         ]),
         applicationDetailsVisible: function() {
             // set initalise
-            let vm = this;
-            if (!vm.panelClickersInitialised){
-                $('.panelClicker[data-toggle="collapse"]').on('click', function () {
-                    var chev = $(this).children()[0];
-                    window.setTimeout(function () {
-                        $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
-                    },100);
-                }); 
-                vm.panelClickersInitialised = true;
-            }
-            this.$nextTick(() => {
-                vm.initialiseOrgContactTable();
-                vm.initialiseSelects();
-                vm.form = document.forms.new_application;
-                vm.eventListeners();
-            });
+            // let vm = this;
+            // if (!vm.panelClickersInitialised){
+            //     $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+            //         var chev = $(this).children()[0];
+            //         window.setTimeout(function () {
+            //             $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+            //         },100);
+            //     }); 
+            //     vm.panelClickersInitialised = true;
+            // }
+            // this.$nextTick(() => {
+            //     vm.initialiseOrgContactTable();
+            //     vm.initialiseSelects();
+            //     vm.form = document.forms.new_application;
+            //     vm.eventListeners();
+            // });
 
             return !this.isSendingToAssessor && !this.isofficerfinalisation && this.unfinishedActivities.length && !this.isOfficerConditions;
         },
@@ -1390,6 +1390,10 @@ export default {
             //     )
             // });
         },
+        save_button: async function() {
+            await this.save()
+            this.spinner = false;
+        },
         save_wo: async function() {
             await this.save({ showNotification: false });
             return true
@@ -1751,22 +1755,22 @@ export default {
         },
     },
     updated: function(){
-        // let vm = this;
-        // if (!vm.panelClickersInitialised){
-        //     $('.panelClicker[data-toggle="collapse"]').on('click', function () {
-        //         var chev = $(this).children()[0];
-        //         window.setTimeout(function () {
-        //             $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
-        //         },100);
-        //     }); 
-        //     vm.panelClickersInitialised = true;
-        // }
-        // this.$nextTick(() => {
-        //     vm.initialiseOrgContactTable();
-        //     vm.initialiseSelects();
-        //     vm.form = document.forms.new_application;
-        //     vm.eventListeners();
-        // });
+        let vm = this;
+        if (!vm.panelClickersInitialised){
+            $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+                var chev = $(this).children()[0];
+                window.setTimeout(function () {
+                    $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+                },100);
+            }); 
+            vm.panelClickersInitialised = true;
+        }
+        this.$nextTick(() => {
+            vm.initialiseOrgContactTable();
+            vm.initialiseSelects();
+            vm.form = document.forms.new_application;
+            vm.eventListeners();
+        });
     },
     mounted: function() {
     },
