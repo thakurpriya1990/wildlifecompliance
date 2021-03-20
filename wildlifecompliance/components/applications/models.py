@@ -2210,6 +2210,24 @@ class Application(RevisionedMixin):
         outstanding = self.get_refund_amount()
         return True if outstanding < 0 else False
 
+    def requires_refund_amendment(self):
+        '''
+        Check on the state of this amendment application to determine whether
+        a refund is required.
+
+        :return boolean indicating whether refund is required.
+        '''
+        requires_refund = False
+
+        pay_status = self.get_property_cache_payment_status()
+
+        if self.customer_status == self.CUSTOMER_STATUS_ACCEPTED \
+        and self.application_type == self.APPLICATION_TYPE_AMENDMENT \
+        and pay_status == ApplicationInvoice.PAYMENT_STATUS_OVERPAID:
+            requires_refund = True
+
+        return requires_refund
+
     # def has_declined_refund(self):
     #     '''
     #     Check whether any licence purposes have been decline with required fee
@@ -2243,6 +2261,8 @@ class Application(RevisionedMixin):
                 continue
             for p in activity.proposed_purposes.all():
                 refund += p.get_refund_amount()
+
+                prev = activity.previous_paid_amount
 
         logger.debug('get_refund_amount refund {}'.format(refund))
         return refund
