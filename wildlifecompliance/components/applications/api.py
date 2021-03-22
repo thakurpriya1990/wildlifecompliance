@@ -1721,10 +1721,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = IssueLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            instance.final_decision(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
+            with transaction.atomic():
+                instance.final_decision(request)
 
             return Response({'success': True})
 
