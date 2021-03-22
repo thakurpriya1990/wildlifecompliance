@@ -3011,6 +3011,10 @@ class Application(RevisionedMixin):
         :param generate_licence is boolean indicating licence generation.
         :param preview is boolean indicating previewing licence only. 
         '''
+        from wildlifecompliance.components.returns.services import (
+            ReturnService,
+        )
+
         logger.debug('Application.issue_activity() - start')
 
         REPLACED = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
@@ -3166,7 +3170,10 @@ class Application(RevisionedMixin):
         selected_activity.activity_status = CURRENT
 
         if not selected_activity.get_expiry_date() == None:
-            self.generate_returns(parent_licence, selected_activity, request)
+            # self.generate_returns(parent_licence, selected_activity, request)
+            ReturnService.generate_return_request(
+                request, parent_licence, selected_activity
+            )
 
         # Logging action completed for each purpose in final_decision.
 
@@ -3617,93 +3624,93 @@ class Application(RevisionedMixin):
 
         self.save()
 
-    def generate_returns(self, licence, selected_activity, request):
-        '''
-        Generates Returns for Conditions on the selected Activity on this 
-        Application.
-        '''
-        from wildlifecompliance.components.returns.utils import (
-            ReturnSpeciesUtility,
-        )
-        from wildlifecompliance.components.returns.models import Return
+    # def generate_returns(self, licence, selected_activity, request):
+    #     '''
+    #     Generates Returns for Conditions on the selected Activity on this 
+    #     Application.
+    #     '''
+    #     from wildlifecompliance.components.returns.utils import (
+    #         ReturnSpeciesUtility,
+    #     )
+    #     from wildlifecompliance.components.returns.models import Return
 
-        # Returns are generated at issuing; expiry_date may not be set yet.
-        licence_expiry = selected_activity.get_expiry_date()
-        licence_expiry = datetime.datetime.strptime(
-            licence_expiry, "%Y-%m-%d"
-        ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
-        today = timezone.now().date()
-        timedelta = datetime.timedelta
+    #     # Returns are generated at issuing; expiry_date may not be set yet.
+    #     licence_expiry = selected_activity.get_expiry_date()
+    #     licence_expiry = datetime.datetime.strptime(
+    #         licence_expiry, "%Y-%m-%d"
+    #     ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
+    #     today = timezone.now().date()
+    #     timedelta = datetime.timedelta
 
-        for condition in selected_activity.get_condition_list():
-            try:
-                if condition.return_type and condition.due_date and condition.due_date >= today:
-                    already_generated = False
-                    current_date = condition.due_date
-                    try:
-                        first_return = Return.objects.get(
-                            condition=condition, due_date=current_date)
-                        already_generated = True
-                    except Return.DoesNotExist:
-                        first_return = Return.objects.create(
-                            application=self,
-                            due_date=current_date,
-                            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
-                            licence=licence,
-                            condition=condition,
-                            return_type=condition.return_type,
-                            submitter=request.user
-                        )
+    #     for condition in selected_activity.get_condition_list():
+    #         try:
+    #             if condition.return_type and condition.due_date and condition.due_date >= today:
+    #                 already_generated = False
+    #                 current_date = condition.due_date
+    #                 try:
+    #                     first_return = Return.objects.get(
+    #                         condition=condition, due_date=current_date)
+    #                     already_generated = True
+    #                 except Return.DoesNotExist:
+    #                     first_return = Return.objects.create(
+    #                         application=self,
+    #                         due_date=current_date,
+    #                         processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
+    #                         licence=licence,
+    #                         condition=condition,
+    #                         return_type=condition.return_type,
+    #                         submitter=request.user
+    #                     )
 
-                    # Make first return editable (draft) for applicant but
-                    # cannot submit until due. Establish species list for first
-                    # return.
-                    DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
-                    first_return.processing_status = DRAFT
-                    first_return.save()
-                    returns_utils = ReturnSpeciesUtility(first_return)
-                    # raw_specie_names is a list of names defined manually
-                    # by the licensing officer at the time of propose/issuance.
-                    raw_specie_names = returns_utils.get_raw_species_list_for(
-                        selected_activity
-                    )
-                    if not already_generated:
-                        returns_utils.set_species_list(raw_specie_names)
+    #                 # Make first return editable (draft) for applicant but
+    #                 # cannot submit until due. Establish species list for first
+    #                 # return.
+    #                 DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+    #                 first_return.processing_status = DRAFT
+    #                 first_return.save()
+    #                 returns_utils = ReturnSpeciesUtility(first_return)
+    #                 # raw_specie_names is a list of names defined manually
+    #                 # by the licensing officer at the time of propose/issuance.
+    #                 raw_specie_names = returns_utils.get_raw_species_list_for(
+    #                     selected_activity
+    #                 )
+    #                 if not already_generated:
+    #                     returns_utils.set_species_list(raw_specie_names)
 
-                    if condition.recurrence:
-                        while current_date < licence_expiry:
-                            for x in range(condition.recurrence_schedule):
-                                # Weekly
-                                if condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_WEEKLY:
-                                            current_date += timedelta(weeks=1)
-                            # Monthly
-                                elif condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_MONTHLY:
-                                            current_date += timedelta(weeks=4)
-                                            pass
-                            # Yearly
-                                elif condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_YEARLY:
-                                            current_date += timedelta(days=365)
-                            # Create the Return
-                            # FIXME: Create species lists for subsequent
-                            # returns.
-                            if current_date <= licence_expiry:
-                                try:
-                                    Return.objects.get(
-                                        condition=condition, due_date=current_date)
-                                except Return.DoesNotExist:
-                                    Return.objects.create(
-                                        application=self,
-                                        due_date=current_date,
-                                        processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
-                                        licence=licence,
-                                        condition=condition,
-                                        return_type=condition.return_type
-                                    )
-            except BaseException:
-                raise
+    #                 if condition.recurrence:
+    #                     while current_date < licence_expiry:
+    #                         for x in range(condition.recurrence_schedule):
+    #                             # Weekly
+    #                             if condition.recurrence_pattern == ApplicationCondition\
+    #                                     .APPLICATION_CONDITION_RECURRENCE_WEEKLY:
+    #                                         current_date += timedelta(weeks=1)
+    #                         # Monthly
+    #                             elif condition.recurrence_pattern == ApplicationCondition\
+    #                                     .APPLICATION_CONDITION_RECURRENCE_MONTHLY:
+    #                                         current_date += timedelta(weeks=4)
+    #                                         pass
+    #                         # Yearly
+    #                             elif condition.recurrence_pattern == ApplicationCondition\
+    #                                     .APPLICATION_CONDITION_RECURRENCE_YEARLY:
+    #                                         current_date += timedelta(days=365)
+    #                         # Create the Return
+    #                         # FIXME: Create species lists for subsequent
+    #                         # returns.
+    #                         if current_date <= licence_expiry:
+    #                             try:
+    #                                 Return.objects.get(
+    #                                     condition=condition, due_date=current_date)
+    #                             except Return.DoesNotExist:
+    #                                 Return.objects.create(
+    #                                     application=self,
+    #                                     due_date=current_date,
+    #                                     processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
+    #                                     licence=licence,
+    #                                     condition=condition,
+    #                                     return_type=condition.return_type
+    #                                 )
+    #         except BaseException:
+    #             raise
 
     @staticmethod
     def calculate_base_fees(selected_purpose_ids, application_type=None):

@@ -1,5 +1,7 @@
 import ast
 import logging
+import datetime
+import six
 
 from datetime import date, timedelta
 
@@ -8,6 +10,7 @@ from concurrency.exceptions import RecordModifiedError
 from django.core.exceptions import ValidationError, FieldError
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.utils import timezone
 
 from ledger.checkout.utils import calculate_excl_gst
 
@@ -48,6 +51,124 @@ class ReturnService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def generate_return_request(request, licence, selected_activity):
+        '''
+        Services a request for generating Returns for Conditions on the 
+        Selected Activity for the Wildlife Licence.
+        '''
+        import six
+        from wildlifecompliance.components.applications.models import (
+            ApplicationCondition,
+        )
+
+        FUTURE = Return.RETURN_PROCESSING_STATUS_FUTURE
+        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+
+        WEEKLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_WEEKLY
+        MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
+        YEARLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_YEARLY
+
+        already_generated = False
+
+        def create_return(condition, a_date):
+            '''
+            An internal function to create a return.
+
+            :param condition is an Application Condition with Return Type.
+            :param a_date is the due_date expected for the created return.
+            '''
+            already_generated = False
+            try:
+                # NOTE: Must be unique application conditions on the
+                # selected activity otherwise first return not created.
+                a_return = Return.objects.get(
+                    condition=condition, due_date=a_date)
+                already_generated = True
+
+            except Return.DoesNotExist:
+                a_return = Return.objects.create(
+                    application=selected_activity.application,
+                    due_date=a_date,
+                    processing_status=FUTURE,
+                    licence=licence,
+                    condition=condition,
+                    return_type=condition.return_type,
+                    submitter=request.user
+                )
+
+            return a_return
+
+        '''
+        Returns are generated at issuing; expiry_date may not be set yet.
+        correct expiry is on the licence purpose.
+        '''
+        try:
+            licence_expiry = selected_activity.get_expiry_date()
+            licence_expiry = datetime.datetime.strptime(
+                licence_expiry, "%Y-%m-%d"
+            ).date() if isinstance(
+                licence_expiry, six.string_types
+            ) else licence_expiry
+            today = timezone.now().date()
+            timedelta = datetime.timedelta
+
+            for condition in selected_activity.get_condition_list():
+
+                if condition.return_type and condition.due_date \
+                and condition.due_date >= today:
+
+                    already_generated = False
+                    current_date = condition.due_date
+                    first_return = create_return(condition, current_date)
+
+                    # Make first return editable (draft) for applicant but
+                    # cannot submit until due. Establish species list for first
+                    # return.
+                    first_return.processing_status = DRAFT
+                    first_return.save()
+                    returns_utils = ReturnSpeciesUtility(first_return)
+                    # raw_specie_names is a list of names defined manually
+                    # by the licensing officer at the time of propose/issuance.
+                    raw_specie_names = returns_utils.get_raw_species_list_for(
+                        selected_activity
+                    )
+                    if not already_generated:
+                        returns_utils.set_species_list(raw_specie_names)
+
+                    # Set the recurrences as future returns.   
+                    # NOTE: species list will be determined and built when the
+                    # return is due.
+                    if condition.recurrence:
+
+                        while current_date < licence_expiry:
+
+                            # set the due date for recurrence period.
+                            for x in range(condition.recurrence_schedule):
+                                # Weekly
+                                if condition.recurrence_pattern == WEEKLY:
+                                    current_date += timedelta(weeks=1)
+                                # Monthly
+                                elif condition.recurrence_pattern == MONTHLY:
+                                    current_date += timedelta(weeks=4)
+                                # Yearly
+                                elif condition.recurrence_pattern == YEARLY:
+                                    current_date += timedelta(days=365)
+
+                                if current_date <= licence_expiry:
+                                    # Create the Return.
+                                    a_return = create_return(
+                                        condition, current_date
+                                    )
+
+        except Exception as e:
+            logger.error('{0} {1} - {2}'.format(
+                'ReturnService.generate_return_request() ActivityID:',
+                self.selected_activity,
+                e
+            ))
+            raise
 
     @staticmethod
     def record_deficiency_request(request, a_return):
