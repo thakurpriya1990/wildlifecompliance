@@ -202,6 +202,7 @@ class Return(models.Model):
     RETURN_PROCESSING_STATUS_WITH_CURATOR = 'with_curator'
     RETURN_PROCESSING_STATUS_ACCEPTED = 'accepted'
     RETURN_PROCESSING_STATUS_PAYMENT = 'payment'
+    RETURN_PROCESSING_STATUS_DISCARDED = 'discarded'
     PROCESSING_STATUS_CHOICES = (
         (RETURN_PROCESSING_STATUS_DUE, 'Due'),
         (RETURN_PROCESSING_STATUS_OVERDUE, 'Overdue'),
@@ -209,7 +210,8 @@ class Return(models.Model):
         (RETURN_PROCESSING_STATUS_FUTURE, 'Future'),
         (RETURN_PROCESSING_STATUS_WITH_CURATOR, 'With Curator'),
         (RETURN_PROCESSING_STATUS_ACCEPTED, 'Accepted'),
-        (RETURN_PROCESSING_STATUS_PAYMENT, 'Awaiting Payment')
+        (RETURN_PROCESSING_STATUS_PAYMENT, 'Awaiting Payment'),
+        (RETURN_PROCESSING_STATUS_DISCARDED, 'Discarded'),
     )
 
     RETURN_CUSTOMER_STATUS_DUE = 'due'
@@ -218,7 +220,7 @@ class Return(models.Model):
     RETURN_CUSTOMER_STATUS_FUTURE = 'future'
     RETURN_CUSTOMER_STATUS_UNDER_REVIEW = 'under_review'
     RETURN_CUSTOMER_STATUS_ACCEPTED = 'accepted'
-    RETURN_CUSTOMER_STATUS_DISCARD = 'discard'
+    RETURN_CUSTOMER_STATUS_DISCARDED = 'discarded'
     RETURN_CUSTOMER_STATUS_PAYMENT = 'payment'
 
     # Displayable choices for customer status.
@@ -229,7 +231,7 @@ class Return(models.Model):
         RETURN_CUSTOMER_STATUS_FUTURE: 'Future Submission',
         RETURN_CUSTOMER_STATUS_UNDER_REVIEW: 'Under Review',
         RETURN_CUSTOMER_STATUS_ACCEPTED: 'Accepted',
-        RETURN_CUSTOMER_STATUS_DISCARD: 'Discarded',
+        RETURN_CUSTOMER_STATUS_DISCARDED: 'Discarded',
         RETURN_CUSTOMER_STATUS_PAYMENT: 'Awaiting Payment',
     }
 
@@ -411,6 +413,7 @@ class Return(models.Model):
         FUTURE = self.RETURN_CUSTOMER_STATUS_FUTURE
         UNDER_REVIEW = self.RETURN_CUSTOMER_STATUS_UNDER_REVIEW
         ACCEPTED = self.RETURN_CUSTOMER_STATUS_ACCEPTED
+        DISCARDED = self.RETURN_CUSTOMER_STATUS_DISCARDED
 
         workflow_mapper = {
             self.RETURN_PROCESSING_STATUS_DUE: DUE,
@@ -419,7 +422,8 @@ class Return(models.Model):
             self.RETURN_PROCESSING_STATUS_FUTURE: DRAFT,
             self.RETURN_PROCESSING_STATUS_WITH_CURATOR: UNDER_REVIEW,
             self.RETURN_PROCESSING_STATUS_ACCEPTED: ACCEPTED,
-            self.RETURN_PROCESSING_STATUS_PAYMENT: UNDER_REVIEW
+            self.RETURN_PROCESSING_STATUS_PAYMENT: UNDER_REVIEW,
+            self.RETURN_PROCESSING_STATUS_DISCARDED: DISCARDED,
         }
 
         return workflow_mapper.get(self.processing_status, FUTURE)
@@ -523,85 +527,119 @@ class Return(models.Model):
         except BaseException:
             raise
 
-    def set_return_species(self):
+    # def set_return_species(self):
+    #     '''
+    #     Set the species available for this return.
+    #     '''
+    #     try:
+    #         return_table = []
+    #         specie_names = []
+
+    #         if self.return_type.with_application_species:
+    #             specie_names = self.get_application_return_species()
+
+    #         elif self.return_type.with_regulated_species:
+    #             specie_names = self.get_regulated_return_species()
+
+    #         for name in specie_names:
+    #             return_table.append(
+    #                 ReturnTable(name=name, ret_id=str(self.id))
+    #             )
+
+    #         if return_table:
+    #             ReturnTable.objects.bulk_create(return_table)
+
+    #     except BaseException as e:
+    #         logger.error('set_return_speces() ID: {0} - {1}'.format(
+    #             self.id, e
+    #         ))
+
+    # def get_application_return_species(self):
+    #     '''
+    #     Set the species available for this return.
+    #     '''
+    #     species = []
+
+    #     return species
+
+    # def get_regulated_return_species(self):
+    #     '''
+    #     Set the species available for this return.
+    #     '''
+    #     species = []
+
+    #     return species
+
+    # def set_future_return_species(self):
+    #     '''
+    #     Set the species available for this return.
+    #     '''
+    #     SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
+    #     STATUS = [
+    #         # Return.RETURN_PROCESSING_STATUS_FUTURE
+    #         'NO SPECIES ALLOWED'
+    #     ]
+
+    #     if self.processing_status not in STATUS:
+    #         '''
+    #         Species are only set for FUTURE processing status.
+    #         '''
+    #         return
+
+    #     species_qs = ApplicationFormDataRecord.objects.values(
+    #         'value',
+    #     ).filter(
+    #         licence_activity_id=self.condition.licence_activity_id,
+    #         licence_purpose_id=self.condition.licence_purpose_id,
+    #         application_id=self.condition.application_id,
+    #         component_type=SPECIES,
+    #     )
+    #     return_table = []
+    #     specie_ids = []
+    #     for specie_id in species_qs:
+    #         specie_ids += specie_id['value']
+
+    #     for id_name in specie_ids:
+    #         return_table.append(
+    #             ReturnTable(name=id_name, ret_id=str(self.id))
+    #         )
+
+    #     if return_table:
+    #         ReturnTable.objects.bulk_create(return_table)
+
+    def is_amended(self):
         '''
-        Set the species available for this return.
+        Verification that this Return has resulted from a Condition on an
+        Application amendment.
+
+        :return boolean indicating is_amendment.
         '''
-        try:
-            return_table = []
-            specie_names = []
-
-            if self.return_type.with_application_species:
-                specie_names = self.get_application_return_species()
-
-            elif self.return_type.with_regulated_species:
-                specie_names = self.get_regulated_return_species()
-
-            for name in specie_names:
-                return_table.append(
-                    ReturnTable(name=name, ret_id=str(self.id))
-                )
-
-            if return_table:
-                ReturnTable.objects.bulk_create(return_table)
-
-        except BaseException as e:
-            logger.error('set_return_speces() ID: {0} - {1}'.format(
-                self.id, e
-            ))
-
-    def get_application_return_species(self):
-        '''
-        Set the species available for this return.
-        '''
-        species = []
-
-        return species
-
-    def get_regulated_return_species(self):
-        '''
-        Set the species available for this return.
-        '''
-        species = []
-
-        return species
-
-    def set_future_return_species(self):
-        '''
-        Set the species available for this return.
-        '''
-        SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
-        STATUS = [
-            # Return.RETURN_PROCESSING_STATUS_FUTURE
-            'NO SPECIES ALLOWED'
+        amendment = [
+            Application.APPLICATION_TYPE_AMENDMENT
         ]
+        is_amendment = False
 
-        if self.processing_status not in STATUS:
-            '''
-            Species are only set for FUTURE processing status.
-            '''
-            return
+        if self.application.application_type in amendment:
+            is_amendment = True
 
-        species_qs = ApplicationFormDataRecord.objects.values(
-            'value',
-        ).filter(
-            licence_activity_id=self.condition.licence_activity_id,
-            licence_purpose_id=self.condition.licence_purpose_id,
-            application_id=self.condition.application_id,
-            component_type=SPECIES,
-        )
-        return_table = []
-        specie_ids = []
-        for specie_id in species_qs:
-            specie_ids += specie_id['value']
+        return is_amendment
 
-        for id_name in specie_ids:
-            return_table.append(
-                ReturnTable(name=id_name, ret_id=str(self.id))
-            )
+    def is_renewed(self):
+        '''
+        Verification that this Return has resulted from a Condition on an
+        Application renewal.
 
-        if return_table:
-            ReturnTable.objects.bulk_create(return_table)
+        :return boolean indicating is_amendment.
+        '''
+        renewal = [
+            Application.APPLICATION_TYPE_RENEWAL
+        ]
+        is_amendment = False
+
+        if self.application.application_type in renewal:
+            is_amendment = True
+
+        return is_amendment
 
     def set_processing_status(self, status):
         '''
@@ -656,19 +694,19 @@ class Return(models.Model):
         return ActivityPermissionGroup.get_groups_for_activities(
             selected_activity_ids, codename)
 
-    @transaction.atomic
-    def accept(self, request):
-        '''
-        TODO:AYN This is redundant. ReturnService.
-        '''
-        try:
-            self.processing_status = Return.RETURN_PROCESSING_STATUS_ACCEPTED
-            self.save()
-            self.log_user_action(
-                ReturnUserAction.ACTION_ACCEPT_REQUEST.format(self), request)
-            send_return_accept_email_notification(self, request)
-        except BaseException:
-            raise
+    # @transaction.atomic
+    # def accept(self, request):
+    #     '''
+    #     TODO:AYN This is redundant. ReturnService.
+    #     '''
+    #     try:
+    #         self.processing_status = Return.RETURN_PROCESSING_STATUS_ACCEPTED
+    #         self.save()
+    #         self.log_user_action(
+    #             ReturnUserAction.ACTION_ACCEPT_REQUEST.format(self), request)
+    #         send_return_accept_email_notification(self, request)
+    #     except BaseException:
+    #         raise
 
     def save_return_table(self, table_name, table_rows, request):
         """
@@ -857,6 +895,34 @@ class ReturnTable(RevisionedMixin):
         '''
         return ReturnRow.objects.filter(return_table=self).count()
 
+    def get_rows(self):
+        '''
+        Get related rows associated with this Return Table.
+        '''
+        return ReturnRow.objects.filter(return_table=self)
+
+    def set_rows(self, return_rows):
+        '''
+        Set all rows associated with this Return Table with a bulk create.
+
+        :param return_rows is a list of rows for bulk creation.
+        '''
+        try:
+            for r in return_rows:
+                r.return_table_id = self.id
+                r.id = None
+
+            ReturnRow.objects.bulk_create(return_rows)
+        
+        except Exception as e:
+            logger.error('{0} ID: {1} - {2}'.format(
+                'ReturnTable.set_rows()',
+                self.id,
+                e,
+            ))
+            raise
+
+        return ReturnRow.objects.filter(return_table=self)
 
 class ReturnRow(RevisionedMixin):
     return_table = models.ForeignKey(ReturnTable)
@@ -872,6 +938,7 @@ class ReturnRow(RevisionedMixin):
 
 class ReturnUserAction(UserAction):
     ACTION_CREATE = "Lodge Return {}"
+    ACTION_DISCARD = "Discard Return {}"
     ACTION_SUBMIT_REQUEST = "Submit Return {}"
     ACTION_ACCEPT_REQUEST = "Accept Return {}"
     ACTION_SAVE_REQUEST = "Save Return {}"

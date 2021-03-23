@@ -65,6 +65,8 @@ class ReturnService(object):
 
         FUTURE = Return.RETURN_PROCESSING_STATUS_FUTURE
         DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+        DUE = Return.RETURN_PROCESSING_STATUS_DUE
+        OVERDUE = Return.RETURN_PROCESSING_STATUS_OVERDUE
 
         WEEKLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_WEEKLY
         MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
@@ -99,6 +101,38 @@ class ReturnService(object):
                 )
 
             return a_return
+
+        def discard_return_from_previous(a_return):
+            '''
+            An internal function to discard previously created returns.
+
+            :param a_return.
+            '''
+            returns_util = ReturnSpeciesUtility(a_return)
+
+            future_returns = Return.objects.filter(
+                application=a_return.application.previous_application,
+                processing_status=FUTURE
+            ).delete()
+
+            discard_returns = Return.objects.filter(
+                application=a_return.application.previous_application,
+                processing_status__in=[DUE, OVERDUE, DRAFT]
+            )
+
+            for returns in discard_returns:
+                returns.log_user_action(
+                    ReturnUserAction.ACTION_DISCARD.format(returns.id),
+                    request,
+                )
+
+                if a_return.has_sheet:
+                    returns_util.copy_sheet_species(returns)
+
+            discard_returns.update(
+                processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
+            )
+
 
         '''
         Returns are generated at issuing; expiry_date may not be set yet.
@@ -136,6 +170,12 @@ class ReturnService(object):
                     )
                     if not already_generated:
                         returns_utils.set_species_list(raw_specie_names)
+
+                    # When first return generated from amended or renewed
+                    # application, discard previous returns which are draft,
+                    # due or overdue. Retain stock list for Running Sheets.
+                    if first_return.is_amended() or first_return.is_renewed():
+                        discard_return_from_previous(first_return)
 
                     # Set the recurrences as future returns.   
                     # NOTE: species list will be determined and built when the
@@ -1427,28 +1467,28 @@ class ReturnSheet(object):
         self.get_species_list()
         logger.debug('ReturnSheet.__init__() - end')
 
-    @staticmethod
-    def set_licence_species(the_return):
-        """
-        Sets the species from the licence for the current Running Sheet.
-        :return:
-        """
-        # TODO: create default entries for each species on the licence.
-        # TODO: Each species has a defaulted Stock Activity (0 Totals).
-        # TODO: Call _set_activity_from_previous to carry over Stock totals
-        # for Licence reissues.
-        '''
-        _data = []
-        new_sheet = the_return.sheet
-        for species in the_return.licence.species_list:
-            try:
-                _data = {''}
-                table_rows = new_sheet._get_table_rows(_data)
-                self._return.save_return_table(species, table_rows, request)
-            except AttributeError:
-                continue
-        '''
-        pass
+    # @staticmethod
+    # def set_licence_species(the_return):
+    #     """
+    #     Sets the species from the licence for the current Running Sheet.
+    #     :return:
+    #     """
+    #     # TODO: create default entries for each species on the licence.
+    #     # TODO: Each species has a defaulted Stock Activity (0 Totals).
+    #     # TODO: Call _set_activity_from_previous to carry over Stock totals
+    #     # for Licence reissues.
+    #     '''
+    #     _data = []
+    #     new_sheet = the_return.sheet
+    #     for species in the_return.licence.species_list:
+    #         try:
+    #             _data = {''}
+    #             table_rows = new_sheet._get_table_rows(_data)
+    #             self._return.save_return_table(species, table_rows, request)
+    #         except AttributeError:
+    #             continue
+    #     '''
+    #     pass
 
     @property
     def table(self):
@@ -1788,26 +1828,6 @@ class ReturnSheet(object):
                 rows.append(row_data)
 
         return rows
-
-    def _set_activity_from_previous(self):
-        """
-        Sets Running Sheet Species stock total from previous Licence Running
-        Sheet.
-        :return: tuple of species and total.
-        """
-        previous_licence = \
-            self._return.application.previous_application.licence
-        previous_return = self._get_licence_return(previous_licence)
-        previous_stock = {}  # {species_id: amount}
-        if previous_return:
-            species_tables = ReturnTable.objects.filter(ret=previous_return)
-            for table in species_tables:
-                rows = ReturnRow.objects.filter(return_table=table)
-                stock_total = 0
-                for row in rows:
-                    stock_total = row.data['total']
-                previous_stock[table.name] = stock_total
-        return previous_stock
 
     def _get_licence_return(self, licence_no):
         """

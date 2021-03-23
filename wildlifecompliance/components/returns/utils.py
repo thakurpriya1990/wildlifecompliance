@@ -1,7 +1,6 @@
 import abc
 import logging
 
-from datetime import datetime
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -492,6 +491,70 @@ class ReturnSpeciesUtility(ReturnUtility):
 
         return identifier
 
+    def copy_sheet_species(self, a_return):
+        '''
+        Copies Running Sheet details for species from a_return to composite.
+        '''
+        import datetime
+
+        logger.debug('ReturnSpeciesUtility.copy_sheet_species() - start')
+        if not self._return.has_sheet or not a_return.has_sheet:
+
+            return
+
+        elif self._return.is_amended():
+
+            a_return_species = ReturnTable.objects.filter(ret=a_return)
+
+            for specie in a_return_species:
+
+                if specie.has_rows():
+                    rows = specie.get_rows()
+
+                    self_return_species = ReturnTable.objects.filter(
+                        ret=self._return,
+                        name=specie.name,
+                    ).first()
+
+                    if self_return_species:
+                        self_return_species.set_rows(rows)
+
+
+        elif self._return.is_renewed():
+            # initialise stock entry with previous totals.
+
+            a_return_species = ReturnTable.objects.filter(ret=a_return)
+
+            for specie in a_return_species:
+
+                if specie.has_rows():
+
+                    row = specie.get_rows().last()
+                    row.id = None
+                    row.return_table_id = None
+                    now = round(datetime.datetime.timestamp(
+                        datetime.datetime.now()
+                    ) * 1000)
+                    row.data['date'] = now
+                    row.data['activity'] = 'stock'
+                    row.data['rowId'] = '0'
+                    qty = row.data['total']
+                    row.data['qty'] = str(qty)
+                    row.data['licence'] = ''
+                    row.data['supplier'] = ''                
+                    row.data['transfer'] = ''
+                    row.data['comment'] = ''
+
+                    self_return_species = ReturnTable.objects.filter(
+                        ret=self._return,
+                        name=specie.name,
+                    ).first()
+
+                    if self_return_species:
+                        self_return_species.set_rows([row])
+
+        logger.debug('ReturnSpeciesUtility.copy_sheet_species() - end')
+
 
 class SpreadSheet(object):
     """
@@ -517,6 +580,8 @@ class SpreadSheet(object):
         Gets the row of data.
         :return: list format {'col_header':[row1_val,, row2_val,...],...}
         """
+        from datetime import datetime
+
         wb = excel.load_workbook(self.filename)
         sheet_name = excel.get_sheet_titles(wb)[0]
         ws = wb[sheet_name]
