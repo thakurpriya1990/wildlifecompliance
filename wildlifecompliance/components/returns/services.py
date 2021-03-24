@@ -72,8 +72,6 @@ class ReturnService(object):
         MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
         YEARLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_YEARLY
 
-        already_generated = False
-
         def create_return(condition, a_date):
             '''
             An internal function to create a return.
@@ -82,15 +80,16 @@ class ReturnService(object):
             :param a_date is the due_date expected for the created return.
             '''
             already_generated = False
+
             try:
-                # NOTE: Must be unique application conditions on the
-                # selected activity otherwise first return not created.
-                a_return = Return.objects.get(
+                # NOTE: Must be unique application conditions on the selected
+                # activity otherwise first return not created.
+                first_return = Return.objects.get(
                     condition=condition, due_date=a_date)
                 already_generated = True
 
             except Return.DoesNotExist:
-                a_return = Return.objects.create(
+                first_return = Return.objects.create(
                     application=selected_activity.application,
                     due_date=a_date,
                     processing_status=FUTURE,
@@ -100,7 +99,27 @@ class ReturnService(object):
                     submitter=request.user
                 )
 
-            return a_return
+            # Make first return editable (draft) for applicant but cannot
+            # submit until due. Establish species list for first return.
+            first_return.processing_status = DRAFT
+            first_return.save()
+            returns_utils = ReturnSpeciesUtility(first_return)
+
+            # raw_specie_names is a list of names defined manually by the 
+            # licensing officer at the time of propose/issuance.
+            raw_specie_names = returns_utils.get_raw_species_list_for(
+                selected_activity
+            )
+            if not already_generated:
+                returns_utils.set_species_list(raw_specie_names)
+
+            # When first return generated from amended or renewed application,
+            # discard previous returns which are draft, due or overdue. Retain
+            # stock list for Running Sheets.
+            if first_return.is_amended() or first_return.is_renewed():
+                discard_return_from_previous(first_return)
+
+            return first_return
 
         def discard_return_from_previous(a_return):
             '''
@@ -156,26 +175,6 @@ class ReturnService(object):
                     already_generated = False
                     current_date = condition.due_date
                     first_return = create_return(condition, current_date)
-
-                    # Make first return editable (draft) for applicant but
-                    # cannot submit until due. Establish species list for first
-                    # return.
-                    first_return.processing_status = DRAFT
-                    first_return.save()
-                    returns_utils = ReturnSpeciesUtility(first_return)
-                    # raw_specie_names is a list of names defined manually
-                    # by the licensing officer at the time of propose/issuance.
-                    raw_specie_names = returns_utils.get_raw_species_list_for(
-                        selected_activity
-                    )
-                    if not already_generated:
-                        returns_utils.set_species_list(raw_specie_names)
-
-                    # When first return generated from amended or renewed
-                    # application, discard previous returns which are draft,
-                    # due or overdue. Retain stock list for Running Sheets.
-                    if first_return.is_amended() or first_return.is_renewed():
-                        discard_return_from_previous(first_return)
 
                     # Set the recurrences as future returns.   
                     # NOTE: species list will be determined and built when the
