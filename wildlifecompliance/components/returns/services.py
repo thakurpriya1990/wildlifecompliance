@@ -96,7 +96,6 @@ class ReturnService(object):
                     licence=licence,
                     condition=condition,
                     return_type=condition.return_type,
-                    submitter=request.user
                 )
 
             # Make first return editable (draft) for applicant but cannot
@@ -113,13 +112,73 @@ class ReturnService(object):
             if not already_generated:
                 returns_utils.set_species_list(raw_specie_names)
 
-            # When first return generated from amended or renewed application,
-            # discard previous returns which are draft, due or overdue. Retain
-            # stock list for Running Sheets.
-            if first_return.is_amended() or first_return.is_renewed():
+            # When first return generated a renewed application, discard
+            # previous returns which are draft, due or overdue. Retain stock
+            # list for Running Sheets.
+            # if first_return.is_amended() or first_return.is_renewed():
+            if first_return.is_renewed():
                 discard_return_from_previous(first_return)
 
             return first_return
+
+        def amend_return(condition):
+            '''
+            An internal function to amend a previously created return.
+
+            :param Condition is an Application Condition with Return Type.
+            :return Return that was amended. 
+            '''
+            amend_return_list = []
+            previous = selected_activity.application.previous_application
+            amend_return_list = Return.objects.filter(
+                condition__licence_activity=selected_activity.licence_activity,
+                application=previous
+            )
+
+            returns = [
+                r for r in amend_return_list 
+                if r.condition.licence_purpose == condition.licence_purpose
+                and r.condition.return_type == condition.return_type
+                and r.condition.due_date == condition.due_date
+                and r.condition.condition_text == condition.condition_text
+            ]
+
+            if returns:
+                returns = returns[0]
+                returns.application = selected_activity.application
+                returns.condition = condition
+                returns.save()
+
+            return returns
+
+        def create_return_recurrence(condition, a_date):
+            '''
+            An internal function to create a recurring Return.
+
+            :param condition is an Application Condition with Return Type.
+            :param a_date is the due_date expected for the created return.
+            '''
+            # Set the recurrences as future returns.   
+            # NOTE: species list will be determined and built when the
+            # return is due.
+            if condition.recurrence:
+
+                while a_date < licence_expiry:
+                    # set the due date for recurrence period.
+                    for x in range(condition.recurrence_schedule):
+                        # Weekly
+                        if condition.recurrence_pattern == WEEKLY:
+                            a_date += timedelta(weeks=1)
+                        # Monthly
+                        elif condition.recurrence_pattern == MONTHLY:
+                            a_date += timedelta(weeks=4)
+                        # Yearly
+                        elif condition.recurrence_pattern == YEARLY:
+                            a_date += timedelta(days=365)
+
+                        if a_date <= licence_expiry:
+                            # Create the Return.
+                            a_return = create_return(condition, current_date)
 
         def discard_return_from_previous(a_return):
             '''
@@ -167,44 +226,38 @@ class ReturnService(object):
             today = timezone.now().date()
             timedelta = datetime.timedelta
 
+            # create or amend Return for each Condition.
             for condition in selected_activity.get_condition_list():
 
                 if condition.return_type and condition.due_date \
                 and condition.due_date >= today:
 
-                    already_generated = False
                     current_date = condition.due_date
-                    first_return = create_return(condition, current_date)
+                    amended = None
+                    if selected_activity.application.is_amendment():
+                        amended = amend_return(condition)
 
-                    # Set the recurrences as future returns.   
-                    # NOTE: species list will be determined and built when the
-                    # return is due.
-                    if condition.recurrence:
+                    if not amended:
+                        first_return = create_return(condition, current_date)
+                        create_return_recurrence(condition, current_date)
 
-                        while current_date < licence_expiry:
-
-                            # set the due date for recurrence period.
-                            for x in range(condition.recurrence_schedule):
-                                # Weekly
-                                if condition.recurrence_pattern == WEEKLY:
-                                    current_date += timedelta(weeks=1)
-                                # Monthly
-                                elif condition.recurrence_pattern == MONTHLY:
-                                    current_date += timedelta(weeks=4)
-                                # Yearly
-                                elif condition.recurrence_pattern == YEARLY:
-                                    current_date += timedelta(days=365)
-
-                                if current_date <= licence_expiry:
-                                    # Create the Return.
-                                    a_return = create_return(
-                                        condition, current_date
-                                    )
+            # discard previous Returns from amended Conditions.
+            if selected_activity.application.is_amendment():
+                selected = selected_activity
+                discard_return_list = []
+                previous = selected_activity.application.previous_application
+                discard_return_list = Return.objects.filter(
+                    condition__licence_activity=selected.licence_activity,
+                    application=previous
+                )
+                discard_return_list.update(
+                    processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
+                )
 
         except Exception as e:
             logger.error('{0} {1} - {2}'.format(
                 'ReturnService.generate_return_request() ActivityID:',
-                self.selected_activity,
+                selected_activity,
                 e
             ))
             raise

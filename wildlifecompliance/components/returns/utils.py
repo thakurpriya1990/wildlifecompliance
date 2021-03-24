@@ -256,6 +256,49 @@ def _create_return_data_from_post_data(ret, tables_info, post_data):
         ReturnRow.objects.bulk_create(return_rows)
 
 
+class BulkCreateManager(object):
+    '''
+    This helper class keeps track of ORM objects to be created for multiple
+    model classess, automatically creates those objects with `bulk_create`
+    when the number of objects accumulated for a given model class exceeds
+    `chunk_size`.
+
+    https://www.caktusgroup.com/blog/2019/01/09/django-bulk-inserts/
+    '''
+    def __init__(self, chunk_size=100):
+        from collections import defaultdict
+
+        self._create_queues = defaultdict(list)
+        self.chunk_size = chunk_size
+
+    def _commit(self, model_class):
+        model_key = model_class._meta.label
+        model_class.objects.bulk_create(self._create_queues[model_key])
+        self._create_queues[model_key] = []
+
+    def add(self, obj):
+        '''
+        Add an object to the queue to be created, and call bulk_create if we
+        have enough objects.
+        '''
+        model_class = type(obj)
+        model_key = model_class._meta.label
+        self._create_queues[model_key].append(obj)
+        if len(self._create_queues[model_key]) >= self.chunk_size:
+            self._commit(model_class)
+
+    def done(self):
+        '''
+        Always call this upon completion to make sure the final partial chunk
+        is saved.
+        '''
+        from django.apps import apps
+
+        for model_name, objs in self._create_queues.items():
+            if len(objs) > 0:
+                self._commit(apps.get_model(model_name))
+
+
 class ReturnUtility(object):
     '''
     An abstract ReturnUtility.
@@ -499,7 +542,10 @@ class ReturnSpeciesUtility(ReturnUtility):
 
         logger.debug('ReturnSpeciesUtility.copy_sheet_species() - start')
         if not self._return.has_sheet or not a_return.has_sheet:
-
+            logger.info('{0} - {1}'.format(
+                'ReturnSpeciesUtility.copy_sheet_species()',
+                'Wrong Return Type for copy.'
+            ))
             return
 
         elif self._return.is_amended():

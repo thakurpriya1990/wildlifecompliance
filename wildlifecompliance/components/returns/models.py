@@ -907,12 +907,22 @@ class ReturnTable(RevisionedMixin):
 
         :param return_rows is a list of rows for bulk creation.
         '''
+        from wildlifecompliance.components.returns.utils import (
+            BulkCreateManager,
+        )
+        
         try:
-            for r in return_rows:
-                r.return_table_id = self.id
-                r.id = None
+            bulk_mgr = BulkCreateManager()      # chunking size = 100
 
-            ReturnRow.objects.bulk_create(return_rows)
+            for record in return_rows:
+
+                return_row = ReturnRow(
+                    return_table=self,
+                    data=record.data
+                )
+                bulk_mgr.add(return_row)
+
+            bulk_mgr.done()
         
         except Exception as e:
             logger.error('{0} ID: {1} - {2}'.format(

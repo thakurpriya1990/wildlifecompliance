@@ -2023,6 +2023,28 @@ class Application(RevisionedMixin):
             except BaseException:
                 raise
 
+    def is_amendment(self):
+        '''
+        Verification that this is an Application Amendment.
+
+        :return boolean indicating an amendment.
+        '''
+        is_amend = False
+        if self.application_type == self.APPLICATION_TYPE_AMENDMENT:
+            is_amend = True
+
+        return is_amend
+
+    def is_renewal(self):
+        '''
+        Verification that this is an Application Renewal.
+        '''
+        is_renewal = False
+        if self.application_type == self.APPLICATION_TYPE_RENEWAL:
+            is_renewal = True
+
+        return is_renewal
+
     @property
     def amendment_requests(self):
         logger.debug('Application.amendment_requests()')
