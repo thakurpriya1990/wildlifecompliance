@@ -75,10 +75,12 @@ class ReturnService(object):
 
         def create_return(condition, a_date):
             '''
-            An internal function to create a return.
+            An internal function to create the first return.
 
             :param condition is an Application Condition with Return Type.
             :param a_date is the due_date expected for the created return.
+
+            :return first_return set to Draft for immediate update.
             '''
             already_generated = False
 
@@ -93,7 +95,7 @@ class ReturnService(object):
                 first_return = Return.objects.create(
                     application=selected_activity.application,
                     due_date=a_date,
-                    processing_status=FUTURE,
+                    processing_status=DRAFT,
                     licence=licence,
                     condition=condition,
                     return_type=condition.return_type,
@@ -101,7 +103,6 @@ class ReturnService(object):
 
             # Make first return editable (draft) for applicant but cannot
             # submit until due. Establish species list for first return.
-            first_return.processing_status = DRAFT
             first_return.save()
             returns_utils = ReturnSpeciesUtility(first_return)
 
@@ -150,31 +151,34 @@ class ReturnService(object):
             :return Return that was amended. 
             '''
             amend_return_list = []
+            amended = None
+
             previous = selected_activity.application.previous_application
             amend_return_list = Return.objects.filter(
                 condition__licence_activity=selected_activity.licence_activity,
                 application=previous
             )
 
-            returns = [
+            previous_returns = [
                 r for r in amend_return_list 
                 if r.condition.licence_purpose == condition.licence_purpose
                 and r.condition.return_type == condition.return_type
                 and r.condition.due_date == condition.due_date
                 and r.condition.condition_text == condition.condition_text
-            ]
+            ]   # previous returns include Future ones.
 
-            if returns:
-                returns = returns[0]
-                returns.application = selected_activity.application
-                returns.condition = condition
-                returns.save()
+            for previous in previous_returns:
+                previous.application = selected_activity.application
+                previous.condition = condition
+                previous.save()
+                if (previous.processing_status == DRAFT):
+                    amended = previous
 
-            return returns
+            return amended
 
         def create_return_recurrence(condition, a_date):
             '''
-            An internal function to create a recurring Return.
+            An internal function to create FUTURE Return.
 
             :param condition is an Application Condition with Return Type.
             :param a_date is the due_date expected for the created return.
@@ -199,7 +203,19 @@ class ReturnService(object):
 
                         if a_date <= licence_expiry:
                             # Create the Return.
-                            a_return = create_return(condition, current_date)
+                            try:
+                                a_return = Return.objects.get(
+                                    condition=condition, due_date=a_date)
+
+                            except Return.DoesNotExist:
+                                a_return = Return.objects.create(
+                                    application=selected_activity.application,
+                                    due_date=a_date,
+                                    processing_status=FUTURE,
+                                    licence=licence,
+                                    condition=condition,
+                                    return_type=condition.return_type,
+                                )
 
         def discard_return_from_previous(application):
             '''
