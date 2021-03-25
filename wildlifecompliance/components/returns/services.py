@@ -67,6 +67,7 @@ class ReturnService(object):
         DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
         DUE = Return.RETURN_PROCESSING_STATUS_DUE
         OVERDUE = Return.RETURN_PROCESSING_STATUS_OVERDUE
+        DISCARD = Return.RETURN_PROCESSING_STATUS_DISCARDED
 
         WEEKLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_WEEKLY
         MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
@@ -112,12 +113,32 @@ class ReturnService(object):
             if not already_generated:
                 returns_utils.set_species_list(raw_specie_names)
 
-            # When first return generated a renewed application, discard
-            # previous returns which are draft, due or overdue. Retain stock
-            # list for Running Sheets.
-            # if first_return.is_amended() or first_return.is_renewed():
+            # When first return generated is for a renewed application, discard
+            # previous returns which are draft, due or overdue.
             if first_return.is_renewed():
-                discard_return_from_previous(first_return)
+                discard_return_from_previous(
+                    selected_activity.application, first_return)
+
+                # When first Return is a Running Sheet copy discarded data.
+                # ie. retain stock total.
+                if first_return.has_sheet:
+                    la = selected_activity.licence_activity
+                    pa = selected_activity.application.previous_application
+                    discarded = Return.objects.filter(
+                        condition__licence_activity=la,
+                        application=pa,
+                        processing_status=DISCARD,
+                    )
+                    c = first_return.condition
+                    returns = [
+                        r for r in discarded 
+                        if r.condition.licence_purpose == c.licence_purpose
+                        and r.condition.return_type == c.return_type
+                        and r.condition.condition_text == c.condition_text
+                    ]
+                    if returns:
+                        util = ReturnSpeciesUtility(first_return)
+                        util.copy_sheet_species(returns[0])
 
             return first_return
 
@@ -180,35 +201,31 @@ class ReturnService(object):
                             # Create the Return.
                             a_return = create_return(condition, current_date)
 
-        def discard_return_from_previous(a_return):
+        def discard_return_from_previous(application):
             '''
             An internal function to discard previously created returns.
 
-            :param a_return.
+            :param application is an Application having a previous to replace.
             '''
-            returns_util = ReturnSpeciesUtility(a_return)
-
             future_returns = Return.objects.filter(
-                application=a_return.application.previous_application,
+                application=application.previous_application,
                 processing_status=FUTURE
             ).delete()
 
             discard_returns = Return.objects.filter(
-                application=a_return.application.previous_application,
+                application=application.previous_application,
                 processing_status__in=[DUE, OVERDUE, DRAFT]
             )
 
             for returns in discard_returns:
+                # log action for discard.
                 returns.log_user_action(
                     ReturnUserAction.ACTION_DISCARD.format(returns.id),
                     request,
                 )
 
-                if a_return.has_sheet:
-                    returns_util.copy_sheet_species(returns)
-
             discard_returns.update(
-                processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
+                processing_status=DISCARD
             )
 
 
@@ -241,18 +258,9 @@ class ReturnService(object):
                         first_return = create_return(condition, current_date)
                         create_return_recurrence(condition, current_date)
 
-            # discard previous Returns from amended Conditions.
+            # discard/delete previous Returns from removed Conditions.
             if selected_activity.application.is_amendment():
-                selected = selected_activity
-                discard_return_list = []
-                previous = selected_activity.application.previous_application
-                discard_return_list = Return.objects.filter(
-                    condition__licence_activity=selected.licence_activity,
-                    application=previous
-                )
-                discard_return_list.update(
-                    processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
-                )
+                discard_return_from_previous(selected_activity.application)
 
         except Exception as e:
             logger.error('{0} {1} - {2}'.format(

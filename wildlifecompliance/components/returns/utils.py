@@ -537,6 +537,8 @@ class ReturnSpeciesUtility(ReturnUtility):
     def copy_sheet_species(self, a_return):
         '''
         Copies Running Sheet details for species from a_return to composite.
+
+        NOTE: only a single row (stock) with total number for species saved.
         '''
         import datetime
 
@@ -549,22 +551,11 @@ class ReturnSpeciesUtility(ReturnUtility):
             return
 
         elif self._return.is_amended():
-
-            a_return_species = ReturnTable.objects.filter(ret=a_return)
-
-            for specie in a_return_species:
-
-                if specie.has_rows():
-                    rows = specie.get_rows()
-
-                    self_return_species = ReturnTable.objects.filter(
-                        ret=self._return,
-                        name=specie.name,
-                    ).first()
-
-                    if self_return_species:
-                        self_return_species.set_rows(rows)
-
+            '''
+            Running sheet details are not copied for amended Conditions from
+            Application Amendments. Returns are amended with new application.
+            '''
+            return
 
         elif self._return.is_renewed():
             # initialise stock entry with previous totals.
