@@ -975,7 +975,12 @@ export default {
             return show
         },
         showAssignToOfficer: function(){
-            return this.showingApplication && this.canAssignOfficerFor(this.selectedActivity.licence_activity)
+            let workflow_officer = ['with_officer_conditions'].includes(this.selectedActivity.processing_status.id)
+            if (!workflow_officer) {
+                return false;
+            }
+
+            return this.isSendingToAssessor || this.isOfficerConditions;
         },
         showAssignToApprover: function(){
             let show = !this.showingApplication && this.canAssignApproverFor(this.selectedActivity.licence_activity);

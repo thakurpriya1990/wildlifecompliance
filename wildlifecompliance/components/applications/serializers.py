@@ -506,7 +506,6 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
-        print('get_invoice_url')
         url = None
         if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
@@ -517,7 +516,7 @@ class DTExternalApplicationSelectedActivitySerializer(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-        print(url)
+
         return url
 
 
