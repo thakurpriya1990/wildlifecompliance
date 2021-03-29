@@ -2186,6 +2186,8 @@ class Application(RevisionedMixin):
         Check on the previously paid invoice amount against application fee.
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
+
+        NOTE: expensive function call. Look at caching 'outstanding' amount.
         """
         logger.debug('Application.requires_refund() - start')
         approved = [
@@ -2194,6 +2196,7 @@ class Application(RevisionedMixin):
             Application.PROCESSING_STATUS_APPROVED,
             Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
             Application.PROCESSING_STATUS_AWAITING_PAYMENT,
+            Application.PROCESSING_STATUS_DECLINED,
         ]
 
         if self.processing_status not in approved:
@@ -2206,6 +2209,7 @@ class Application(RevisionedMixin):
 
         # Check against previous fees on previous application for Amendment
         # where outstanding is negative (ie overpaid).
+        # TODO: amendment check not required already done at purpose level.
         if outstanding < 0 and self.requires_refund_amendment():
             app_fee = 0
             lic_fee = 0
@@ -2218,7 +2222,7 @@ class Application(RevisionedMixin):
             outstanding = outstanding + (app_fee + lic_fee)
 
         logger.debug('Application.requires_refund() - end')
-        return True if outstanding < 0 else False
+        return True if outstanding > 0 else False
 
     def requires_refund_at_submit(self):
         """
@@ -2289,17 +2293,24 @@ class Application(RevisionedMixin):
         '''
         logger.debug('get_refund_amount appID {}'.format(self.id))
         IGNORE = [
-            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+            # ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
             ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
         ]
         refund = 0
+
+        # Check whether refund has already been paid on latest invoice.
+        inv = self.latest_invoice
+        if inv and inv.refund_amount > 0:
+            return refund
+
         for activity in self.activities:
             if activity.processing_status in IGNORE:
                 continue
-            for p in activity.proposed_purposes.all():
-                refund += p.get_refund_amount()
+            # for p in activity.proposed_purposes.all():
+            #     refund += p.get_refund_amount()
 
-                prev = activity.previous_paid_amount
+            #     prev = activity.previous_paid_amount
+            refund += activity.get_refund_amount()
 
         logger.debug('get_refund_amount refund {}'.format(refund))
         return refund
@@ -2308,8 +2319,8 @@ class Application(RevisionedMixin):
         """
         Send notification if refund exists after an amendment.
         """
-        if not self.requires_refund:
-            return False
+        # if not self.requires_refund:
+        #     return False
 
         UNDER_REVIEW = self.PROCESSING_STATUS_UNDER_REVIEW
         officer_groups = ActivityPermissionGroup.objects.filter(
@@ -2326,7 +2337,7 @@ class Application(RevisionedMixin):
             )
         else:
             send_activity_refund_issue_notification(
-                request, self, self.get_refund_amount)
+                request, self, self.get_refund_amount())    # Application Level
 
     @property
     def previous_paid_amount(self):
@@ -3257,6 +3268,7 @@ class Application(RevisionedMixin):
         DEFAULT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT
         CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
         REFUND = ApplicationSelectedActivity.DECISION_ACTION_ISSUED_WITH_REFUND
+        FINAL = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
 
         failed_payment_activities = []
 
@@ -3402,7 +3414,8 @@ class Application(RevisionedMixin):
                             purpose.additional_fee = Decimal(0)
                             purpose.additional_fee_text = ''
 
-                            if not len(issue_ids):
+                            # if not len(issue_ids):
+                            if selected_activity.processing_status == FINAL:
                                 # if nothing to issue on activity.
                                 selected_activity.processing_status = \
                                     ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
@@ -3462,9 +3475,13 @@ class Application(RevisionedMixin):
                                 generate_licence,
                                 preview,
                             )
+                            # Check Selected Activity for over payment. Can
+                            # refund later by officer with app dashboard link.
+                            if selected_activity.get_refund_amount() > 0:
+                                selected_activity.decision_action = REFUND
 
-                    else :
-                            declined_activities.append(selected_activity)
+                    else:
+                        declined_activities.append(selected_activity)
                         #  if item['additional_fee']:
                         #     selected_activity.additional_fee = 0
                         #     selected_activity.additional_fee_text = ''
@@ -3591,7 +3608,8 @@ class Application(RevisionedMixin):
                     declined_activities, self, request)
 
             # Send out any refund notifications.
-            self.alert_for_refund(request)
+            if self.requires_refund:
+                self.alert_for_refund(request)
 
         except Exception as e:
             raise Exception("Final decision error: {}".format(e))
@@ -5130,30 +5148,69 @@ class ApplicationSelectedActivity(models.Model):
     def get_refund_amount(self):
         '''
         Get refundable licence amount for this selected Licence Activity.
+
+        NOTE: expensive function call.
         '''
-        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
-        paid = self.total_paid_amount
-        fees_app_tot = 0
-        fees_lic_tot = 0
-        fees_app = 0
-        fees_adj = 0
-        fees_lic = 0
+        logger.debug('get_refund_amount SelectedActivityID {}'.format(self.id))
+        IGNORE = [
+            # self.PROCESSING_STATUS_DECLINED,
+            self.PROCESSING_STATUS_DISCARDED,
+        ]
+        DECISION = [
+            self.DECISION_ACTION_DEFAULT,
+            # self.DECISION_ACTION_DECLINED,
+            self.DECISION_ACTION_ISSUED,
+            # self.DECISION_ACTION_REISSUE,
+            self.DECISION_ACTION_ISSUED_WITH_REFUND,
+        ]
+        refund = 0
+        if self.processing_status in IGNORE:
+            return refund
+        # For each Activity check decision NON-issued only.
+        if not self.decision_action in DECISION:
+            return refund
+
         for p in self.proposed_purposes.all():
-            fees_adj += p.adjusted_fee if p.is_payable else 0
-            fees_app += p.application_fee if p.is_payable else 0
-            fees_lic += p.licence_fee if p.is_payable else 0
+            refund += p.get_refund_amount()
 
-            if p.processing_status == DECLINE:
-                fees_adj += p.adjusted_fee
-                fees_app += p.application_fee
+        refund = refund if refund == 0 else refund * -1 # force positive value.
 
-        fees_app = fees_app + fees_adj
-        fees_app_tot = fees_app
-        fees_lic_tot = fees_lic
+        # if Activity is issued-with-refund and refund is 0 then set decision
+        # for Activity to issued. nb check declined activities.
+        if self.is_issued_with_refund and refund < 1:
+            self.decision_action = self.DECISION_ACTION_ISSUED
+            self.save()
 
-        over_paid = paid - fees_app_tot - fees_lic_tot
+        logger.debug('get_refund_amount refund {}'.format(refund))
+        return refund
 
-        return over_paid if over_paid > 0 else 0
+    # def get_refund_amoun_OLD(self):
+    #     '''
+    #     Get refundable licence amount for this selected Licence Activity.
+    #     '''
+    #     DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+    #     paid = self.total_paid_amount
+    #     fees_app_tot = 0
+    #     fees_lic_tot = 0
+    #     fees_app = 0
+    #     fees_adj = 0
+    #     fees_lic = 0
+    #     for p in self.proposed_purposes.all():
+    #         fees_adj += p.adjusted_fee if p.is_payable else 0
+    #         fees_app += p.application_fee if p.is_payable else 0
+    #         fees_lic += p.licence_fee if p.is_payable else 0
+
+    #         if p.processing_status == DECLINE:
+    #             fees_adj += p.adjusted_fee
+    #             fees_app += p.application_fee
+
+    #     fees_app = fees_app + fees_adj
+    #     fees_app_tot = fees_app
+    #     fees_lic_tot = fees_lic
+
+    #     over_paid = paid - fees_app_tot - fees_lic_tot
+
+    #     return over_paid if over_paid > 0 else 0
 
     def set_original_issue_date(self, issue_date):
         '''
@@ -5364,7 +5421,7 @@ class ApplicationSelectedActivity(models.Model):
             return True
 
         # when fee has been overpaid allow processing (refund is required).
-        if self.get_refund_amount() < 0:
+        if self.get_refund_amount() > 0:        # Selected Activity Level.
             return True
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
@@ -6258,10 +6315,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute for the total fees paid for this Select Activity Purpose.
         The total amount includes fee, additional and licence fee.
         '''
+        lic_fee = self.licence_fee if self.is_payable else 0
+        adj_lic_fee = self.adjusted_licence_fee if self.is_payable else 0
+
         amount = self.application_fee \
-            + self.licence_fee \
+            + lic_fee \
             + self.adjusted_fee \
-            + self.adjusted_licence_fee
+            + adj_lic_fee
 
         return amount
 
@@ -6342,11 +6402,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
             ]
             for line in inv_lines:
                 amount += line.amount
-
-            # exclude the refunds
-            detail = Invoice.objects.get(
-                reference=a_inv.invoice_reference)
-            amount -= detail.refund_amount
 
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
         if self.selected_activity.application.application_type == AMEND:
@@ -6446,24 +6501,26 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def get_refund_amount(self):
         '''
         Get refundable licence amount for this licence purpose.
+
+        :return refund amount as negative value.
         '''
         refund = 0
         # paid fees are invoiced amounts paid.
         paid_app_fee = self.total_paid_adjusted_application_fee
         paid_lic_fee = self.total_paid_adjusted_licence_fee
 
-        if self.processing_status == self.PROCESSING_STATUS_DECLINED:
-            # refund any licence fees paid.
-            paid_lic_fee = 0
+        # if self.processing_status == self.PROCESSING_STATUS_DECLINED:
+        #     # refund any licence fees paid.
+        #     paid_lic_fee = 0
 
         # total_paid_amount is the expected total paid for this purpose.
         refund = self.total_paid_amount - (paid_app_fee + paid_lic_fee)
 
-        # Refund will be negative when the total_paid_amount is negative, as
-        # adjustments made to the fees are set to negative in admin schema.
-        # Otherwise refund should be a positive amount which will be converted
-        # to negative.
-        refund = refund if refund < 0 else refund * -1
+        # NOTE: Refund will be negative when the total_paid_amount is negative, 
+        # as adjustments made to the fees are set to negative in admin schema.
+        # A postive refund value indicates under paid fees.
+        # refund = refund if refund < 0 else refund * -1
+        refund = refund if refund < 0 else refund * 0
 
         return refund
 

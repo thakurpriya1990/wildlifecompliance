@@ -121,11 +121,12 @@ def application_refund_callback(invoice_ref, bpoint_tid):
                 application_type=AMENDMENT,
             ).first()
 
-            if (amend):
-                logger.info('refund_callback on Amendment {0}'.format(amend))
-                amend.save()
-            else:
-                i.application.save()
+            with transaction.atomic():
+                if (amend):
+                    logger.info('refund_callback on AppID {0}'.format(amend))
+                    amend.save()
+                else:
+                    i.application.save()
 
     except Exception as e:
         logger.error(
@@ -148,8 +149,9 @@ def application_invoice_callback(invoice_ref):
             invoice_reference=invoice_ref
         )
 
-        for i in ai:
-            i.application.save()
+        with transaction.atomic():
+            for i in ai:
+                i.application.save()
 
     except Exception as e:
         logger.error(
