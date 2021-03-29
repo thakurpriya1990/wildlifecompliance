@@ -2210,7 +2210,7 @@ class Application(RevisionedMixin):
         # Check against previous fees on previous application for Amendment
         # where outstanding is negative (ie overpaid).
         # TODO: amendment check not required already done at purpose level.
-        if outstanding < 0 and self.requires_refund_amendment():
+        if outstanding > 0 and self.requires_refund_amendment():
             app_fee = 0
             lic_fee = 0
             for activity in self.activities:
@@ -2220,6 +2220,12 @@ class Application(RevisionedMixin):
                     lic_fee += prev.total_paid_adjusted_licence_fee
 
             outstanding = outstanding + (app_fee + lic_fee)
+
+        # Check if refund amount can be taken from additional fees.
+        requires_refund = self.has_additional_fees and (outstanding > 0)
+        if requires_refund:
+            new_refund = self.additional_fees - outstanding
+            outstanding = 0 if new_refund > 0 else new_refund * -1
 
         logger.debug('Application.requires_refund() - end')
         return True if outstanding > 0 else False
@@ -5414,15 +5420,17 @@ class ApplicationSelectedActivity(models.Model):
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
         from wildlifecompliance.components.applications.payments import (
-            ApplicationFeePolicy
+            ApplicationFeePolicy,
+            LicenceFeeClearingInvoice,
         )
 
         if self.is_licence_fee_paid():
             return True
 
         # when fee has been overpaid allow processing (refund is required).
-        if self.get_refund_amount() > 0:        # Selected Activity Level.
-            return True
+        clear_inv = LicenceFeeClearingInvoice(application)
+        if not clear_inv.is_refundable_with_payment():
+            return True     # Officer needs to refund with dashboard link.
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
         card_owner_id = applicant.id

@@ -86,18 +86,19 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
         - application requires a refund.
         - refundable amount does not exceed fees.
         '''
+        is_refundable = False
+
         requires_payment = self.application.has_adjusted_fees \
             or self.application.has_additional_fees
 
-        refund_amt = self.application.get_refund_amount()  # refund is negative
-        requires_refund = requires_payment and (refund_amt < 0)
+        refund_amt = self.application.get_refund_amount()
+        requires_refund = requires_payment and (refund_amt > 0)
 
-        # self.application.application_fee excludes licence fee amount.
-        # amount = self.application.application_fee \
-        #     + self.application.additional_fees + refund_amt
-        amount = self.application.additional_fees + refund_amt
+        amount = self.application.additional_fees - refund_amt
 
-        return requires_refund and amount > 0
+        is_refundable = requires_refund and amount > 0
+
+        return is_refundable
 
     def is_recordable(self):
         '''
