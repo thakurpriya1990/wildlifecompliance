@@ -167,7 +167,6 @@ class InfringementPenaltySuccessView(TemplateView):
                 return render(request, self.template_name, context)
 
         except Exception as e:
-            print('Exception: ' + e.message)
             if ('wc_last_infringement_invoice' in request.session) and InfringementPenalty.objects.filter(id=request.session['wc_last_infringement_invoice']).exists():
                 infringement_penalty = InfringementPenalty.objects.get(id=request.session['wc_last_infringement_invoice'])
                 sanction_outcome = infringement_penalty.sanction_outcome
