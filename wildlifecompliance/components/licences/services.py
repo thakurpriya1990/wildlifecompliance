@@ -575,6 +575,7 @@ class LicenceActioner(LicenceActionable):
         amendable = [
             p for p in activity.proposed_purposes.all() 
             if p.is_issued and p.is_active and not p.is_replaced()
+            and p.purpose_id in purpose_list
         ]
 
         can_action['can_amend'] = current and len(amendable)
@@ -589,7 +590,9 @@ class LicenceActioner(LicenceActionable):
         ).exclude(activity_status=SUSPENDED).count() > 0
 
         renewable = [
-            p for p in activity.proposed_purposes.all() if p.is_renewable
+            p for p in activity.proposed_purposes.all() 
+            if p.is_renewable and not p.is_replaced()
+            and p.purpose_id in purpose_list
         ]
         # can_renew when activity is current with renewable purposes.
         can_action['can_renew'] = current and len(renewable)
