@@ -1031,13 +1031,23 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     def send_parking_infringement(self, request, instance=None, *args, **kwargs):
         try:
             with transaction.atomic():
+
                 instance = self.get_object() if not instance else instance
                 # instance.endorse_parking_infringement()
 
-                workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                comms_log_id = request.data.get('comms_log_id')
+                if comms_log_id and comms_log_id is not 'null':
+                    workflow_entry = instance.comms_logs.get(id=comms_log_id)
+                # else:
+                #     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                if workflow_entry:
+                    workflow_entry.delete()
+
+                # workflow_entry = self.add_comms_log(request, instance, workflow=True)  # We don't send email, therefore we don't need comms log here
                 instance.endorse()
                 if not instance.issued_on_paper:
-                    attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                    # attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                    attachments = create_infringement_notice_ybw(instance)
 
                     # Log action
                     instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
@@ -1267,10 +1277,12 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             pass
                     elif instance.type == SO_TYPE_INFRINGEMENT_NOTICE:
                         # This is Infringement Notice
+                        workflow_entry.delete()  # Now we don't send an email.  Therefore we don't need this object created above to store comms log.
                         if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
                             instance.endorse()
                             if not instance.issued_on_paper:
-                                attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                                # attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                                attachments = create_infringement_notice_ybw(instance)
 
                                 # Log action
                                 instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
@@ -1281,14 +1293,15 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                             # This is a parking infringement but no offenders are set
                             instance.send_to_inc()
 
-                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                            inc_emails = [member.email for member in inc_group.members]
-                            to_address = inc_emails
-                            cc = [instance.responsible_officer.email, request.user.email]
-                            bcc = []
+                            # Because we send emails by cron job anyway, we don't send emails here
+                            # inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                            # inc_emails = [member.email for member in inc_group.members]
+                            # to_address = inc_emails
+                            # cc = [instance.responsible_officer.email, request.user.email]
+                            # bcc = []
 
                             # Email to infringement notice coordinators
-                            email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
+                            # email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
 
                             # Log action
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
@@ -1352,7 +1365,9 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_return_to_infringement_notice_coordinator_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_MARK_DOCUMENT_POSTED:
+                    workflow_entry.delete()
                     instance.mark_document_posted(request)
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_MARK_AS_POSTED.format(instance.lodgement_number), request)
 
                 else:
                     # Should not reach here

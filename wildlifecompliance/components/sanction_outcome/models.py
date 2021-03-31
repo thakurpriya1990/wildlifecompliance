@@ -917,6 +917,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
+    ACTION_MARK_AS_POSTED = "Mark Document(s) posted for the Sanction Outcome {}"
     ACTION_SEND_TO_DOT = "Send details of Sanction Outcome {} to Dep. of Transport"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
