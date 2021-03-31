@@ -667,7 +667,7 @@ class SanctionOutcome(models.Model):
                     return last_due_date.due_date_1st
                 elif last_due_date.due_date_term_currently_applied == '2nd':
                     return last_due_date.due_date_2nd
-                elif self.due_date_term_currently_applied == 'overdue':
+                elif last_due_date.due_date_term_currently_applied == 'overdue':
                     # Overdue
                     return last_due_date.due_date_2nd
                 # if today <= self.last_due_date_1st:
