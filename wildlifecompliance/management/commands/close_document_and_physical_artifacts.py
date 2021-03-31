@@ -59,14 +59,14 @@ class Command(BaseCommand):
 
                 # retrieve active DocumentArtifacts with created dates older than the disposal period
                 # TEST: change to created_at__lt for PROD
-                document_artifacts = DocumentArtifact.objects.filter(status='active', legal_case=None, created_at__gt=document_artifact_disposal_date_cutoff)
+                document_artifacts = DocumentArtifact.objects.filter(status='active', legal_cases__id=None, created_at__gt=document_artifact_disposal_date_cutoff)
                 for document_artifact in document_artifacts:
                     print(document_artifact.created_at)
                     document_artifact.close()
 
                 # retrieve active PhysicalArtifacts with created dates older than the disposal period
                 # TEST: change to created_at__lt for PROD
-                physical_artifacts = PhysicalArtifact.objects.filter(status='active', legal_case=None, created_at__gt=physical_artifact_disposal_date_cutoff)
+                physical_artifacts = PhysicalArtifact.objects.filter(status='active', legal_cases__id=None, created_at__gt=physical_artifact_disposal_date_cutoff)
                 for physical_artifact in physical_artifacts:
                     print(physical_artifact.created_at)
                     physical_artifact.close()

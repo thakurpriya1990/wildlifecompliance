@@ -331,7 +331,10 @@ class DocumentArtifact(Artifact):
         for legal_case in self.documentartifactlegalcases_set.all():
             if legal_case.primary:
                 primary_case = legal_case
-        return primary_case.legal_case_id
+        if primary_case:
+            return primary_case.legal_case_id
+        else:
+            return None
 
     def close(self, request=None):
         # NOTE: close_record logic moved to can_close_legal_case
