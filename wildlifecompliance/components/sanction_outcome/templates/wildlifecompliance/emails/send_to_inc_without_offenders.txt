@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Parking Infringement without offenders, blah-blah-blah...:
+        Parking Infringement without offenders
 
         Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
 

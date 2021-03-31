@@ -33,6 +33,7 @@ class SectionRegulationForm(forms.ModelForm):
 class SectionRegulationAdmin(VersionAdmin):
     form = SectionRegulationForm
     inlines = [PenaltyAmountInline,]
+    # list_display = ['self', 'is_parking_offence', ]
 
 
 @admin.register(PenaltyAmount)
