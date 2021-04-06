@@ -94,7 +94,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from wildlifecompliance.management.permissions_manager import PermissionUser
 
 logger = logging.getLogger(__name__)
-logger = logging
+# logger = logging
 
 
 def application_refund_callback(invoice_ref, bpoint_tid):
@@ -992,10 +992,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                    or a.has_additional_fee
                 ]
                 # only fees which are greater than zero.
-                # activities_with_fees = [
-                #    a for a in activities_adj
-                #    if a.application_fee > 0 or a.licence_fee > 0
-                # ]
 
                 for activity in activities_adj:
 
@@ -1068,28 +1064,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                                 clear_inv.get_product_line_refund_for(p)
                             )
 
-            # Check if refund is required from last invoice.
-            # last_inv = LicenceFeeClearingInvoice(instance)
-            # if last_inv.is_refundable:
-            #     product_lines.append(last_inv.get_product_line_for_refund())
-
-                # # refund any application fee adjustments.
-                # if instance.application_fee < 0:
-
-                #     price_excl = calculate_excl_gst(instance.application_fee)
-                #     if ApplicationFeePolicy.GST_FREE:
-                #         price_excl = instance.application_fee
-                #     # _code = activity.licence_activity.oracle_account_code
-                #     oracle_code = ''
-
-                #     product_lines.append({
-                #         'ledger_description': 'Adjusted fee refund',
-                #         'quantity': 1,
-                #         'price_incl_tax': str(instance.application_fee),
-                #         'price_excl_tax': str(price_excl),
-                #         'oracle_code': oracle_code
-                #     })
-
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,
@@ -1118,9 +1092,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1140,9 +1112,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1162,9 +1132,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.request_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1208,9 +1176,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_character_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'character_check_status': instance.character_check_status},
                 status=status.HTTP_200_OK
@@ -1250,9 +1216,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_return_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'return_check_status': instance.return_check_status},
                 status=status.HTTP_200_OK
@@ -1272,9 +1236,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_return_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'return_check_status': instance.return_check_status},
                 status=status.HTTP_200_OK
@@ -1326,9 +1288,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'You are not in any relevant licence officer groups for this application.')
             instance.assign_officer(request, request.user)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': user.id},
                 status=status.HTTP_200_OK
@@ -1363,9 +1323,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'User is not in any relevant licence officer groups for this application')
             instance.assign_officer(request, user)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': user.id},
                 status=status.HTTP_200_OK
@@ -1385,9 +1343,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.unassign_officer(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': None},
                 status=status.HTTP_200_OK
@@ -1414,10 +1370,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for this application.')
 
             instance.set_activity_approver(activity_id, me)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': me.id},
@@ -1463,10 +1415,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for application activity.')
 
             instance.set_activity_approver(activity_id, approver)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': approver.id},
@@ -1491,10 +1439,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id', None)
             instance.set_activity_approver(activity_id, None)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': None},
@@ -1618,9 +1562,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = ProposedLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_licence(request, serializer.validated_data)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
 
             return Response({'success': True})
 
@@ -1709,11 +1650,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             )
             response = Response(serializer.data)
             return response
-
-            # return Response(
-            #     {'licence_type_data': instance.licence_type_data}, 
-            #     status=status.HTTP_200_OK,
-            # )
 
         except MissingFieldsException as e:
             return Response({
