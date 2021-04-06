@@ -650,7 +650,7 @@ class Application(RevisionedMixin):
             # when application is migrated from paper version.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
-        if self.application_fee == 0 and self.invoices.count() == 0:
+        if int(self.application_fee) == 0 and self.invoices.count() == 0:
             # when no application fee and no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
@@ -661,7 +661,12 @@ class Application(RevisionedMixin):
         elif self.requires_refund:
             return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
 
+        elif int(self.application_fee) < 0 and self.invoices.count() == 0:
+            # when after refund check and no invoices (application amendments).
+            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
         elif self.invoices.count() == 0:
+            # when no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_UNPAID
 
         else:
@@ -691,6 +696,74 @@ class Application(RevisionedMixin):
                 return None
 
         return latest_invoice
+
+    def refund_invoice(self):
+        '''
+        Property defining refund invoice/s on this Application. This will be
+        invoice references from the previous application. 
+        
+        :return refund_invoice_list of reference strings.
+        '''
+        logger.debug('Application.previous_invoice()')
+        refund_invoice_list = self.get_property_cache_refund_invoice()
+
+        return refund_invoice_list
+
+    def get_property_cache_refund_invoice(self):
+        '''
+        Getter for refund_invoice on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return refund_invoice_list of ApplicationInvoice reference string.
+        '''
+        refund_invoice_list = []
+        try:
+
+            refund_invoice_list = self.property_cache['refund_invoice']
+            refund_invoice_list = refund_invoice_list.split()
+
+        except KeyError:
+            pass
+
+        return refund_invoice_list
+
+    def set_property_cache_refund_invoice(self, refund_invoice):
+        '''
+        Setter for refund_invoice on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  refund_invoice is QuerySet of ApplicationInvoice or List of
+                invoice reference string.
+        '''
+        import json
+
+        class ListEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    inv_str = ''
+                    for o in obj:
+                        inv_str += ' ' + o 
+                    return inv_str.lstrip()
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(ListEncoder, self).encode_list(obj, iter)
+
+        if self.id and isinstance(refund_invoice, QuerySet):
+            refund_invoice = [o.invoice_reference for o in refund_invoice]
+
+        if not isinstance(refund_invoice, list) and self.id:
+            logger.warn('{0} - AppID: {1}'.format(
+                'set_property_cache_refund_invoice() NOT LIST', self.id))
+            return
+        
+        if self.id:
+            # data = json.dumps({'refund_invoice': refund_invoice})
+            data = ListEncoder().encode_list(refund_invoice)
+            self.property_cache['refund_invoice'] = data
 
     @property
     def total_paid_amount(self):
@@ -2255,7 +2328,7 @@ class Application(RevisionedMixin):
         # at invoicing.
         # outstanding = self.additional_fees - self.get_refund_amount()
         outstanding = self.get_refund_amount()
-        return True if outstanding < 0 else False
+        return True if outstanding > 0 else False
 
     def requires_refund_amendment(self):
         '''
@@ -2287,9 +2360,7 @@ class Application(RevisionedMixin):
         ]
         refund = 0
 
-        # Check whether refund has already been paid on latest invoice.
-        inv = self.latest_invoice
-        if inv and inv.refund_amount > 0:
+        if self.refund_invoice():       # check whether already refunded.
             return refund
 
         for activity in self.activities:
@@ -5248,7 +5319,7 @@ class ApplicationSelectedActivity(models.Model):
 
         # when fee has been overpaid allow processing (refund is required).
         clear_inv = LicenceFeeClearingInvoice(application)
-        if not clear_inv.is_refundable_with_payment():
+        if not clear_inv.is_refundable and clear_inv.requires_refund:
             return True     # Officer needs to refund with dashboard link.
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
@@ -5754,10 +5825,10 @@ class ApplicationSelectedActivity(models.Model):
         previous = None
         prev_app = self.application.previous_application
 
-        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
+        # RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
         prev_chain = prev_app.get_current_activity_chain(
             activity_status__in=status).order_by(
@@ -5773,7 +5844,7 @@ class ApplicationSelectedActivity(models.Model):
                 if a.licence_activity_id == act_id
                 and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
-                and not a.application.application_type == RENEWAL
+                # and not a.application.application_type == RENEWAL
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -6229,14 +6300,17 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 amount += line.amount
 
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         if self.selected_activity.application.application_type == AMEND:
             '''
-            For amendments exclude fees for previous adjustments. Note taken
-            from invoice lines.
+            For amendments exclude fees for previous adjustments. Not applicable
+            for Application Renewals having seperate adjustment fields.
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                amount = amount + prev_purpose.adjusted_fee
+                prev_app = prev_purpose.selected_activity.application
+                if not prev_app.application_type == RENEWAL:
+                    amount = amount + prev_purpose.adjusted_fee
 
             except BaseException as e:
                 logger.error(
@@ -6268,6 +6342,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 amount += line.amount
 
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         if self.selected_activity.application.application_type == AMEND:
             '''
             For amendments exclude fees for previous adjustments. Not taken
@@ -6275,7 +6350,9 @@ class ApplicationSelectedActivityPurpose(models.Model):
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                amount = amount + prev_purpose.adjusted_licence_fee
+                prev_app = prev_purpose.selected_activity.application
+                if not prev_app.application_type == RENEWAL:
+                    amount = amount + prev_purpose.adjusted_licence_fee
 
             except BaseException as e:
                 logger.error(
@@ -6422,9 +6499,12 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Gets this Application Selected Activity Purpose from the previous
         replaced selected Activity.
         '''
+        SELECTED = self.PROCESSING_STATUS_SELECTED
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+
         previous = None
         prev_app = self.selected_activity.application.previous_application
-        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
 
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
@@ -6437,7 +6517,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
         if not activities:
             return previous
 
-        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             act_id = self.selected_activity.licence_activity_id
             self_id = self.purpose_id
@@ -6447,14 +6526,20 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 # and a.activity_status in status
                 and a.processing_status == ACCEPT
                 # ignore activities for renewals.
-                and not a.application.application_type == RENEWAL
+                # and not a.application.application_type == RENEWAL
                 # replaced purposes are no longer issued.
                 # and self.purpose in a.issued_purposes
             ]
+
             # order by Application Selected Activity ID with Current last.
             sorted_prev = sorted(prev, key=lambda x: x.id, reverse=False)
             # when multiple Replaced applications only use the last one.
             prev_id = len(sorted_prev) - 2 if len(sorted_prev) > 1 else 0
+            # purpose which has not been proposed (selected) may still have
+            # multiple replaced. Only use last current. ie last in order.
+            if self.processing_status == SELECTED and len(sorted_prev) > 1:
+                prev_id = len(sorted_prev) - 1
+
             purposes = sorted_prev[prev_id].proposed_purposes.all()
             prev = [p for p in purposes if p.purpose_id == self_id]
             previous = prev[0]

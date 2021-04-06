@@ -64,6 +64,7 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
     invoice_balance = None              # balance attributes.
     is_refreshing = False               # Flag indicating a page refresh.
     is_refundable = False               # Flag indicating if refundable.
+    requires_refund = False             # Flag indicating a refund is required.
 
     def __init__(self, application):
         super(InvoiceClearable, self).__init__()
@@ -92,11 +93,11 @@ class LicenceFeeClearingInvoice(InvoiceClearable):
             or self.application.has_additional_fees
 
         refund_amt = self.application.get_refund_amount()
-        requires_refund = requires_payment and (refund_amt > 0)
+        self.requires_refund = requires_payment and (refund_amt > 0)
 
         amount = self.application.additional_fees - refund_amt
 
-        is_refundable = requires_refund and amount > 0
+        is_refundable = self.requires_refund and amount > 0
 
         return is_refundable
 

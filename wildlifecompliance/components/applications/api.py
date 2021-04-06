@@ -94,7 +94,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from wildlifecompliance.management.permissions_manager import PermissionUser
 
 logger = logging.getLogger(__name__)
-# logger = logging
+logger = logging
 
 
 def application_refund_callback(invoice_ref, bpoint_tid):
@@ -108,25 +108,33 @@ def application_refund_callback(invoice_ref, bpoint_tid):
         'application_refund_callback: Inv {0}'.format(invoice_ref)
     )
     AMENDMENT = Application.APPLICATION_TYPE_AMENDMENT
+    DISCARDED = Application.CUSTOMER_STATUS_DRAFT
     try:
         ai = ApplicationInvoice.objects.filter(
             invoice_reference=invoice_ref
         )
+        with transaction.atomic():
 
-        for i in ai:
-            # Check where invoice is for an amendment application as refunds
-            # are paid back to previous application invoice.
-            amend = Application.objects.filter(
-                previous_application_id=i.application_id,
-                application_type=AMENDMENT,
-            ).first()
+            for i in ai:
+                '''
+                Check where invoice is for an amendment application as refunds
+                are paid back to previous application invoice - will apply a 
+                save on both applications.
+                '''
+                amend = Application.objects.filter(
+                    previous_application_id=i.application_id,
+                    application_type=AMENDMENT,
+                ).exclude(
+                    customer_status=DISCARDED,
+                ).first()
 
-            with transaction.atomic():
                 if (amend):
-                    logger.info('refund_callback on AppID {0}'.format(amend))
+                    logger.info('refund_callback amendID {0}'.format(amend))
+                    amend.set_property_cache_refund_invoice(ai)
                     amend.save()
-                else:
-                    i.application.save()
+
+                i.application.set_property_cache_refund_invoice(ai)
+                i.application.save()
 
     except Exception as e:
         logger.error(
@@ -144,13 +152,41 @@ def application_invoice_callback(invoice_ref):
     logger.info(
         'application_invoice_callback: Inv {0}'.format(invoice_ref)
     )
+    AMENDMENT = Application.APPLICATION_TYPE_AMENDMENT
+    CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH 
+    DISCARDED = Application.CUSTOMER_STATUS_DRAFT 
     try:
         ai = ApplicationInvoice.objects.filter(
             invoice_reference=invoice_ref
         )
-
         with transaction.atomic():
+
             for i in ai:
+                '''
+                Check for cash payment invoices on amendments as refunds are 
+                recorded causing the invoice_callback() to be applied. Save on 
+                both applications.
+
+                NOTE: cannot apply a ledger refund to an invoice for recorded 
+                cash payment - can only be recorded as a refund amount.
+                '''
+                if i.other_payment_method == CASH:
+
+                    amend = Application.objects.filter(
+                        previous_application_id=i.application_id,
+                        application_type=AMENDMENT,
+                    ).exclude(
+                        customer_status=DISCARDED,
+                    ).first()
+
+                    if amend and amend.requires_refund_amendment():
+                        logger.info('inv_callback amendID {0}'.format(amend))
+                        amend.set_property_cache_refund_invoice(ai)
+                        amend.save()
+
+                    if int(i.application.application_fee) < 0:
+                        i.application.set_property_cache_refund_invoice(ai)
+
                 i.application.save()
 
     except Exception as e:
