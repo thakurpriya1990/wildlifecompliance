@@ -223,7 +223,7 @@ export default {
             }
           }
         }
-        console.log(this.availableDistricts);
+        // console.log(this.availableDistricts);
         this.availableDistricts.splice(0, 0, 
         {
           id: "", 
@@ -236,7 +236,7 @@ export default {
         this.updateAllocatedGroup();
       },
       updateAllocatedGroup: async function() {
-          console.log("updateAllocatedGroup");
+          // console.log("updateAllocatedGroup");
           this.errorResponse = "";
           if (this.regionDistrictId) {
               let allocatedGroupResponse = await this.loadAllocatedGroup({

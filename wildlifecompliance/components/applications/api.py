@@ -107,13 +107,34 @@ def application_refund_callback(invoice_ref, bpoint_tid):
     logger.info(
         'application_refund_callback: Inv {0}'.format(invoice_ref)
     )
+    AMENDMENT = Application.APPLICATION_TYPE_AMENDMENT
+    DISCARDED = Application.CUSTOMER_STATUS_DRAFT
     try:
         ai = ApplicationInvoice.objects.filter(
             invoice_reference=invoice_ref
         )
+        with transaction.atomic():
 
-        for i in ai:
-            i.application.save()
+            for i in ai:
+                '''
+                Check where invoice is for an amendment application as refunds
+                are paid back to previous application invoice - will apply a 
+                save on both applications.
+                '''
+                amend = Application.objects.filter(
+                    previous_application_id=i.application_id,
+                    application_type=AMENDMENT,
+                ).exclude(
+                    customer_status=DISCARDED,
+                ).first()
+
+                if (amend):
+                    logger.info('refund_callback amendID {0}'.format(amend))
+                    amend.set_property_cache_refund_invoice(ai)
+                    amend.save()
+
+                i.application.set_property_cache_refund_invoice(ai)
+                i.application.save()
 
     except Exception as e:
         logger.error(
@@ -131,13 +152,42 @@ def application_invoice_callback(invoice_ref):
     logger.info(
         'application_invoice_callback: Inv {0}'.format(invoice_ref)
     )
+    AMENDMENT = Application.APPLICATION_TYPE_AMENDMENT
+    CASH = ApplicationInvoice.OTHER_PAYMENT_METHOD_CASH 
+    DISCARDED = Application.CUSTOMER_STATUS_DRAFT 
     try:
         ai = ApplicationInvoice.objects.filter(
             invoice_reference=invoice_ref
         )
+        with transaction.atomic():
 
-        for i in ai:
-            i.application.save()
+            for i in ai:
+                '''
+                Check for cash payment invoices on amendments as refunds are 
+                recorded causing the invoice_callback() to be applied. Save on 
+                both applications.
+
+                NOTE: cannot apply a ledger refund to an invoice for recorded 
+                cash payment - can only be recorded as a refund amount.
+                '''
+                if i.other_payment_method == CASH:
+
+                    amend = Application.objects.filter(
+                        previous_application_id=i.application_id,
+                        application_type=AMENDMENT,
+                    ).exclude(
+                        customer_status=DISCARDED,
+                    ).first()
+
+                    if amend and amend.requires_refund_amendment():
+                        logger.info('inv_callback amendID {0}'.format(amend))
+                        amend.set_property_cache_refund_invoice(ai)
+                        amend.save()
+
+                    if int(i.application.application_fee) < 0:
+                        i.application.set_property_cache_refund_invoice(ai)
+
+                i.application.save()
 
     except Exception as e:
         logger.error(
@@ -203,21 +253,59 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                     selected_activities__licence_activity__licence_category__name__icontains=category_name
                 )
                 queryset = queryset.filter(id__in=category_name_app_ids)
+
             processing_status = processing_status.lower() if processing_status else 'all'
             if processing_status != 'all':
-                # processing_status_app_ids = []
-                processing_status_app_ids = [
-                    application.id for application in queryset.all()
-                    if processing_status in application.processing_status.lower()
-                    or (
-                        processing_status == Application.PROCESSING_STATUS_DRAFT
-                        and Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE in application.processing_status.lower()
+
+                if processing_status \
+                == Application.CUSTOMER_STATUS_UNDER_REVIEW:
+                    exclude = [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
+                    ]
+
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter().exclude(
+                        selected_activities__processing_status__in=exclude,
                     )
-                ]
-                # for application in queryset:
-                #     if processing_status in application.processing_status.lower():
-                #         processing_status_app_ids.append(application.id)
+
+                elif processing_status \
+                == Application.CUSTOMER_STATUS_AWAITING_PAYMENT:
+                    include = [
+                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                    ]
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        selected_activities__processing_status__in=include,
+                    )
+
+                elif processing_status \
+                == Application.CUSTOMER_STATUS_PARTIALLY_APPROVED:
+                    include = [
+                        Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+                    ]
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        customer_status__in=include,
+                    )
+
+                else:
+                    processing_status_app_ids = Application.objects.values(
+                        'id'
+                    ).filter(
+                        selected_activities__processing_status__in=[
+                            processing_status
+                        ]
+                    )
+
                 queryset = queryset.filter(id__in=processing_status_app_ids)
+
             customer_status = customer_status.lower() if customer_status else 'all'
             if customer_status != 'all':
                 customer_status_app_ids = []
@@ -225,11 +313,13 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                     if customer_status in application.customer_status.lower():
                         customer_status_app_ids.append(application.id)
                 queryset = queryset.filter(id__in=customer_status_app_ids)
+
             if date_from:
                 queryset = queryset.filter(lodgement_date__gte=date_from)
             if date_to:
                 date_to = datetime.strptime(date_to, '%Y-%m-%d') + timedelta(days=1)
                 queryset = queryset.filter(lodgement_date__lte=date_to)
+
             submitter = submitter.lower() if submitter else 'all'
             if submitter != 'all':
                 queryset = queryset.filter(submitter__email__iexact=submitter)
@@ -552,7 +642,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
 
             instance = Application.objects.last()
-            serializer = DTApplicationSelectSerializer(instance)
+            serializer = DTApplicationSelectSerializer(
+                instance, context={'is_internal': is_internal(request)}
+            )
 
             return Response(serializer.data)
 
@@ -900,10 +992,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                    or a.has_additional_fee
                 ]
                 # only fees which are greater than zero.
-                # activities_with_fees = [
-                #    a for a in activities_adj
-                #    if a.application_fee > 0 or a.licence_fee > 0
-                # ]
 
                 for activity in activities_adj:
 
@@ -976,28 +1064,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                                 clear_inv.get_product_line_refund_for(p)
                             )
 
-            # Check if refund is required from last invoice.
-            # last_inv = LicenceFeeClearingInvoice(instance)
-            # if last_inv.is_refundable:
-            #     product_lines.append(last_inv.get_product_line_for_refund())
-
-                # # refund any application fee adjustments.
-                # if instance.application_fee < 0:
-
-                #     price_excl = calculate_excl_gst(instance.application_fee)
-                #     if ApplicationFeePolicy.GST_FREE:
-                #         price_excl = instance.application_fee
-                #     # _code = activity.licence_activity.oracle_account_code
-                #     oracle_code = ''
-
-                #     product_lines.append({
-                #         'ledger_description': 'Adjusted fee refund',
-                #         'quantity': 1,
-                #         'price_incl_tax': str(instance.application_fee),
-                #         'price_excl_tax': str(price_excl),
-                #         'oracle_code': oracle_code
-                #     })
-
             checkout_result = checkout(
                 request, instance,
                 lines=product_lines,
@@ -1026,9 +1092,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1048,9 +1112,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1070,9 +1132,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.request_id_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'id_check_status': instance.id_check_status},
                 status=status.HTTP_200_OK
@@ -1116,9 +1176,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_character_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'character_check_status': instance.character_check_status},
                 status=status.HTTP_200_OK
@@ -1158,9 +1216,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.accept_return_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'return_check_status': instance.return_check_status},
                 status=status.HTTP_200_OK
@@ -1180,9 +1236,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.reset_return_check(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'return_check_status': instance.return_check_status},
                 status=status.HTTP_200_OK
@@ -1234,9 +1288,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'You are not in any relevant licence officer groups for this application.')
             instance.assign_officer(request, request.user)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': user.id},
                 status=status.HTTP_200_OK
@@ -1271,9 +1323,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(
                     'User is not in any relevant licence officer groups for this application')
             instance.assign_officer(request, user)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': user.id},
                 status=status.HTTP_200_OK
@@ -1293,9 +1343,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             instance.unassign_officer(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
             return Response(
                 {'assigned_officer_id': None},
                 status=status.HTTP_200_OK
@@ -1322,10 +1370,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for this application.')
 
             instance.set_activity_approver(activity_id, me)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': me.id},
@@ -1371,10 +1415,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     licence approver groups for application activity.')
 
             instance.set_activity_approver(activity_id, approver)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': approver.id},
@@ -1399,10 +1439,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             activity_id = request.data.get('activity_id', None)
             instance.set_activity_approver(activity_id, None)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-
-            # return Response(serializer.data)
 
             return Response(
                 {'assigned_approver_id': None},
@@ -1526,9 +1562,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             serializer = ProposedLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             instance.proposed_licence(request, serializer.validated_data)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
 
             return Response({'success': True})
 
@@ -1618,11 +1651,6 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             response = Response(serializer.data)
             return response
 
-            # return Response(
-            #     {'licence_type_data': instance.licence_type_data}, 
-            #     status=status.HTTP_200_OK,
-            # )
-
         except MissingFieldsException as e:
             return Response({
                 'missing': e.error_list},
@@ -1667,10 +1695,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = IssueLicenceSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            instance.final_decision(request)
-            # serializer = InternalApplicationSerializer(
-            #     instance, context={'request': request})
-            # return Response(serializer.data)
+
+            with transaction.atomic():
+                instance.final_decision(request)
 
             return Response({'success': True})
 

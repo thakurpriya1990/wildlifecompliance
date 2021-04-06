@@ -350,6 +350,12 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
             if record.component_type not in ['checkbox', 'radiobuttons']:
                 continue
 
+            if 'ridx' in record.field_name:
+                # TODO support for repeatable groups.
+                # idx = record.field_name.find('-ridx')
+                # record.filed_name = record.field_name[:idx]
+                continue
+
             component = schema_fields[record.field_name]
             if 'options' in component:
 
