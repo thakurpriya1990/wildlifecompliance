@@ -3022,7 +3022,7 @@ class Application(RevisionedMixin):
                 print(Exception)
                 raise
 
-    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False):
+    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False, with_officer_finalisation=False):
         '''
         Issues the Selected Activity with or without full licence generation.
 
@@ -3225,6 +3225,8 @@ class Application(RevisionedMixin):
             # Attach the re-generated licence to latest application.
             latest_application_in_function.licence_document \
                 = parent_licence.licence_document
+
+        if not with_officer_finalisation:      
             latest_application_in_function.save()
 
         # except Exception as e:
@@ -3462,11 +3464,13 @@ class Application(RevisionedMixin):
                         else:
                             issued_activities.append(selected_activity)
                             generate_licence = False
+                            with_officer_finalisation = True
                             self.issue_activity(
                                 request, selected_activity,
                                 parent_licence,
                                 generate_licence,
                                 preview,
+                                with_officer_finalisation,
                             )
                             # Check Selected Activity for over payment. Can
                             # refund later by officer with app dashboard link.
@@ -3558,7 +3562,7 @@ class Application(RevisionedMixin):
                     licence=parent_licence
                 )
                 self.licence_document = parent_licence.licence_document
-                self.save()
+                # self.save()
 
                 # outstanding payments for paper submission require cash
                 # payments and no email notifications. (refund checks)
@@ -3603,9 +3607,10 @@ class Application(RevisionedMixin):
                 # Notify customer of failed payment and set Application status for customer.
                 send_activity_invoice_issue_notification(self, activity, request)
             self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
-            self.save()
+            # self.save()
 
         self.update_customer_approval_status()
+        self.save()
         logger.debug('Applications.final_decision() - end')
 
     def update_customer_approval_status(self):
@@ -3645,7 +3650,7 @@ class Application(RevisionedMixin):
         if unpaid_activity_count > 0:
             self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
 
-        self.save()
+        # self.save()
         logger.debug('Applications.update_customer_spproval_status() - end')
 
     @staticmethod
