@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.conf import settings
 from django.template.loader import render_to_string
+from django.db import transaction
 from wildlifecompliance.components.applications.utils import SchemaParser
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -207,10 +208,9 @@ class LicenceFeeSuccessView(TemplateView):
             LicenceFeeClearingInvoice
         )
         ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        session_activity = get_session_activity(request.session)
+        invoice_ref = request.GET.get('invoice')
         try:
-            session_activity = get_session_activity(request.session)
-            invoice_ref = request.GET.get('invoice')
-
             application = Application.objects.get(
                 id=session_activity.application_id
             )
@@ -225,82 +225,83 @@ class LicenceFeeSuccessView(TemplateView):
                 # For each activity record the invoice ref and application fee
                 # paid as this amount may need to be refunded.
 
-                invoice = ActivityInvoice.objects.get_or_create(
-                    activity=activity,
-                    invoice_reference=invoice_ref
-                )
+                with transaction.atomic():
 
-                paid_purposes = [
-                    p for p in activity.proposed_purposes.all()
-                    if p.is_payable
-                ]
+                    invoice = ActivityInvoice.objects.get_or_create(
+                        activity=activity,
+                        invoice_reference=invoice_ref
+                    )
 
-                inv_lines = []
+                    paid_purposes = [
+                        p for p in activity.proposed_purposes.all()
+                        if p.is_payable
+                    ]
 
-                for p in paid_purposes:
+                    inv_lines = []
 
-                    # Check if refund is required and can be included.
-                    # clear_inv = LicenceFeeClearingInvoice(application)
+                    for p in paid_purposes:
 
-                    fee = p.additional_fee
-                    l_type = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
+                        # Check if refund is required and can be included.
+                        # clear_inv = LicenceFeeClearingInvoice(application)
 
-                    if fee > -1:
-                        inv_lines.append(ActivityInvoiceLine(
-                            invoice=invoice[0],
-                            licence_activity=activity.licence_activity,
-                            licence_purpose=p.purpose,
-                            invoice_line_type=l_type,
-                            amount=fee
-                        ))
+                        fee = p.additional_fee
+                        l_type = ActivityInvoiceLine.LINE_TYPE_ADDITIONAL
 
-                    fee = p.adjusted_licence_fee
-                    l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
+                        if fee > -1:
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
 
-                    if fee > -1:
+                        fee = p.adjusted_licence_fee
+                        l_type = ActivityInvoiceLine.LINE_TYPE_LICENCE
 
-                        inv_lines.append(ActivityInvoiceLine(
-                            invoice=invoice[0],
-                            licence_activity=activity.licence_activity,
-                            licence_purpose=p.purpose,
-                            invoice_line_type=l_type,
-                            amount=fee
-                        ))
+                        if fee > -1:
 
-                    fee = p.get_payable_application_fee()
-                    l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
 
-                    if fee > -1:
-                        inv_lines.append(ActivityInvoiceLine(
-                            invoice=invoice[0],
-                            licence_activity=activity.licence_activity,
-                            licence_purpose=p.purpose,
-                            invoice_line_type=l_type,
-                            amount=fee
-                        ))
+                        fee = p.get_payable_application_fee()
+                        l_type = ActivityInvoiceLine.LINE_TYPE_APPLICATION
 
-                    # if clear_inv.is_refundable:
-                    #     inv_lines.append(
-                    #         clear_inv.get_invoice_line_refund_for(
-                    #             p, invoice[0])
+                        if fee > -1:
+                            inv_lines.append(ActivityInvoiceLine(
+                                invoice=invoice[0],
+                                licence_activity=activity.licence_activity,
+                                licence_purpose=p.purpose,
+                                invoice_line_type=l_type,
+                                amount=fee
+                            ))
+
+                        # if clear_inv.is_refundable:
+                        #     inv_lines.append(
+                        #         clear_inv.get_invoice_line_refund_for(
+                        #             p, invoice[0])
+                        #     )
+
+                    ActivityInvoiceLine.objects.bulk_create(inv_lines)
+
+                    # There may be adjustments to application fee.
+                    # if activity.application_fee > 0:
+                    #     ActivityInvoiceLine.objects.get_or_create(
+                    #         invoice=invoice[0],
+                    #         licence_activity=activity.licence_activity,
+                    #         amount=activity.application_fee
                     #     )
-
-                ActivityInvoiceLine.objects.bulk_create(
-                    inv_lines
-                )
-
-                # There may be adjustments to application fee.
-                # if activity.application_fee > 0:
-                #     ActivityInvoiceLine.objects.get_or_create(
-                #         invoice=invoice[0],
-                #         licence_activity=activity.licence_activity,
-                #         amount=activity.application_fee
-                #     )
-                # update the status from awaiting fee payment.
-                activity.processing_status = ACCEPTED
-                activity.application.issue_activity(
-                   request, activity,
-                   generate_licence=True if i == activities.count() else False)
+                    # update the status from awaiting fee payment.
+                    activity.processing_status = ACCEPTED
+                    generate = True if i == activities.count() else False
+                    activity.application.issue_activity(
+                        request, activity, generate_licence=generate
+                    )
 
                 i = i + 1
 
@@ -315,8 +316,9 @@ class LicenceFeeSuccessView(TemplateView):
                         kwargs={'reference': invoice_ref}))
 
         except Exception as e:
-            print(e)
-            traceback.print_exc
+            logger.error('LicenceFeeSuccessView.get() AppID {0} - {1}'.format(
+                session_activity.application_id, e
+            ))
             delete_session_activity(request.session)
             return redirect(reverse('external'))
 

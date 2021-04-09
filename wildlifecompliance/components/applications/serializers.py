@@ -94,6 +94,7 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
         returns all status types available for either internal or external
         application.
         '''
+        is_internal = self.context['is_internal']
         # Displayable text for drop-down.
         N1 = 'Draft'
         N2 = 'Under Review'
@@ -505,7 +506,6 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
-        print('get_invoice_url')
         url = None
         if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
@@ -516,7 +516,7 @@ class DTExternalApplicationSelectedActivitySerializer(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-        print(url)
+
         return url
 
 
@@ -947,7 +947,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'invoice_url',
             'total_paid_amount',
             'payment_url',
-            'requires_refund',
+            # 'requires_refund',
             'all_payments_url',
             'adjusted_paid_amount',
             'is_reception_paper',
@@ -1158,15 +1158,20 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             for invoice in invoices:
                 invoice_str += '&invoice={}'.format(invoice.invoice_reference)
 
-            if app.requires_refund:
-                if app.application_type == \
-                        Application.APPLICATION_TYPE_AMENDMENT:
-                    previous = Application.objects.get(
-                        id=app.previous_application.id)
-                    invoices = previous.invoices.all()
-                    for invoice in invoices:
-                        invoice_str += '&invoice={}'.format(
-                            invoice.invoice_reference)
+            url = '{0}payment?invoice={1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                invoice_str,
+            )
+
+        elif app.requires_refund_amendment():
+            # build url for refunding 
+            invoice_str = ''
+            previous = Application.objects.get(
+                id=app.previous_application.id)
+            invoices = previous.invoices.all()
+            for invoice in invoices:
+                invoice_str += '&invoice={}'.format(
+                    invoice.invoice_reference)
 
             url = '{0}payment?invoice={1}'.format(
                 settings.WC_PAYMENT_SYSTEM_URL_INV,

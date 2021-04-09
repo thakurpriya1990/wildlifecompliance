@@ -369,6 +369,10 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             var proposed = this.selectedApplicationActivity.proposed_purposes.filter(purpose => {
+                if (purpose.processing_status === 'reissue'){
+                    purpose.proposed_start_date = purpose.start_date
+                    purpose.proposed_end_date = purpose.expiry_date              
+                }
                 return ['selected','reissue','propose'].includes(purpose.processing_status)
             });
             return proposed;
