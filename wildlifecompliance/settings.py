@@ -273,5 +273,5 @@ TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '02:05')
 
 # if DEBUG:
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #

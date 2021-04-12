@@ -6,6 +6,10 @@ from django.shortcuts import redirect
 from django.utils.http import urlquote_plus
 from django.conf import settings
 
+from wildlifecompliance.management.securebase_manager import (
+    SecureAuthorisationEnforcer
+)
+
 logger = logging.getLogger(__name__)
 # logger = logging
 
@@ -19,7 +23,7 @@ class FirstTimeNagScreenMiddleware(object):
 
         if is_wildlifelicensing_request(request):
             # Apply WildifeLicensing first-time checks.
-            first_time_nag = FirstTimeWildlifeLicensingNag()
+            first_time_name = SecureAuthorisationEnforcer(request)
 
         return first_time_nag.process_request(request)
 
@@ -47,27 +51,3 @@ class FirstTimeDefaultNag(object):
                         urlquote_plus(
                             request.get_full_path()))
 
-
-class FirstTimeWildlifeLicensingNag(object):
-    '''
-    A specialised FirstTimeNagScreenMiddleware for WildlifeLicensing.
-    '''
-    logger.debug('middleware.FirstTimeWildlifeLicensingNag')
-
-    def process_request(self, request):
-        from wildlifecompliance.helpers import is_new_to_wildlifelicensing
-
-        if request.method == 'GET' and 'api' not in request.path \
-        and 'admin' not in request.path \
-        and request.user.is_authenticated():
-
-            if is_new_to_wildlifelicensing(request):
-                path_ft = reverse('first_time')
-                path_logout = reverse('accounts:logout')
-                request.session['new_to_wildlifecompliance'] = True
-                if request.path not in (path_ft, path_logout):
-                    return redirect(
-                        reverse('first_time') +
-                        "?next=" +
-                        urlquote_plus(
-                            request.get_full_path()))
