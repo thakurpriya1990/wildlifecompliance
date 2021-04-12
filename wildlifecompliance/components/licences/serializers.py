@@ -183,8 +183,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
 
 
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
-    licence_document = serializers.CharField(
-        source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField(read_only=True)
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
@@ -210,6 +209,9 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
+
+    def get_licence_document(self, obj):
+        return None
 
     def get_can_action(self, obj):
         # set default but use to_representation to calculate based on
