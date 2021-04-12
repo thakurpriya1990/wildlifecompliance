@@ -83,15 +83,14 @@
                           </div>
                           <div class="form-group">
                             <label class="col-sm-3 control-label">Identification</label>
-                            <div class="col-sm-6">
-                                <span v-if="!uploadedID" class="btn btn-link btn-file pull-left">Attach File<input type="file" ref="uploadedID" @change="readFileID()"/></span>
-                                <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span>
-                                <span v-else class="btn btn-link btn-file pull-left">&nbsp;Uploading...</span>
-                                <div>
-                                    <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
-                                        <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
-                                    </span>
-                                </div>
+                            <div class="col-sm-9">
+                                <!-- <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span> -->
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-if="uploadedID"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'user_id': current_user.id}" /></span>
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else-if="!uploadedID">Attach Photo ID<input type="file" ref="uploadedID" @change="readFileID()"/></span>
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else >&nbsp;Uploading...</span>
+                                <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
+                                    <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
+                                </span>
                             </div>                            
                           </div>
                           <div class="form-group">
@@ -416,8 +415,12 @@
 import Vue from 'vue'
 import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import SecureBaseLink from '@/components/common/securebase_link.vue';
 export default {
     name: 'MyUserDetails',
+    components: {
+        SecureBaseLink,
+    },
     data () {
         let vm = this;
         return {
@@ -1107,7 +1110,6 @@ export default {
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.my_user_details).then((response) => {
-            console.log(response.body)
             if (to.name == 'first-time' && response.body.address_details && response.body.personal_details && response.body.contact_details && response.body.has_complete_first_time){
                 window.location.href='/';
             }
