@@ -20,3 +20,11 @@ class ApplicationMissingFields(APIException):
 
 class BindApplicationException(Exception):
     pass
+
+
+class SecureBaseException(Exception):
+    '''
+    A specialised exception object for securebase errors allowing for logging
+    and auditing purposes.
+    '''
+    pass

@@ -187,6 +187,20 @@ LOGGING['loggers']['application_checkout'] = {
     'handlers': ['application_checkout'],
     'level': 'INFO'
 }
+# Additional logging for securebase manager.
+LOGGING['handlers']['securebase_manager'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(
+        BASE_DIR,
+        'logs',
+        'securebase_manager.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880}
+LOGGING['loggers']['securebase_manager'] = {
+    'handlers': ['securebase_manager'],
+    'level': 'INFO'
+}
 # # Additional logging for compliancemanagement
 # LOGGING['handlers']['compliancemanagement'] = {
 #     'level': 'INFO',
@@ -259,5 +273,5 @@ TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '02:05')
 
 # if DEBUG:
-#     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #
