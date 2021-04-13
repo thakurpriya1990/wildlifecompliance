@@ -9,6 +9,8 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from ledger.accounts.models import EmailUser, RevisionedMixin
+from rest_framework import serializers
+
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
@@ -470,14 +472,14 @@ class SanctionOutcome(models.Model):
     def is_issuable(self, raise_exception=False):
         date_window = self.issue_due_date_window
         if not date_window:
-            raise ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
+            raise serializers.ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
 
         if today > issue_due_date:
             if raise_exception:
-                raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
+                raise serializers.ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
             else:
                 return False
         else:
@@ -647,7 +649,6 @@ class SanctionOutcome(models.Model):
         self.log_user_action(SanctionOutcomeUserAction.ACTION_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR.format(self.lodgement_number), request)
         self.save()
 
-
     def retrieve_penalty_amounts_by_date(self):
         qs_aco = AllegedCommittedOffence.objects.filter(Q(sanction_outcome=self) & Q(included=True))
         if qs_aco.count() != 1:  # Only infringement notice can have penalty. Infringement notice can have only one alleged offence.
@@ -660,13 +661,22 @@ class SanctionOutcome(models.Model):
         try:
             if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
                 today = datetime.date.today()
-                if today <= self.last_due_date_1st:
-                    return self.last_due_date_1st
-                if today <= self.last_due_date_2nd:
-                    return self.last_due_date_2nd
-                else:
+                due_dates = self.due_dates.all()
+                last_due_date = due_dates.order_by('id').last()
+                if last_due_date.due_date_term_currently_applied == '1st':
+                    return last_due_date.due_date_1st
+                elif last_due_date.due_date_term_currently_applied == '2nd':
+                    return last_due_date.due_date_2nd
+                elif last_due_date.due_date_term_currently_applied == 'overdue':
                     # Overdue
-                    return self.last_due_date_2nd
+                    return last_due_date.due_date_2nd
+                # if today <= self.last_due_date_1st:
+                #     return self.last_due_date_1st
+                # if today <= self.last_due_date_2nd:
+                #     return self.last_due_date_2nd
+                # else:
+                #     # Overdue
+                #     return self.last_due_date_2nd
             else:
                 return None
         except Exception as e:
@@ -917,6 +927,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
+    ACTION_MARK_AS_POSTED = "Mark Document(s) posted for the Sanction Outcome {}"
     ACTION_SEND_TO_DOT = "Send details of Sanction Outcome {} to Dep. of Transport"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"
