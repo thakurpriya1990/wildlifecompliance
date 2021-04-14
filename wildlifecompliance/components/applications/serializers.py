@@ -264,6 +264,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
+    can_propose_purposes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -366,6 +367,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         logger.debug('SelectedActivitySerializer.has_inspection() - end')
 
         return has_inspection
+
+    def get_can_propose_purposes(self, obj):
+        return obj.can_propose_purposes()
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):

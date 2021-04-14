@@ -5811,6 +5811,20 @@ class ApplicationSelectedActivity(models.Model):
 
         return purposes
 
+    def can_propose_purposes(self):
+        '''
+        Verification that all conditions on this Selected Activity have been 
+        completed for proposal of purposes.
+
+        :return: boolean flag to indicate no incomplete conditions.
+        '''
+        incomplete_conditions = [
+            c for c in self.get_condition_list() 
+            if c.return_type and not c.due_date     # check due date for return
+        ]
+
+        return not incomplete_conditions
+
     def get_condition_list(self):
         '''
         Get a list of conditions for this Selected Activity.
