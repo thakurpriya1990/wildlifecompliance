@@ -48,7 +48,7 @@
 
             <div v-if="applicationDetailsVisible">
                 <ul id="tabs-assessor" class="nav nav-pills mb-3">
-                    <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm()">
+                    <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm(item1)">
                         <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
                     </li>
                 </ul>
@@ -436,9 +436,12 @@ export default {
                 this.$refs.send_to_assessor.isModalOpen=true;
             }
         },
-        clearSendToAssessorForm(){
-            this.$refs.send_to_assessor.assessment.text='';
+        clearSendToAssessorForm(item){
+            if (this.$refs.send_to_assessor) {
+                this.$refs.send_to_assessor.assessment.text='';
+            }
             this.selectedAssessor={};
+            this.$emit('action-tab', {tab: item})
         },
         hasActivityStatus: function(status_list, status_count=1, required_role=null) {
             return this.checkActivityStatus(status_list, status_count, required_role);

@@ -306,6 +306,7 @@ export default {
             'licenceActivities',
             'canAssignOfficerFor',
             'selected_activity_tab_id',
+            'selected_activity_tab_workflow_state'
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -320,8 +321,7 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             return this.application.activities.filter( activity => { 
-
-                    return activity.processing_status.id === 'with_officer_conditions'
+                    return activity.processing_status.id === 'with_officer_conditions' && !this.selected_activity_tab_workflow_state[activity.licence_activity];
                 } // only non-processed activities.
             );
         },

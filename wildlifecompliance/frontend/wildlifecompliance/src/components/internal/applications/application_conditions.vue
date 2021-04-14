@@ -151,7 +151,7 @@ export default {
                 rowCallback: function ( row, data, index) {
                     if (data.return_type && !data.due_date) {
                         $('td', row).css('background-color', 'Red');
-                        vm.setApplicationWorkflowState({bool: true})
+                        vm.setActivityTabWorkflowState({ tab_id: vm.selected_activity_tab_id, bool: true} )
                     }
                 },
                 drawCallback: function (settings) {
@@ -167,7 +167,7 @@ export default {
                     $('.dtMoveDown').click(vm.moveDown);
                 },
                 preDrawCallback: function (settings) {
-                    vm.setApplicationWorkflowState({bool: false})
+                    vm.setActivityTabWorkflowState({ tab_id: vm.selected_activity_tab_id, bool: false} )
                 }
             }
         }
@@ -187,7 +187,6 @@ export default {
             'canEditAssessmentFor',
             'current_user',
             'canAssignOfficerFor',
-            'application_workflow_state',
         ]),
         canAddConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
@@ -258,7 +257,7 @@ export default {
     },
     methods:{
         ...mapActions([
-            'setApplicationWorkflowState',
+            'setActivityTabWorkflowState',
         ]),
         addCondition(preloadedCondition){
             var showDueDate = false
