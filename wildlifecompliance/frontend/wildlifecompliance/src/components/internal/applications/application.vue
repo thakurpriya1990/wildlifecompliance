@@ -182,7 +182,7 @@
                     <IssueLicence :application="application" :licence_activity_tab="selected_activity_tab_id"/>
                 </template>
 
-                <ApplicationAssessments v-if="isSendingToAssessor || isOfficerConditions" />
+                <ApplicationAssessments @action-tab="actionTabListener" v-if="isSendingToAssessor || isOfficerConditions" />
 
                 <template v-if="applicationDetailsVisible && showingApplication">
                     <div>
@@ -783,12 +783,12 @@ export default {
             'canRequestAmendmentFor',
             'canAssignOfficerFor',
             'canAssignAssessorFor',
-            'application_workflow_state',
             'id_check_status',
             'character_check_status',
             'return_check_status',
             'hasCurrentLicence',
             'allCurrentActivities',
+            'selected_activity_tab_workflow_state',
         ]),
         applicationDetailsVisible: function() {
             // set initalise
@@ -839,7 +839,7 @@ export default {
                 return false;
             };
             // check activity is not assigned to another approver.
-            if (this.selectedActivity.assigned_approver != null && this.selectedActivity.assigned_approver !== this.current_user.id) {
+            if (this.selectedActivity.assigned_approver != null && parseInt(this.selectedActivity.assigned_approver) !== parseInt(this.current_user.id)) {
                 return false;
             };
             // set link/button flags to match the tabs workflow.
@@ -899,7 +899,7 @@ export default {
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
                 });                                                                // processing_status.id not related to processing_status.name
 
-            if (this.application_workflow_state || !this.hasCurrentLicence){
+            if (this.selected_activity_tab_workflow_state[this.selected_activity_tab_id] || !this.hasCurrentLicence){
                 // presentation frontend state is incomplete or no valid licence.
                 proposal = false;
             }
@@ -908,7 +908,7 @@ export default {
             return proposal ? proposal.processing_status.id = 'with_officer_conditions' : false;
         },
         canProposeToOnlyDecline: function() {
-            let decline_proposal = !this.hasCurrentLicence;
+            let decline_proposal = !this.hasCurrentLicence || this.selected_activity_tab_workflow_state[this.selected_activity_tab_id];
             if (this.canProposeIssueOrDecline) {
                 decline_proposal = false;
             }
@@ -1062,6 +1062,9 @@ export default {
             if (this.selectedActivity.processing_status.id === 'with_officer_finalisation') {
                 return false;
             }
+            if (this.selectedActivity.processing_status.id === 'accepted') {
+                return false;
+            }
 
             return show
         },
@@ -1098,24 +1101,17 @@ export default {
             'resetUpdateFeeStatus',
             'setAssessStatus',
             'setLicenceTypeData',
+            'setActivityTabWorkflowState',
         ]),
         selectTab: function(component) {
             this.section_tab_id = component.id;
             this.setActivityTab({id: component.id, name: component.label});
             this.showingApplicant = false;
+            this.setActivityTabWorkflowState({ tab_id: component.id, bool: !this.selectedActivity.can_propose_purposes} )
+            this.actionTab(this.selectedActivity)
         },
         selectApplicantTab: function() {
             this.showingApplicant = true;
-        },
-        eventListeners: function(){
-            let vm = this;
-            $("[data-target!=''][data-target]").off("click").on("click", function (e) {
-                vm.setActivityTab({
-                    id: parseInt($(this).data('target').replace('#', ''), 10),
-                    name: $(this).text()
-                });
-            });
-            this.initFirstTab();
         },
         userHasRole: function(role, activity_id) {
             return this.hasRole(role, activity_id);
@@ -1680,12 +1676,12 @@ export default {
             });
         },
         backToProcessing: async function(){
-            this.toggleApplication({show: true})
             let authorised = this.canAssignOfficerFor(this.selectedActivity.licence_activity);
             let workflow = ['with_officer','with_officer_conditions'].includes(this.selectedActivity.processing_status.id)
             if (authorised && workflow) {
-                this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'process'})
+                await this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'process'})
             }
+            this.toggleApplication({show: true})
         },
         initialiseAssignedOfficerSelect: function(reinit=false){
             let vm = this;
@@ -1762,6 +1758,52 @@ export default {
             this.$refs.applicantTab.click();
             this.initFirstTab(true);
         },
+        // eventListeners: function(){
+        //     let vm = this;
+
+        //     $("[data-target!=''][data-target]").off("click").on("click", function (e) {
+        //         vm.setActivityTab({
+        //             id: parseInt($(this).data('target').replace('#', ''), 10),
+        //             name: $(this).text()
+        //         });
+        //     });
+        //     this.initFirstTab();
+        // },
+        actionTab: function(tab) {
+            const self = this;
+
+            if (tab.processing_status.name === 'With Officer-Conditions') {
+                if (!this.isSendingToAssessor) {
+                    this.togglesendtoAssessor()
+                }
+            }
+
+            if (tab.processing_status.id === 'with_officer_finalisation') {
+                if (!this.approvingApplication && !this.officerfinalisation) {
+                    this.toggleIssue();
+                }
+            }
+
+            if (tab.processing_status.name === 'With Officer') {
+                if (!this.showingApplication) {
+                    this.toggleApplication({show: true})
+                }
+
+            } 
+
+            $("[data-target!=''][data-target]").off("click").on("click", function (e) {
+                self.setActivityTab({
+                    id: parseInt($(this).data('target').replace('#', ''), 10),
+                    name: $(this).text()
+                });
+            });
+            this.initFirstTab();
+
+        },
+        actionTabListener: function(e) {
+            const self = this;
+            self.actionTab(e.tab);
+        }
     },
     updated: function(){
         let vm = this;
@@ -1778,7 +1820,7 @@ export default {
             vm.initialiseOrgContactTable();
             vm.initialiseSelects();
             vm.form = document.forms.new_application;
-            vm.eventListeners();
+            // vm.eventListeners();
         });
     },
     mounted: function() {
