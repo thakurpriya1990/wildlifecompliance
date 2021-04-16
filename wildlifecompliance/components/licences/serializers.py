@@ -393,6 +393,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             'short_name',
             'not_for_organisation'
         )
+        order_by = ['-id']
 
     def get_purpose(self, obj):
         purposes = self.context.get('purpose_records')
@@ -463,6 +464,7 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
                     a for a in obj.get_activities()
                 ]
 
+        activities = sorted(activities, key=lambda x: x.id, reverse=False)
         request = self.context.get('request')
         user = request.user if request and request.user else None
         serializer = ActivitySerializer(

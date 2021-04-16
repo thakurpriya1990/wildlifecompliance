@@ -1090,6 +1090,12 @@ class Application(RevisionedMixin):
         :param activity_id is the Licence Activity for the Selected Activity.
         :param processing_status is from ASA.PROCESSING_STATUS_CHOICES.
         '''
+        PROCESSING_STATUS = [       # status which can be updated.
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_ASSESSOR,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS,
+            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION,
+        ]
         if not activity_id:
             logger.error("Application: %s cannot update processing status (%s) for an empty activity_id!" %
                          (self.id, processing_status))
@@ -1099,6 +1105,11 @@ class Application(RevisionedMixin):
                          (self.id, processing_status))
             return
         selected_activity = self.get_selected_activity(activity_id)
+
+        if not selected_activity.processing_status in PROCESSING_STATUS \
+        or selected_activity.processing_status == processing_status:
+            return
+
         selected_activity.processing_status = processing_status
         selected_activity.save()
         logger.info("Application: %s Activity ID: %s changed processing status to: %s" % (self.id, activity_id, processing_status))

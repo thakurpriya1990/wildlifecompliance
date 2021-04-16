@@ -48,6 +48,7 @@
 
             <div v-if="applicationDetailsVisible">
                 <ul id="tabs-assessor" class="nav nav-pills mb-3">
+                    <li class="nav-item"><a class="nav-link" data-toggle="pill" v-on:click="selectApplicantTab()">Applicant</a></li>
                     <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm(item1)">
                         <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
                     </li>
@@ -435,6 +436,9 @@ export default {
             } else {
                 this.$refs.send_to_assessor.isModalOpen=true;
             }
+        },
+        selectApplicantTab: function() {
+            this.$emit('action-tab', {tab: 'Applicant'})
         },
         clearSendToAssessorForm(item){
             if (this.$refs.send_to_assessor) {

@@ -3,6 +3,7 @@
 
                     <div class="row">
                     <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                        <li class="nav-item"><a class="nav-link">Applicant</a></li>
                         <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
                             <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
@@ -353,6 +354,7 @@ export default {
             'selected_activity_tab_id',
             'licenceActivities',
             'filterActivityList',
+            'isApplicationActivityVisible',
         ]),
         csrf_token: function() {
             return helpers.getCookie('csrftoken')
@@ -388,12 +390,17 @@ export default {
             );
         },
         visibleLicenceActivities: function() {
-            return this.filterActivityList({
-                activity_list: this.licenceActivities([
-                    'with_officer_finalisation',
-                ], 'issuing_officer'),
-                exclude_processing_statuses: ['discarded']
-            });
+            // return this.filterActivityList({
+            //     activity_list: this.licenceActivities([
+            //         'with_officer_finalisation',
+            //     ], 'issuing_officer'),
+            //     exclude_processing_statuses: ['discarded']
+            // });
+            return this.licenceActivities();
+        },
+        isActivityVisible: function(activity_id) {
+            var li = this.isApplicationActivityVisible({ activity_id: activity_id });
+            return li
         },
         selectedApplicationActivity: function() {       
             let selected_activity = this.application.activities.find(
@@ -480,6 +487,10 @@ export default {
         ]),
         selectTab: function(component) {
             this.setActivityTab({id: component.id, name: component.name});
+            this.$emit('action-tab', {tab: component})
+        },
+        selectApplicantTab: function() {
+            this.$emit('action-tab', {tab: 'IssueApplicant'})
         },
        preview: async function () {
             let vm = this;
@@ -813,7 +824,7 @@ export default {
 
         this.$nextTick(() => {
             vm.eventListeners();
-            vm.initFirstTab();
+            // vm.initFirstTab();
         });
 
     },
