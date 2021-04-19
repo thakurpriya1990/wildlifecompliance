@@ -2,8 +2,8 @@
                 <div class="col-md-12">
 
                     <div class="row">
-                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
-                        <li class="nav-item"><a class="nav-link">Applicant</a></li>
+                    <ul class="nav nav-pills mb-3" id="tabs-main" data-tabs="tabs">
+                        <li class="nav-item"><a class="nav-link" data-toggle="pill" v-on:click="selectApplicantTab()">Applicant</a></li>
                         <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
                             <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
@@ -23,14 +23,14 @@
                                     <form class="form-horizontal" action="index.html" method="post">
                                         <div class="col-sm-12">
                                             <div class="form-group">
-                                                <div class="row">
+                                                <!-- <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Ready for finalisation?</label>
                                                     </div>
                                                     <div class="col-sm-9">
                                                         <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
                                                     </div>
-                                                </div>
+                                                </div> -->
                                                 <div class="row">
                                                     <div class="col-sm-3">
                                                         <label class="control-label pull-left">Proposed Purposes</label>
@@ -355,6 +355,7 @@ export default {
             'licenceActivities',
             'filterActivityList',
             'isApplicationActivityVisible',
+            'application_workflow_state',
         ]),
         csrf_token: function() {
             return helpers.getCookie('csrftoken')
@@ -399,8 +400,7 @@ export default {
             return this.licenceActivities();
         },
         isActivityVisible: function(activity_id) {
-            var li = this.isApplicationActivityVisible({ activity_id: activity_id });
-            return li
+            return this.isApplicationActivityVisible({ activity_id: activity_id });
         },
         selectedApplicationActivity: function() {       
             let selected_activity = this.application.activities.find(
@@ -441,14 +441,6 @@ export default {
             return this.application.return_check_status.id == 'not_checked'
                 || this.application.return_check_status.id == 'updated' ;
         },
-        isValidAdditionalFee: function(){
-            // if additional fee exists then addition fee text must be included.
-            // let invalid = this.licence.activity.filter(function(e) {
-            //     return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
-            //         && (e.additional_fee_text == null || e.additional_fee_text === '')
-            // });        
-            // return invalid.length < 1 ? true : false
-        },
         finalStatus: function() {
             return (id) => {
                 return this.getActivity(id).final_status;
@@ -460,11 +452,23 @@ export default {
             ).length;
         },
         canSubmit: function() {
-            const required_confirmations = this.visibleLicenceActivities.length
-            const confirmations = this.licence.activity.filter(
-                activity => activity.confirmed
-            ).length;
-            return confirmations === required_confirmations;
+            console.log('canSubmit')
+            // const required_confirmations = this.visibleLicenceActivities.length
+            // const confirmations = this.licence.activity.filter(
+            //     activity => activity.confirmed
+            // ).length;
+            let required_confirmations = this.application.activities.find(activity => {
+ 
+                return activity.licence_activity === this.selected_activity_tab_id
+                
+            });
+            let confirmations = this.licence.activity.filter(activity => {
+
+                return activity.id === required_confirmations.licence_activity && activity.confirmed;
+
+            }).length;
+
+            return confirmations;
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -484,6 +488,7 @@ export default {
         ...mapActions([
             'setActivityTab',
             'finalDecisionData',
+            'setApplicationWorkflowState',
         ]),
         selectTab: function(component) {
             this.setActivityTab({id: component.id, name: component.name});
@@ -495,28 +500,51 @@ export default {
        preview: async function () {
             let vm = this;
 
-            if(!this.canSubmit) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs hasn't been marked as ready for finalisation!",
-                    'error'
-                );
-            }
+            // if(!this.canSubmit) {
+            //     return swal(
+            //         'Cannot issue/decline',
+            //         "One or more activity tabs hasn't been marked as ready for finalisation!",
+            //         'error'
+            //     );
+            // }
+
+            this.setApplicationWorkflowState({bool: true});
 
             this.spinner = true;
             let selected = []
+            let activity_pickedPurposes = []
+            let confirmations = []
             for (let a=0; a<this.application.activities.length; a++){
                 let activity = this.application.activities[a]
-                let proposed = activity.proposed_purposes
-                for (let p=0; p<proposed.length; p++){
-                    let purpose = proposed[p]
-                    if (['reissue','propose','selected'].includes(purpose.processing_status)){
-                        selected.push(purpose)
+
+                if (activity.licence_activity === this.selected_activity_tab_id){
+
+                    let confirmation = this.licence.activity.filter(a => {
+
+                        return a.id === activity.licence_activity;
+
+                    })[0]
+                    confirmation.confirmed=true;
+                    confirmations.push(confirmation);
+
+                    let proposed = activity.proposed_purposes
+                    for (let p=0; p<proposed.length; p++){
+                        let purpose = proposed[p]
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                            selected.push(purpose)
+
+                            let picked_purpose = this.pickedPurposes.filter(picked => {
+                                return picked.id === purpose.purpose.id;
+                            })[0]
+                            activity_pickedPurposes.push(picked_purpose)
+                        }
                     }
                 }
             }
-            vm.licence.purposes = selected
-            vm.licence.selected_purpose_ids = this.pickedPurposes
+
+            vm.licence.purposes = selected;
+            vm.licence.activity = confirmations;
+            vm.licence.selected_purpose_ids = activity_pickedPurposes;
             let licence = JSON.parse(JSON.stringify(vm.licence));
             licence.purposes = vm.licence.purposes.map(purpose => {
                 const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
@@ -533,6 +561,8 @@ export default {
                 vm.preview_licence_url,
                 {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(licence)}
             );
+
+            this.setApplicationWorkflowState({bool: false});
 
         },
 
@@ -559,87 +589,107 @@ export default {
         ok: async function () {
             let vm = this;
 
-            // if(!this.isValidAdditionalFee) {
+            // if(!this.canSubmit) {
             //     return swal(
             //         'Cannot issue/decline',
-            //         "One or more activity tabs has additional fee amount without description",
+            //         "One or more activity tabs hasn't been marked as ready for finalisation!",
             //         'error'
             //     );
             // }
 
-            if(!this.canSubmit) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs hasn't been marked as ready for finalisation!",
-                    'error'
-                );
-            }
+            // swal({
+            //     title: "Issue/Decline Activities",
+            //     text: "Payment for issued licences will be charged from the applicant's last used card.",
+            //     type: "question",
+            //     showCancelButton: true,
+            //     confirmButtonText: 'Finalise'
+            // }).then( async (result) => {
 
-            swal({
-                title: "Issue/Decline Activities",
-                text: "Payment for issued licences will be charged from the applicant's last used card.",
-                type: "question",
-                showCancelButton: true,
-                confirmButtonText: 'Finalise'
-            }).then( async (result) => {
-                if (result.value) {
-                    this.spinner = true;
-                    let selected = []
-                    for (let a=0; a<this.application.activities.length; a++){
-                        let activity = this.application.activities[a]
-                        let proposed = activity.proposed_purposes
-                        for (let p=0; p<proposed.length; p++){
-                            let purpose = proposed[p]
-                            if (['reissue','propose','selected'].includes(purpose.processing_status)){
-                                selected.push(purpose)
-                            }
+            //     if (result.value) {
+
+            this.spinner = true;
+            let selected = []
+            let activity_pickedPurposes = []
+            let confirmations = []
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a]
+
+                if (activity.licence_activity === this.selected_activity_tab_id){
+
+                    let confirmation = this.licence.activity.filter(a => {
+
+                        return a.id === activity.licence_activity;
+
+                    })[0]
+                    confirmation.confirmed=true;
+                    confirmations.push(confirmation);
+
+                    let proposed = activity.proposed_purposes
+                    for (let p=0; p<proposed.length; p++){
+                        let purpose = proposed[p]
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                            selected.push(purpose)
+
+                            let picked_purpose = this.pickedPurposes.filter(picked => {
+                                return picked.id === purpose.purpose.id;
+                            })[0]
+                            activity_pickedPurposes.push(picked_purpose)
                         }
                     }
-                    vm.licence.purposes = selected
-                    vm.licence.selected_purpose_ids = this.pickedPurposes
-                    let licence = JSON.parse(JSON.stringify(vm.licence));
-                    licence.purposes = vm.licence.purposes.map(purpose => {
-                        const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
-                        return {
-                            ...purpose,
-                            proposed_start_date: purpose.proposed_start_date ?
-                                moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
-                            proposed_end_date: purpose.proposed_end_date ?
-                                moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
-                        }
-                    });
-
-                    await this.finalDecisionData({ url: `/api/application/${this.application.id}/final_decision_data.json` }).then( async response => {
-
-                        await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
-                                    emulateJSON:true,
-
-                                }).then((response)=>{
-                                    this.spinner = false
-                                    vm.$router.push({ name:"internal-dash", });
-
-                                },(error)=>{
-                                    this.spinner = false
-                                    swal(
-                                        'Application Error',
-                                        helpers.apiVueResourceError(error),
-                                        'error'
-                                    )
-                                    // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
-                                });
-
-                    },(error)=>{
-                        this.spinner = false
-                        swal(
-                            'Application Error',
-                            helpers.apiVueResourceError(error),
-                            'error'
-                        )
-                        // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
-                    });
                 }
-            },(error) => {
+            }
+
+            vm.licence.purposes = selected;
+            vm.licence.activity = confirmations;
+            vm.licence.selected_purpose_ids = activity_pickedPurposes;
+
+            let licence = JSON.parse(JSON.stringify(vm.licence));
+            licence.purposes = vm.licence.purposes.map(purpose => {
+                const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
+                return {
+                    ...purpose,
+                    proposed_start_date: purpose.proposed_start_date ?
+                        moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
+                    proposed_end_date: purpose.proposed_end_date ?
+                        moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
+                }
             });
+
+            this.setApplicationWorkflowState({bool: true});
+            await this.finalDecisionData({ url: `/api/application/${this.application.id}/final_decision_data.json` }).then( async response => {
+
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
+                            emulateJSON:true,
+
+                        }).then((response)=>{
+                            this.spinner = false
+                            this.setApplicationWorkflowState({bool: false});
+                            vm.$router.push({ name:"internal-dash", });
+
+                        },(error)=>{
+                            this.spinner = false
+                            this.setApplicationWorkflowState({bool: false});
+                            swal(
+                                'Application Error',
+                                helpers.apiVueResourceError(error),
+                                'error'
+                            )
+                            // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+                        });
+
+            },(error)=>{
+                this.spinner = false
+                this.setApplicationWorkflowState({bool: false});
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+                // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+            });
+            //     }
+            // },(error) => {
+            // });
         },
         getActivity: function(id) {
             const activity = this.licence.activity.find(activity => activity.id == id);
@@ -677,8 +727,6 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: proposal.issued_purposes_id,
-                    // additional_fee: proposal.additional_fee,
-                    // additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){
@@ -753,7 +801,7 @@ export default {
         },
 
         initFirstTab: function(force){
-            const tab = $('#tabs-section li:first-child a')[0];
+            const tab = $('#tabs-main li:first-child a')[0];
             var first_tab = this.application.activities[0].licence_activity
 
             if(tab) {
