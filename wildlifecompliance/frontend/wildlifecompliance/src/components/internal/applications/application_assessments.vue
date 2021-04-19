@@ -47,7 +47,7 @@
             </modal>
 
             <div v-if="applicationDetailsVisible">
-                <ul id="tabs-assessor" class="nav nav-pills mb-3">
+                <ul id="tabs-main" class="nav nav-pills mb-3">
                     <li class="nav-item"><a class="nav-link" data-toggle="pill" v-on:click="selectApplicantTab()">Applicant</a></li>
                     <li class="nav-item" v-for="(item1,index) in applicationActivities" :class="setAssessorTab(index)" @click.prevent="clearSendToAssessorForm(item1)">
                         <a class="nav-link" v-if="isActivityVisible(item1.id)" data-toggle="pill" :data-target="`#${item1.id}`">{{item1.name}}</a>
@@ -60,7 +60,7 @@
                     <div>
                         <div class="panel panel-default">
                             <div class="panel-heading">
-                                <h3 class="panel-title">{{canSendToAssessor ? 'Send to Assessor' : 'Assessments'}}
+                                <h3 class="panel-title">{{isLicensingOfficer ? 'Send to Assessor' : 'Assessments'}}
                                     <a class="panelClicker" :href="`#${selectedActivity.id}`+assessorsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="assessorsBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
@@ -215,7 +215,9 @@ export default {
             return null;
         },
         isLicensingOfficer: function() {
-            return this.userHasRole('licensing_officer', this.selected_activity_tab_id);
+            let has_role = this.userHasRole('licensing_officer', this.selected_activity_tab_id);
+            let workflow = this.selectedActivity.processing_status.id === 'with_officer_conditions';
+            return has_role && workflow
         },
         canCompleteAssessment: function() {
             if(!this.userHasRole('assessor', this.selected_activity_tab_id)) {
@@ -351,15 +353,20 @@ export default {
             return this.visibleConditionsFor(for_role, processing_status, tab_id);
         },
         initFirstTab: function(force){
-            if(this.selected_activity_tab_id && !force) { 
-                let tabs = $('#tabs-assessor li')
+            if(this.selected_activity_tab_id && !force) {
+
+                let tabs = $('#tabs-main li')
                 for (let i=0; i < tabs.length; i++){
+
                     if (tabs[i].innerText===this.selected_activity_tab_name){
                         // set parent tab to selected tab.
-                        tab = $('#tabs-assessor li a')[i]
+                        tab = $('#tabs-main li a')[i]
                     }
                 }
-                tab.click();
+                if (tab) {
+
+                    tab.click();
+                }
                 return;
             }
             let tab = null
@@ -368,18 +375,20 @@ export default {
                 // force first_tab if parent tabs not created. 
                 first_tab = this.selected_activity_tab_id
                 // Set tab for parent component in completing assessments.
-                let tabs = $('#tabs-assessor li')
+                let tabs = $('#tabs-main li')
                 for (let i=0; i < tabs.length; i++){
 
                     if (tabs[i].innerText===this.selected_activity_tab_name){
                         // set parent tab to selected tab.
-                        tab = $('#tabs-assessor li a')[i]
+                        tab = $('#tabs-main li a')[i]
                     }
                 }
             } else {
+
                 first_tab = this.applicationActivities[0].id
             }
             if(tab) {
+
                 tab.click();
             }
             else { // force first tab selection attributes.
@@ -442,6 +451,7 @@ export default {
         },
         clearSendToAssessorForm(item){
             if (this.$refs.send_to_assessor) {
+
                 this.$refs.send_to_assessor.assessment.text='';
             }
             this.selectedAssessor={};
