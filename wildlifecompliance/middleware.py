@@ -18,10 +18,12 @@ class FirstTimeNagScreenMiddleware(object):
     Generic FirstTimeNagScreenMiddleware.
     '''
     def process_request(self, request):
-        from wildlifecompliance.helpers import is_wildlifelicensing_request
+        from wildlifecompliance.management.securebase_manager import (
+            SecureBaseUtils
+        )
         first_time_nag = FirstTimeDefaultNag()
 
-        if is_wildlifelicensing_request(request):
+        if SecureBaseUtils.is_wildlifelicensing_request(request):
             # Apply WildifeLicensing first-time checks.
             first_time_name = SecureAuthorisationEnforcer(request)
 
