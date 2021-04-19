@@ -1,15 +1,70 @@
 import abc
 import logging
+import calendar
+import time
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.utils.http import urlquote_plus
 
+from wildlifecompliance import settings
 from wildlifecompliance.exceptions import SecureBaseException
 
 logger = logging.getLogger('securebase_manager')
 # logger = logging
+
+
+class SecureBaseUtils(object):
+    '''
+    A SecurBase object for general security related non-functional routines.
+    '''
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def timestamp_id_request(request):
+        '''
+        Method to append current timestamp (in millis) to the file name of the
+        uploaded identification document on the client request.
+
+        NOTE: is required as multiple clients can upload file with same name
+        causing identification to be attached to incorrect user.
+
+        :param: request from client holding uploaded identification file.
+        '''
+        logger.debug('SecureBaseUtils.timestamp_id_request() - start')
+        try:
+            id_file = request.data.dict()['identification']
+            ts = calendar.timegm(time.gmtime())
+            id_file.name = '{0}_{1}'.format(str(ts), id_file.name)
+            request.data.dict()['identification'] = id_file
+
+        except Exception as e:
+            message = '{0} - {1}'.format(
+                'SecureBaseUtils.timestamp_id_request()', e)
+            logger.error(message)
+            raise
+
+        logger.debug('SecureBaseUtils.timestamp_id_request() - start')
+        return True
+
+    @staticmethod
+    def is_wildlifelicensing_request(request):
+        '''
+        Method to verify in-coming request is for Wildlife Licensing.
+
+        :param: request from client.
+        '''
+        is_wlc = False
+
+        http_host = request.META.get('HTTP_HOST', None)
+
+        if http_host and settings.SITE_URL_WLC \
+        and ('wlc' in http_host.lower() or http_host in settings.SITE_URL_WLC):
+            is_wlc = True
+
+        return is_wlc
 
 
 class SecureBase(object):
@@ -104,8 +159,6 @@ class SecurePipe(SecureBase):
         '''
         super.validate_request(self)
         '''
-        from wildlifecompliance.helpers import is_wildlifelicensing_request
-
         self.allow_request = True
 
         '''
@@ -168,14 +221,12 @@ class SecurePipe(SecureBase):
 
         :return: HttpResponse for a client request.
         '''
-        from wildlifecompliance.helpers import is_wildlifelicensing_request
-
         response = HttpResponse()
 
         try:
             self.validate_request()
 
-            if is_wildlifelicensing_request(self.request):
+            if SecureBaseUtils.is_wildlifelicensing_request(self.request):
                 response = self.get_http_response_for_wildlifelicensing()
 
         except SecureBaseException as e:
