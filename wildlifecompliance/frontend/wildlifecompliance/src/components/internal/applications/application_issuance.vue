@@ -32,9 +32,8 @@
                                                     </div>
                                                 </div> -->
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Purposes</label>
-                                                    </div>
+                                                    <div class="col-sm-12"><label class="control-label pull-left">Proposed Purposes:</label></div>
+                                                    <div class="col-sm-12"><label class="control-label pull-left">&nbsp;</label></div>
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
                                 
