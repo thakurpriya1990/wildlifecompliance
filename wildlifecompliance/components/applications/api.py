@@ -1614,6 +1614,9 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         '''
         logger.debug('assessment_data()')
         STAT = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
+        correct_status = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+        ]
         try:
             instance = self.get_object()
             assess = request.data.pop('__assess', False)
@@ -1637,10 +1640,14 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         instance.set_property_cache_assess(False)
                         instance.save()
 
-                instance.set_activity_processing_status(
-                    licence_activity_id, 
-                    STAT,
+                selected_activity = instance.get_selected_activity(
+                    licence_activity_id
                 )
+                if selected_activity.processing_status in correct_status:
+                    instance.set_activity_processing_status(
+                        licence_activity_id, 
+                        STAT,
+                    )
 
             logger.debug('assessment_data() - response success')
 
