@@ -161,7 +161,7 @@
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
                                 <select class="form-control" name="country" v-model="current_user.residential_address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="c.alpha2Code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>
@@ -250,7 +250,7 @@
                                 </div>
                             </div>
                           </div>
-                          <div v-for="org in current_user.wildlifecompliance_organisations">
+                          <div v-for="org in current_user.wildlifecompliance_organisations" v-bind:key="org.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3"> 
@@ -263,7 +263,7 @@
                                 <a style="cursor:pointer;text-decoration:none;" @click.prevent="unlinkUser(org)"><i class="fa fa-chain-broken fa-2x" ></i>&nbsp;Unlink</a>
                               </div>
                           </div>
-                          <div v-for="orgReq in orgRequest_pending">
+                          <div v-for="orgReq in orgRequest_pending" v-bind:key="orgReq.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3"> 
@@ -276,7 +276,7 @@
                                 <label><i class="fa fa-hourglass-o fa-2x" ></i> Pending Approval</label>
                               </div>
                           </div>
-                          <div v-for="orgReq in orgRequest_amendment_requested">
+                          <div v-for="orgReq in orgRequest_amendment_requested" v-bind:key="orgReq.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3">
@@ -835,18 +835,11 @@ export default {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
                     vm.uploadedID = response.body.identification.file.split('/').pop();
-                    vm.current_user.identification = response.body.identification
-                    // swal({
-                    //     title: 'Upload ID',
-                    //     html: 'Your ID has been successfully uploaded.',
-                    //     type: 'success',
-                    // });
-                    // }).then(() => {
-                    //     window.location.reload(true);
-                    // });
+                    vm.current_user.identification = response.body.identification;
                 }, (error) => {
                     console.log(error);
                     vm.uploadingID = false;
+                    vm.uploadedID = null;
                     let error_msg = '<br/>';
                     for (var key in error.body) {
                         error_msg += key + ': ' + error.body[key] + '<br/>';

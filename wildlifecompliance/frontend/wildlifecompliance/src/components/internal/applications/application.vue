@@ -308,7 +308,8 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
                                             <div class="col-sm-8">
-                                                <span class="btn btn-link btn-file pull-left"><a :href="''+application.submitter.identification.file" target="_blank">{{application.submitter.identification.file}}</a></span>
+                                                <!-- <span class="btn btn-link btn-file pull-left"><a :href="''+application.submitter.identification.file" target="_blank">{{application.submitter.identification.file}}</a></span> -->
+                                                <span class="btn btn-link btn-file pull-left"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'customer_id': application.submitter.id}" /></span>
                                             </div>
                                           </div>
                                       </form>
@@ -658,6 +659,7 @@ import ProposedLicence from './proposed_issuance.vue';
 import IssueLicence from './application_issuance.vue';
 import CommsLogs from '@common-components/comms_logs.vue';
 import AmendmentRequestDetails from '@/components/forms/amendment_request_details.vue';
+import SecureBaseLink from '@common-components/securebase_link.vue';
 import ResponsiveDatatablesHelper from "@/utils/responsive_datatable_helper.js";
 import {
     api_endpoints,
@@ -756,6 +758,7 @@ export default {
         IssueLicence,
         CommsLogs,
         AmendmentRequestDetails,
+        SecureBaseLink,
     },
     filters: {
         formatDate: function(data){

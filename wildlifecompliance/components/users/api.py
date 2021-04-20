@@ -401,8 +401,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST', ])
     def upload_id(self, request, *args, **kwargs):
+        from wildlifecompliance.management.securebase_manager import (
+            SecureBaseUtils
+        )
         try:
             instance = self.get_object()
+            SecureBaseUtils.timestamp_id_request(request)
             instance.upload_identification(request)
             with transaction.atomic():
                 instance.save()

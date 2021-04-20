@@ -245,6 +245,7 @@ class SecurePipe(SecureBase):
         :return: HttpResponse for a client request.
         '''
         import mimetypes
+        from ledger.accounts.models import EmailUser
         from wildlifecompliance.components.applications.models import (
             Application,
         )
@@ -256,10 +257,19 @@ class SecurePipe(SecureBase):
         response = HttpResponse()
         request_user_id = self.request.POST.get('user_id', None)
         request_licence_id = self.request.POST.get('licence_id', None)
+        request_customer_id = self.request.POST.get('customer_id', None)
 
         try:
             if request_user_id:
                 document = self.request.user.identification
+                mime = mimetypes.guess_type(document.filename)[0]
+
+                response = HttpResponse(content_type=mime)
+                response.write(document.file.read())
+
+            elif request_customer_id:
+                customer = EmailUser.objects.get(id=int(request_customer_id))
+                document = customer.identification
                 mime = mimetypes.guess_type(document.filename)[0]
 
                 response = HttpResponse(content_type=mime)

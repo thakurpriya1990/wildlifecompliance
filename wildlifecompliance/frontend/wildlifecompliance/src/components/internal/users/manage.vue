@@ -75,19 +75,27 @@
                                       <form class="form-horizontal" name="id_form" method="post">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
-                                            <div class="col-sm-6">
+                                            <!-- <div class="col-sm-6">
                                                 <img v-if="user.identification" width="100%" name="identification" v-bind:src="user.identification.file" />
-                                            </div>
+                                            </div> -->
+                                            <div class="col-sm-9">
+                                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-if="uploadedID"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'customer_id': user.id}" /></span>
+                                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else-if="!uploadedID">Attach Photo ID<input type="file" ref="uploadedID" @change="readFileID()"/></span>
+                                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else >&nbsp;Uploading...</span>
+                                                <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
+                                                    <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
+                                                </span>
+                                            </div> 
                                           </div>
                                           <div class="form-group">
                                             <div class="col-sm-12">
                                                 <!-- output order in reverse due to pull-right at runtime -->
-                                                <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
+                                                <!-- <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
                                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
                                                 <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
                                                 <span class="btn btn-primary btn-file pull-right">
                                                     Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                                </span>
+                                                </span> -->
                                             </div>
                                           </div>
                                        </form>
@@ -133,7 +141,7 @@
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
                                                 <select class="form-control" name="country" v-model="user.residential_address.country">
-                                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="c.alpha2Code">{{ c.name }}</option>
                                                 </select>
                                             </div>
                                           </div>
@@ -200,7 +208,7 @@
                                     </h3>
                                   </div>
                                   <div class="panel-body collapse in" :id="odBody">
-                                      <div v-for="org in user.wildlifecompliance_organisations">
+                                      <div v-for="org in user.wildlifecompliance_organisations" v-bind:key="org.id">
                                           <div class="form-group">
                                             <label for="" class="col-sm-2 control-label" >Organisation</label>
                                             <div class="col-sm-3">
@@ -213,7 +221,7 @@
                                             <a style="cursor:pointer;text-decoration:none;" @click.prevent="unlinkUser(org)"><i class="fa fa-chain-broken fa-2x" ></i>&nbsp;Unlink</a>
                                           </div>
                                       </div>
-                                      <div v-for="orgReq in orgRequest_pending">
+                                      <div v-for="orgReq in orgRequest_pending" v-bind:key="orgReq.id">
                                           <div class="form-group">
                                             <label for="" class="col-sm-2 control-label" >Organisation</label>
                                             <div class="col-sm-3">
@@ -254,6 +262,7 @@ import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
+import SecureBaseLink from '@common-components/securebase_link.vue';
 import utils from '../utils'
 import api from '../api'
 export default {
@@ -303,7 +312,8 @@ export default {
         ApplicationDashTable,
         LicenceDashTable,
         ReturnDashTable,
-        CommsLogs
+        CommsLogs,
+        SecureBaseLink,        
     },
     computed: {
         isLoading: function () {
@@ -325,6 +335,7 @@ export default {
                 vm.user = data[1];
                 vm.user.residential_address = vm.user.residential_address != null ? vm.user.residential_address : {};
                 vm.orgRequest_pending = data[2];
+                vm.uploadedID = vm.user.identification.file.split('/').pop();
             });
         });
     },
@@ -487,7 +498,7 @@ export default {
             },(error) => {
             });
         },
-        readFileID: function() {
+        readFileID: async function() {
             let vm = this;
             let _file = null;
             var input = $(vm.$refs.uploadedID)[0];
@@ -500,14 +511,16 @@ export default {
                 _file = input.files[0];
             }
             vm.uploadedID = _file;
+            await vm.uploadID();
         },
-        uploadID: function() {
+        removeID: async function() {
+            this.uploadedID = null;
+        },
+        uploadID: async function() {
             let vm = this;
-            console.log('uploading id');
             vm.uploadingID = true;
             let data = new FormData();
             data.append('identification', vm.uploadedID);
-            console.log(data);
             if (vm.uploadedID == null){
                 vm.uploadingID = false;
                 swal({
@@ -521,23 +534,19 @@ export default {
                 }).then((response) => {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
-                    swal({
-                        title: 'Upload ID',
-                        html: 'The user ID has been successfully uploaded.',
-                        type: 'success',
-                    }).then(() => {
-                        window.location.reload(true);
-                    });
+                    vm.uploadedID = response.body.identification.file.split('/').pop();
+                    vm.user.identification = response.body.identification;
                 }, (error) => {
                     console.log(error);
                     vm.uploadingID = false;
+                    vm.uploadedID = null;
                     let error_msg = '<br/>';
                     for (var key in error.body) {
                         error_msg += key + ': ' + error.body[key] + '<br/>';
                     }
                     swal({
                         title: 'Upload ID',
-                        html: 'There was an error uploading the user ID.<br/>' + error_msg,
+                        html: 'There was an error uploading your ID.<br/>' + error_msg,
                         type: 'error'
                     });
                 });
