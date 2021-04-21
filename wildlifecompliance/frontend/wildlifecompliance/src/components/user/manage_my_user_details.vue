@@ -84,7 +84,6 @@
                           <div class="form-group">
                             <label class="col-sm-3 control-label">Identification</label>
                             <div class="col-sm-9">
-                                <!-- <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span> -->
                                 <span class="col-sm-3 btn btn-link btn-file pull-left" v-if="uploadedID"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'user_id': current_user.id}" /></span>
                                 <span class="col-sm-3 btn btn-link btn-file pull-left" v-else-if="!uploadedID">Attach Photo ID<input type="file" ref="uploadedID" @change="readFileID()"/></span>
                                 <span class="col-sm-3 btn btn-link btn-file pull-left" v-else >&nbsp;Uploading...</span>
@@ -94,27 +93,10 @@
                             </div>                            
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
-                                <!-- <div v-if="openIDFileTab">
-                                    <a :href="'../media'+idFileName" target="_blank">
-                                        [ View Image in New Tab ]
-                                    </a>         
-                                </div>
-                                <div v-else>    
-                                    <img v-if="current_user.identification" width="100%" name="identification" v-bind:src="current_user.identification.file" />
-                                </div> -->
-                            </div>
+                            <div class="col-sm-12"></div>
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
-                                <!-- output order in reverse due to pull-right at runtime -->
-                                <!-- <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
-                                <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
-                                <span class="btn btn-primary btn-file pull-right">
-                                    Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                </span> -->
-                            </div>
+                            <div class="col-sm-12"></div>
                           </div>
                        </form>
                   </div>
@@ -506,10 +488,6 @@ export default {
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';
         },
-        // uploadedIDFileName: function() {
-        //     let id_file = this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
-        //     return this.uploadedID != null ? this.uploadedID.name: id_file;
-        // },
         showCompletion: function() {
             // if (!this.showCompleteMsg) {
             //     this.showCompleteMsg = this.$route.name == 'first-time' ? true : this.current_user.identification == null ? true : false
@@ -519,12 +497,6 @@ export default {
         completedProfile: function(){
             return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details && this.current_user.identification;
         },
-        // openIDFileTab: function() {
-        //     return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
-        // },
-        idFileName: function() {
-            return this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
-        }
     },
     methods: {
         readFile: function() {
@@ -834,7 +806,7 @@ export default {
                 }).then((response) => {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
-                    vm.uploadedID = response.body.identification.file.split('/').pop();
+                    vm.uploadedID = response.body.identification;
                     vm.current_user.identification = response.body.identification;
                 }, (error) => {
                     console.log(error);
@@ -1111,7 +1083,7 @@ export default {
                     vm.current_user = response.body
                     if (vm.current_user.residential_address == null){ vm.current_user.residential_address = {}; }
                     if (vm.current_user.wildlifecompliance_organisations && vm.current_user.wildlifecompliance_organisations.length > 0) { vm.managesOrg = 'Yes' }
-                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification.file.split('/').pop(); }
+                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification; }
                 });
             }
         },(error) => {

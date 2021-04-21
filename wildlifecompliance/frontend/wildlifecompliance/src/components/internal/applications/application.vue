@@ -293,22 +293,21 @@
                                           </div>
                                       </form>
                                 </div>
-                                <div v-if="applicantType == 'proxy' && application.proxy_applicant.identification && application.proxy_applicant.identification.file" class="panel-body panel-collapse collapse" :id="identificationBody">
+                                <div v-if="applicantType == 'proxy' && application.proxy_applicant.identification" class="panel-body panel-collapse collapse" :id="identificationBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
                                             <div class="col-sm-8">
-                                                <img width="100%" name="applicantIdentification" v-bind:src="application.proxy_applicant.identification.file" />
+                                                <img width="100%" name="applicantIdentification" v-bind:src="application.proxy_applicant.identification" />
                                             </div>
                                           </div>
                                       </form>
                                 </div>
-                                <div v-if="applicantType == 'submitter' && application.submitter.identification && application.submitter.identification.file" class="panel-body panel-collapse collapse" :id="identificationBody">
+                                <div v-if="applicantType == 'submitter' && application.submitter.identification" class="panel-body panel-collapse collapse" :id="identificationBody">
                                       <form class="form-horizontal">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
                                             <div class="col-sm-8">
-                                                <!-- <span class="btn btn-link btn-file pull-left"><a :href="''+application.submitter.identification.file" target="_blank">{{application.submitter.identification.file}}</a></span> -->
                                                 <span class="btn btn-link btn-file pull-left"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'customer_id': application.submitter.id}" /></span>
                                             </div>
                                           </div>

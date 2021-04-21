@@ -65,7 +65,7 @@
                             <div class="col-sm-12">
                                 <div class="panel panel-default">
                                   <div class="panel-heading">
-                                    <h3 class="panel-title">Identification
+                                    <h3 class="panel-title">Identifications
                                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
@@ -75,9 +75,6 @@
                                       <form class="form-horizontal" name="id_form" method="post">
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label">Identification</label>
-                                            <!-- <div class="col-sm-6">
-                                                <img v-if="user.identification" width="100%" name="identification" v-bind:src="user.identification.file" />
-                                            </div> -->
                                             <div class="col-sm-9">
                                                 <span class="col-sm-3 btn btn-link btn-file pull-left" v-if="uploadedID"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'customer_id': user.id}" /></span>
                                                 <span class="col-sm-3 btn btn-link btn-file pull-left" v-else-if="!uploadedID">Attach Photo ID<input type="file" ref="uploadedID" @change="readFileID()"/></span>
@@ -335,7 +332,7 @@ export default {
                 vm.user = data[1];
                 vm.user.residential_address = vm.user.residential_address != null ? vm.user.residential_address : {};
                 vm.orgRequest_pending = data[2];
-                vm.uploadedID = vm.user.identification.file.split('/').pop();
+                vm.uploadedID = vm.user.identification;
             });
         });
     },
@@ -534,7 +531,7 @@ export default {
                 }).then((response) => {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
-                    vm.uploadedID = response.body.identification.file.split('/').pop();
+                    vm.uploadedID = response.body.identification;
                     vm.user.identification = response.body.identification;
                 }, (error) => {
                     console.log(error);
