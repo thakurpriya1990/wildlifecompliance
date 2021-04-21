@@ -41,7 +41,6 @@
                                           <div class="form-group">
                                             <label for="" class="col-sm-3 control-label" >Date of Birth</label>
                                             <div class="col-sm-6">
-                                                <!-- <input type="date" class="form-control" name="dob" placeholder="" v-model="user.dob"> -->
                                                 <div class="input-group date" ref="dob" style="width: 100%;">
                                                     <input type="text" class="form-control" name="dob" placeholder="DD/MM/YYYY" v-model="user.dob">
                                                     <span class="input-group-addon">
@@ -65,7 +64,7 @@
                             <div class="col-sm-12">
                                 <div class="panel panel-default">
                                   <div class="panel-heading">
-                                    <h3 class="panel-title">Identifications
+                                    <h3 class="panel-title">Identification
                                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                                             <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
@@ -85,15 +84,7 @@
                                             </div> 
                                           </div>
                                           <div class="form-group">
-                                            <div class="col-sm-12">
-                                                <!-- output order in reverse due to pull-right at runtime -->
-                                                <!-- <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
-                                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
-                                                <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
-                                                <span class="btn btn-primary btn-file pull-right">
-                                                    Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                                </span> -->
-                                            </div>
+                                            <div class="col-sm-12"></div>
                                           </div>
                                        </form>
                                   </div>
@@ -250,18 +241,14 @@
 </template>
 
 <script>
-//import $ from 'jquery'
-import Vue from 'vue'
 import { api_endpoints, helpers } from '@/utils/hooks'
 import datatable from '@vue-utils/datatable.vue'
-import AddContact from '@common-components/add_contact.vue'
 import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
 import SecureBaseLink from '@common-components/securebase_link.vue';
 import utils from '../utils'
-import api from '../api'
 export default {
     name: 'User',
     data () {
