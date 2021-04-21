@@ -400,17 +400,10 @@ class LicenceViewSet(viewsets.ModelViewSet):
     def surrender_purposes(self, request, pk=None, *args, **kwargs):
         try:
             purpose_ids_list = request.data.get('purpose_ids_list', None)
-            # if not type(purpose_ids_list) == list:
-            #     raise serializers.ValidationError(
-            #         'Purpose IDs must be a list')
+
             if not request.user.has_perm('wildlifecompliance.issuing_officer'):
                 raise serializers.ValidationError(
                     'You are not authorised to surrender licenced activities')
-            # if LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-            #         values_list('licence_activity_id',flat=True).\
-            #         distinct().count() != 1:
-            #     raise serializers.ValidationError(
-            #         'Selected purposes must all be of the same licence activity')
 
             if not purpose_ids_list and pk:
                 raise serializers.ValidationError(
@@ -464,17 +457,10 @@ class LicenceViewSet(viewsets.ModelViewSet):
     def cancel_purposes(self, request, pk=None, *args, **kwargs):
         try:
             purpose_ids_list = request.data.get('purpose_ids_list', None)
-            # if not type(purpose_ids_list) == list:
-            #     raise serializers.ValidationError(
-            #         'Purpose IDs must be a list')
+
             if not request.user.has_perm('wildlifecompliance.issuing_officer'):
                 raise serializers.ValidationError(
                     'You are not authorised to cancel licenced activities')
-            # if LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-            #         values_list('licence_activity_id',flat=True).\
-            #         distinct().count() != 1:
-            #     raise serializers.ValidationError(
-            #         'Selected purposes must all be of the same licence activity')
 
             if not purpose_ids_list and pk:
                 raise serializers.ValidationError(
@@ -533,16 +519,9 @@ class LicenceViewSet(viewsets.ModelViewSet):
         # MSG_NOSAME = 'Purposes must all be of the same licence activity'
         try:
             purpose_ids_list = request.data.get('purpose_ids_list', None)
-            # if not type(purpose_ids_list) == list:
-            #     raise serializers.ValidationError('Purpose IDs must be a list')
 
             if not request.user.has_perm('wildlifecompliance.issuing_officer'):
                 raise serializers.ValidationError(MSG_NOAUTH)
-
-            # if LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-            #         values_list('licence_activity_id', flat=True).\
-            #         distinct().count() != 1:
-            #     raise serializers.ValidationError(MSG_NOSAME)
 
             if not purpose_ids_list and pk:
                 raise serializers.ValidationError(
@@ -598,16 +577,9 @@ class LicenceViewSet(viewsets.ModelViewSet):
         # MSG_NOSAME = 'Purposes must all be of the same licence activity'
         try:
             purpose_ids_list = request.data.get('purpose_ids_list', None)
-            # if not type(purpose_ids_list) == list:
-            #     raise serializers.ValidationError(
-            #         'Purpose IDs must be a list')
+
             if not request.user.has_perm('wildlifecompliance.issuing_officer'):
                 raise serializers.ValidationError(MSG_NOAUTH)
-
-            # if LicencePurpose.objects.filter(id__in=purpose_ids_list).\
-            #         values_list('licence_activity_id',flat=True).\
-            #         distinct().count() != 1:
-            #     raise serializers.ValidationError(MSG_NOSAME)
 
             if not purpose_ids_list and pk:
                 raise serializers.ValidationError(
@@ -858,10 +830,8 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
             )
 
             active_purpose_ids = []
-            active_purpose_id2 = []
             for selected_activity in current_activities:
-                active_purpose_ids.extend([purpose.id for purpose in selected_activity.purposes])
-                active_purpose_id2 += [
+                active_purpose_ids += [
                     p.purpose_id for p in selected_activity.proposed_purposes.all() 
                     if p.is_issued
                 ]
@@ -871,12 +841,8 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 Application.APPLICATION_TYPE_ACTIVITY,
                 Application.APPLICATION_TYPE_NEW_LICENCE,
             ]:
-                # available_purpose_records = available_purpose_records.exclude(
-                #     id__in=active_purpose_ids
-                # )
-
                 available_purpose_records = available_purpose_records.exclude(
-                    id__in=active_purpose_id2,
+                    id__in=active_purpose_ids,
                     apply_multiple=False,
                 )
 
@@ -910,7 +876,6 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                     p.purpose_id for p in activitys[0].proposed_purposes.all()
                     if p.id == int(select_purpose_id)
                 ]
-                # amendable_purpose_ids = active_purpose_id2
                 amendable_purpose_ids = p_ids
 
                 queryset = queryset.filter(id__in=active_licence_activity_ids)
@@ -930,12 +895,6 @@ class UserAvailableWildlifeLicencePurposesViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(id=licence_category_id)
             else:
                 queryset = LicenceCategory.objects.none()
-
-        # Filter out LicenceCategory objects that are not linked with 
-        # available_purpose_records.
-        # queryset = queryset.filter(
-        #     activity__purpose__in=available_purpose_records
-        # ).distinct()
 
         # Set any changes to base fees.
         if application_type == Application.APPLICATION_TYPE_AMENDMENT:
