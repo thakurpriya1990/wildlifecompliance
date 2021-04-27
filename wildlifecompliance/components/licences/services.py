@@ -420,6 +420,30 @@ class LicenceService(object):
         return verified
 
 
+"""
+NOTE: This section for objects relating to Licence Commands.
+"""
+
+
+class LicenceCommand(object):
+    '''
+    Declares an interface common to all supported Licence client requests.
+
+    '''
+    request = None                      # property for client request.
+    licence = None                      # property for WildlifeLicence.
+
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def execute(self):
+        '''
+        Method to perfom an operation on the Licence.
+        '''
+        pass
+
+
 class LicenceActionable(object):
     '''
     An interface for LicenceActioner.

@@ -1,3 +1,4 @@
+import abc
 import ast
 import logging
 import datetime
@@ -683,6 +684,33 @@ class ReturnService(object):
 
         return None
 
+
+'''
+NOTE: This section for objects relating to Return Commands.
+'''
+
+
+class ReturnCommand(object):
+    '''
+    Declares an interface common to all supported Return client requests.
+
+    '''
+    request = None                      # property for client request.
+    the_return = None                   # property for the Return.
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def execute(self):
+        '''
+        Method to perfom an operation on the Return.
+        '''
+        pass
+
+
+'''
+NOTE: This section for objects relating to Specialised Returns.
+'''
 
 class ReturnData(object):
     """
