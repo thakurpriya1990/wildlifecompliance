@@ -375,10 +375,10 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-
+            # schema_fields1 = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
             # Adjustments based on selected options (radios and checkboxes)
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -394,6 +394,13 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id \
+                == schema_data['licence_activity_id']:
+                    # FIXME: this check is required because the function 
+                    # selected_activity.get_schema_fields_for_purposes() is 
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] not in ['checkbox', 'radiobuttons']:
                     continue
@@ -445,9 +452,10 @@ class TextAreaCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
+            # schema_fields = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
 
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -463,6 +471,14 @@ class TextAreaCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id == schema_data[
+                    'licence_activity_id',
+                ]:
+                    # FIXME: this check is required because the function 
+                    # selected_activity.get_schema_fields_for_purposes() is 
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] == 'text_area':
                     self._field.parse_component(
@@ -493,9 +509,10 @@ class TextCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
+            # schema_fields = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
 
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -511,6 +528,14 @@ class TextCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id == schema_data[
+                    'licence_activity_id',
+                ]:
+                    # FIXME: this check is required because the function 
+                    # selected_activity.get_schema_fields_for_purposes() is 
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] == 'text':
                     self._field.parse_component(

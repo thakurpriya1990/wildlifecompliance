@@ -849,6 +849,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def application_fee_checkout(self, request, *args, **kwargs):
+        import decimal
         try:
             checkout_result = None
             instance = self.get_object()
@@ -856,7 +857,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
 
                 product_lines = []
-                if instance.application_fee < 1:
+
+                licence_fee = decimal.Decimal(
+                    instance.get_property_cache_licence_fee() * 1)
+
+                if instance.application_fee < 1 and licence_fee < 1:
                     raise Exception('Checkout request for zero amount.')
 
                 application_submission = u'Application No: {}'.format(
@@ -1928,7 +1933,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     # tampering. Remove any that aren't valid for 
                     # renew/amendment/reissue.
                     active_current_purposes = active_current_applications.filter(
-                        licence_purposes__licence_activity_id__in=licence_activity_ids
+                        licence_purposes__licence_activity_id__in=licence_activity_ids,
+                        licence_purposes__id__in=licence_purposes,
                     ).values_list(
                         'licence_purposes__id',
                         flat=True
@@ -1945,7 +1951,16 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     ).first()
                     data['previous_application'] = previous_application
 
-                    cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
+                    # cleaned_purpose_ids = set(active_current_purposes) & set(licence_purposes)
+
+                    # Set to the latest licence purpose version in queryset.
+                    amendable_purposes_qs = licence_purposes_queryset
+                    cleaned_purposes = [
+                        p.get_latest_version() for p in amendable_purposes_qs
+                        if p.id in active_current_purposes
+                    ]
+                    cleaned_purpose_ids = [p.id for p in cleaned_purposes]
+                    # cleaned_purpose_ids = []
                     data['licence_purposes'] = cleaned_purpose_ids
 
                 if latest_active_licence:
@@ -1982,6 +1997,23 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                         selected_purpose.purpose_id,
                     )
 
+                    # When Licence Purpose has been replaced update target with
+                    # the latest version using the selected_purpose from the
+                    # accepted application.
+                    licence_version_updated = \
+                    target_application.update_application_purpose_version(
+                        selected_purpose,
+                    )
+                    if licence_version_updated:
+                        action = ApplicationUserAction.ACTION_VERSION_LICENCE_
+                        target_application.log_user_action(
+                            action.format(
+                                selected_purpose.purpose.short_name,
+                                selected_purpose.purpose.version,
+                            ),
+                            request
+                        )
+
                 # Set previous_application to the latest active application if
                 # exists
                 if not serializer.instance.previous_application \
@@ -2004,7 +2036,8 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             return response
 
         except Exception as e:
-            print(traceback.print_exc())
+            logger.error('ApplicationViewSet.create() {}'.format(e))
+            traceback.print_exc()
             raise serializers.ValidationError(str(e))
 
     def update(self, request, *args, **kwargs):

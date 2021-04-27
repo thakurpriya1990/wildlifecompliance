@@ -64,7 +64,11 @@ from wildlifecompliance.components.applications.email import (
     send_activity_propose_issue_notification,
     send_activity_refund_issue_notification,
 )
-from wildlifecompliance.components.main.utils import get_choice_value
+from wildlifecompliance.components.main.utils import (
+    get_choice_value,
+    ListEncoder,
+    DecimalEncoder,
+)
 from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.licences.models import (
     LicenceCategory,
@@ -738,21 +742,6 @@ class Application(RevisionedMixin):
         :param  refund_invoice is QuerySet of ApplicationInvoice or List of
                 invoice reference string.
         '''
-        import json
-
-        class ListEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, list):
-                    inv_str = ''
-                    for o in obj:
-                        inv_str += ' ' + o 
-                    return inv_str.lstrip()
-            def encode_list(self, obj, iter=None):
-                if isinstance(obj, (list)):
-                    return self.default(obj)
-                else:
-                    return super(ListEncoder, self).encode_list(obj, iter)
-
         if self.id and isinstance(refund_invoice, QuerySet):
             refund_invoice = [o.invoice_reference for o in refund_invoice]
 
@@ -816,15 +805,6 @@ class Application(RevisionedMixin):
 
         NOTE: only used for presentation purposes.
         '''
-        import json
-        from decimal import Decimal as D
-
-        class DecimalEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, D):
-                    return float(obj)
-                return json.JSONEncoder.default(self, obj)
-
         if self.id:
             data = DecimalEncoder().encode(total_paid)
             self.property_cache['total_paid_amount'] = data
@@ -938,9 +918,25 @@ class Application(RevisionedMixin):
 
     @property
     def licence_purpose_names(self):
+        '''
+        Comma delimited list of Licence Purpose short names associated with 
+        this Applicaton.
+
+        NOTE: Unique names only where multiple versions exist for Activity.
+        '''
         logger.debug('Application.licence_purpose_names()')
-        return ', '.join([purpose.short_name
-                          for purpose in self.licence_purposes.all().order_by('licence_activity','short_name')])
+
+        all_purposes = [
+            p['short_name'] for p in self.licence_purposes.values(
+                'licence_activity',
+                'short_name',
+            ).all().distinct().order_by('licence_activity','short_name')
+        ]
+
+        # return ', '.join([purpose.short_name
+        #                   for purpose in self.licence_purposes.all().order_by('licence_activity','short_name')])
+
+        return ', '.join([short_name for short_name in all_purposes])
 
     @property
     def licence_type_name(self):
@@ -1412,6 +1408,46 @@ class Application(RevisionedMixin):
             data_row.save()
 
         logger.debug('Application.copy_app_purpose_to_target_app() - end')
+
+    def update_application_purpose_version(self, selected_purpose):
+        '''
+        Method to update the licence purpose version for all Selected Activity
+        purposes on the Application with the latest version of selected_purpose.
+
+        :param: selected_purpose is the ApplicationSelectedActivityPurpose.
+        :return: Boolean for a successful update.
+        '''
+        log_action = ApplicationUserAction.ACTION_SUSPEND_LICENCE_
+
+        if not selected_purpose.purpose.replaced_by:
+            return False
+
+        latest_licence_purpose = selected_purpose.purpose.get_latest_version()
+
+        '''
+        Update Selected Activity Purpose.
+        '''
+        selected_activities = self.activities.filter(
+            licence_activity_id=selected_purpose.purpose.licence_activity_id
+        )
+
+        for activity in selected_activities:
+            purposes = activity.proposed_purposes.filter(
+                purpose_id=selected_purpose.purpose_id
+            )
+            purposes.update(purpose_id=latest_licence_purpose.id)
+
+        '''
+        Update Form Data for the Licence Purpose.
+        '''
+        form_data_rows = ApplicationFormDataRecord.objects.filter(
+            application_id=self.id,
+            licence_activity_id=selected_purpose.purpose.licence_activity_id,
+            licence_purpose_id=selected_purpose.purpose_id
+        )
+        form_data_rows.update(licence_purpose_id=latest_licence_purpose.id)
+
+        return True
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
@@ -2581,7 +2617,10 @@ class Application(RevisionedMixin):
         for self_p in self_activity[0].purposes:
             for a in a_chain:
                 issued_p = [
-                    p for p in a.proposed_purposes.all() if p.purpose == self_p
+                    p for p in a.proposed_purposes.all()
+                    if p.purpose == self_p or p.purpose.get_latest_version(
+                    # NOTE: check latest version of licence purpose.
+                    ) == self_p
                 ]
 
                 if len(issued_p) > 0:
@@ -2613,6 +2652,18 @@ class Application(RevisionedMixin):
     def get_schema_for_purposes(self, purpose_id_list):
         from wildlifecompliance.components.applications.utils \
             import ActivitySchemaUtil
+
+        purposes = []
+        for activity in self.selected_activities.all():
+            purposes += activity.purposes.all()
+
+        if purposes:
+            purpose_id_list = [p.id for p in purposes]
+        else:
+            purpose_id_list = [
+                p.get_latest_version().id for p in self.licence_purposes.all()
+            ]
+
         util = ActivitySchemaUtil(self)
         return util.get_activity_schema(purpose_id_list)
 
@@ -3089,8 +3140,9 @@ class Application(RevisionedMixin):
             #     existing_activity.purposes.values_list('id', flat=True)
 
             # All active license purposes on the current Activity.
+            # NOTE: using latest version of licence purpose only.
             existing_purposes = [
-                p.purpose_id 
+                p.purpose.get_latest_version().id
                 for p in existing_activity.get_proposed_purposes()
             ]
 
@@ -3105,9 +3157,12 @@ class Application(RevisionedMixin):
             )
 
             # All purposes on the Licence which are currently opened.
-            opened_purposes = list(
-                self.licence.get_purposes_in_open_applications()
-            )
+            # NOTE: using latest version of licence purpose only.
+            # opened_purposes = list(
+            #     self.licence.get_purposes_in_open_applications()
+            # )
+            objs_p = self.licence.get_purposes_in_open_applications(True)
+            opened_purposes = list(p.get_latest_version().id for p in objs_p)
 
             # Remove any currently opened licence purposes from the
             # remaining list to prevent replacing.
@@ -3136,12 +3191,19 @@ class Application(RevisionedMixin):
                 existing_activity.updated_by = request.user
                 for p_id in common_purpose_ids:
 
-                    sequence_no = existing_activity.mark_selected_purpose_as_replaced(
-                        p_id
-                    )
+                    # NOTE: using latest version of licence purpose only.
+                    existing_id = [
+                        p.purpose_id
+                        for p in existing_activity.get_proposed_purposes()
+                        if p.purpose.get_latest_version().id == p_id
+                    ][0]
+
+                    s_no = existing_activity.mark_selected_purpose_as_replaced(
+                        existing_id
+                    )   # will return the sequence no that was replaced.
 
                     selected_activity.set_selected_purpose_sequence(
-                        p_id, sequence_no
+                        p_id, s_no
                     )
 
                 # If no other license purposes are opened then mark the
@@ -3180,12 +3242,19 @@ class Application(RevisionedMixin):
                 existing_activity.updated_by = request.user
                 for p_id in common_purpose_ids:
 
-                    sequence_no = existing_activity.mark_selected_purpose_as_replaced(
-                        p_id
-                    )
+                    # NOTE: using latest version of licence purpose only.
+                    existing_id = [
+                        p.purpose_id
+                        for p in existing_activity.get_proposed_purposes()
+                        if p.purpose.get_latest_version().id == p_id
+                    ][0]
+
+                    s_no = existing_activity.mark_selected_purpose_as_replaced(
+                        existing_id
+                    )   # will return the sequence no that was replaced.
 
                     selected_activity.set_selected_purpose_sequence(
-                        p_id, sequence_no
+                        p_id, s_no
                     )
 
                 existing_activity.activity_status = REPLACED
@@ -4514,13 +4583,98 @@ class ApplicationSelectedActivity(models.Model):
         """
         All licence purposes which are available under the Application Selected
         Activity.
+
+        :return: LicencePurpose queryset for this Selected Activity.
         """
-        from wildlifecompliance.components.licences.models import LicencePurpose
-        logger.debug('ApplicationSelectedActivity.purposes()')
-        return LicencePurpose.objects.filter(
-            application__id=self.application_id,
-            licence_activity_id=self.licence_activity_id
-        ).distinct()
+        logger.debug('ApplicationSelectedActivity.purposes() - start')
+        # from wildlifecompliance.components.licences.models import LicencePurpose
+
+        # selected_purposes = LicencePurpose.objects.filter(
+        #     application__id=self.application_id,
+        #     licence_activity_id=self.licence_activity_id
+        # ).distinct()
+        licence_purposes = []
+        a = self.application
+        # Cache only selected licence purposes which have completed questions.
+        if a.application_type == a.APPLICATION_TYPE_NEW_LICENCE \
+        and a.customer_status == a.CUSTOMER_STATUS_DRAFT \
+        and a.is_discardable:
+            # When in DRAFT use available purposes on application instead of 
+            # caching as it can be discarded.
+            licence_purposes = a.licence_purposes.filter(
+                licence_activity_id=self.licence_activity_id
+            )
+        else:
+            cached_ids = self.get_property_cache_purposes()
+            if not cached_ids:
+                cached_ids = list(set([
+                    f.licence_purpose_id for f in a.form_data_records.filter(
+                        licence_activity_id=self.licence_activity_id,                
+                    )
+                ]))
+                self.set_property_cache_purposes(cached_ids)
+
+            licence_purposes = a.licence_purposes.filter(id__in=cached_ids)
+
+        logger.debug('ApplicationSelectedActivity.purposes() - end')
+        return licence_purposes
+
+    def get_property_cache_purposes(self):
+        '''
+        Getter for purposes on the property cache for this Selected Activity.
+
+        NOTE: only used for presentation purposes.
+
+        :return purposes_list of LicencePurpose identifiers string.
+        '''
+        purposes_list = []
+        try:
+            purposes_list = self.property_cache['purposes']
+            purposes_list = [int(p) for p in purposes_list.split()]
+
+        except KeyError:
+            pass
+
+        return purposes_list
+
+    def set_property_cache_purposes(self, purposes):
+        '''
+        Setter for purposes on the property cache for this Selected Activity.
+
+        NOTE: only used for presentation purposes.
+
+        :param  purposes is QuerySet of LicencePurpose or List of licence
+                purpose identifiers string.
+        '''
+        if self.id and isinstance(purposes, QuerySet):
+            purposes = [o.id for o in purposes]
+
+        if not isinstance(purposes, list) and self.id:
+            logger.warn('{0} AppID: {1} ActID: {2}'.format(
+                'set_property_cache_purposes() NOT LIST',
+                self.application.id, self.id))
+            return False
+        
+        data = ListEncoder().encode_list(purposes)
+        self.property_cache['purposes'] = data
+
+    def get_schema_fields_for_purposes(self):
+        '''
+        Getter for all licence definition fields associated with this selected
+        Activity.
+
+        NOTE: retrieving fields for all purposes on the Application not just
+        for this selected activity. 
+        '''
+        purpose_id_list = [p.id for p in self.purposes.all()]
+
+        # FIXME: returning all fields not just the ones associated with this
+        # Selected Activity. Need to apply additional filtering.
+        all_fields = self.application.get_schema_fields_for_purposes(
+            purpose_id_list
+        )
+
+        return all_fields
 
     @property
     def issued_purposes(self):
@@ -5618,11 +5772,12 @@ class ApplicationSelectedActivity(models.Model):
 
         # NOTE: Multiple purposes of the same type can exist on a License but
         # but only one instance on a Selected Activity. Ensure the correct
-        # Purpose on Activity is selected for replacement.
+        # Purpose on Activity is selected for replacement.   
         for activity in current_activities:
             purposes = [    # use proposed purpose in Selected Activity.
                 p for p in activity.proposed_purposes.all()
-                if p.purpose in self.purposes
+                if p.purpose in self.purposes or p.purpose.get_latest_version(
+                ) in self.purposes  
             ]
             if purposes:
                 activity_to_replace = activity
@@ -6329,9 +6484,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                prev_app = prev_purpose.selected_activity.application
-                if not prev_app.application_type == RENEWAL:
-                    amount = amount + prev_purpose.adjusted_fee
+                if prev_purpose:
+                    prev_app = prev_purpose.selected_activity.application
+                    if not prev_app.application_type == RENEWAL:
+                        amount = amount + prev_purpose.adjusted_fee
 
             except BaseException as e:
                 logger.error(
@@ -6371,9 +6527,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                prev_app = prev_purpose.selected_activity.application
-                if not prev_app.application_type == RENEWAL:
-                    amount = amount + prev_purpose.adjusted_licence_fee
+                if prev_purpose:
+                    prev_app = prev_purpose.selected_activity.application
+                    if not prev_app.application_type == RENEWAL:
+                        amount = amount + prev_purpose.adjusted_licence_fee
 
             except BaseException as e:
                 logger.error(
@@ -6562,8 +6719,14 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 prev_id = len(sorted_prev) - 1
 
             purposes = sorted_prev[prev_id].proposed_purposes.all()
-            prev = [p for p in purposes if p.purpose_id == self_id]
-            previous = prev[0]
+            prev = [
+                p for p in purposes
+                if p.purpose_id == self_id or p.purpose.get_latest_version(
+                # if schema had been updated need to also check the previous
+                # version had been used on the last proposed purpose aswell.  
+                ).id == self_id 
+            ]
+            previous = prev[0] if prev else None
 
         except WildlifeLicence.DoesNotExist:
             pass
@@ -6953,6 +7116,7 @@ class ApplicationUserAction(UserAction):
     ACTION_CANCEL_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_SUSPEND_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_REFUND_LICENCE_ = "Refund Licence Fee {0} for activity purpose {1}"
+    ACTION_VERSION_LICENCE_ = "New Licence version for activity purpose {} v{}"
     ACTION_DISCARD_APPLICATION = "Discard application {}"
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
