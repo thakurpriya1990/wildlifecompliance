@@ -904,6 +904,9 @@ export default {
             if (this.selectedActivity.processing_status.id === 'with_assessor') {
                 return false;
             }
+            if (this.selectedActivity.processing_status.id === 'draft') {
+                return false;
+            }
 
             if (this.canProposeIssueOrDecline) {
                 decline_proposal = false;
@@ -1065,6 +1068,9 @@ export default {
                 return false;
             }
             if (this.selectedActivity.processing_status.id === 'with_assessor') {
+                return false;
+            }
+            if (this.selectedActivity.processing_status.id === 'draft') {
                 return false;
             }
 
