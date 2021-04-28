@@ -325,7 +325,9 @@ class ReturnService(object):
             excl_purpose = []
             if selected_activity.application.is_amendment():
                 prev_app = selected_activity.application.previous_application
-                prev_ret = prev_app.returns_application.all()
+                prev_ret = prev_app.returns_application.exclude(
+                    processing_status=DISCARD,
+                )
 
             # create or amend Return for each Condition.
             for condition in selected_activity.get_condition_list():
