@@ -2130,18 +2130,25 @@ class ApplicationConditionViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['DELETE', ])
     def delete(self, request, *args, **kwargs):
+        from wildlifecompliance.components.returns.services import ReturnService
         try:
             instance = self.get_object()
-            instance.application.log_user_action(
-                ApplicationUserAction.ACTION_DELETE_CONDITION.format(
-                    instance.licence_purpose.short_name,
-                    instance.condition[:256],
-                ),
-                request
-            )
-            instance.delete()
+
+            with transaction.atomic():
+                ReturnService.discard_return_request(request, instance)
+
+                instance.application.log_user_action(
+                    ApplicationUserAction.ACTION_DELETE_CONDITION.format(
+                        instance.licence_purpose.short_name,
+                        instance.condition[:256],
+                    ),
+                    request
+                )
+                instance.delete()
+
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
+
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise

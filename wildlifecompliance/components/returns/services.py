@@ -41,9 +41,25 @@ from wildlifecompliance.components.returns.utils import (
     ReturnSpeciesUtility,
 )
 
+from wildlifecompliance.exceptions import ReturnServiceException
+
 logger = logging.getLogger(__name__)
 # logger = logging
 
+'''
+Associations:                                        +----------------------+
+                                  +--------------->  |    WildlifeLicence   |
+                                  |                  +----------------------+          
++----------------+          +------------+           +----------------------+
+|   ReturnData   | <--+---  |   Return   |  ------>  | ApplicationCondition |
++----------------+    |     +------------+           +----------------------+ 
++----------------+    |           |                              |
+| ReturnQuestion | <--+           V                              V
++----------------+    |     +------------+           +----------------------+
++----------------+    |     | ReturnType |           |      Application     |
+|  ReturnSheet   | <--+     +------------+           +----------------------+
++----------------+
+'''
 
 class ReturnService(object):
     '''
@@ -52,6 +68,36 @@ class ReturnService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def discard_return_request(request, condition):
+        '''
+        Discard Return for a Licence Condition.
+
+        :param: ApplicationCondition for the generated Return.
+        '''
+        logger.debug('ReturnService.discard_return() - start')
+        logger_title = '{0} AppID {1} CondID {2}'.format(
+            'ReturnService.discard_return()',
+            condition.application.id, condition.id            
+        )
+        successful = False
+        try:
+            command = DiscardRequestCommand(request, condition)
+            command.execute()
+            successful = True
+
+        except ReturnServiceException as rse:
+            log = '{0} {1}'.format( logger_title, rse )
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format( logger_title, e )
+            logger.exception(log)
+            raise
+
+        logger.debug('ApplicationService.submit_application_request() - end')
+        return successful
 
     @staticmethod
     def generate_return_request(request, licence, selected_activity):
@@ -123,18 +169,40 @@ class ReturnService(object):
                 prev_app = selected_activity.application.previous_application
                 prev_ret = prev_app.returns_application.all()
 
-                c = condition
-                future_returns = [
-                    r for r in prev_ret 
-                    if r.condition.licence_activity == c.licence_activity
-                    and r.condition.licence_purpose == c.licence_purpose
-                    and r.condition.return_type == c.return_type
-                    and r.condition.condition_text == c.condition_text
-                    and r.processing_status == FUTURE
-                ]   # previous returns include Future ones.
+                # c = condition
+                # future_returns = [
+                #     r for r in prev_ret 
+                #     if r.condition.licence_activity == c.licence_activity
+                #     and r.condition.licence_purpose == c.licence_purpose
+                #     and r.condition.return_type == c.return_type
+                #     and r.condition.condition_text == c.condition_text
+                #     and r.processing_status == FUTURE
+                # ]   # previous returns include Future ones.
 
-                for returns in future_returns:
-                    returns.delete()
+                # for returns in future_returns:
+                #     returns.delete()
+
+                # discard_returns = [
+                #     r for r in prev_ret
+                #     if r.condition.licence_activity == c.licence_activity
+                #     and r.condition.licence_purpose == c.licence_purpose
+                #     and r.condition.return_type == c.return_type
+                #     and r.condition.condition_text == c.condition_text
+                #     and r.processing_status in [DUE, OVERDUE, DRAFT]
+                # ] 
+
+                # for returns in discard_returns:
+                #     # log action for discard.
+                #     returns.log_user_action(
+                #         ReturnUserAction.ACTION_DISCARD.format(returns.id),
+                #         request,
+                #     )
+                #     returns.processing_status=DISCARD
+                #     returns.save()
+
+                for r in prev_ret:
+                    command = DiscardRequestCommand(request, r.condition)
+                    command.execute()
 
                 discard_returns = [
                     r for r in prev_ret
@@ -142,17 +210,8 @@ class ReturnService(object):
                     and r.condition.licence_purpose == c.licence_purpose
                     and r.condition.return_type == c.return_type
                     and r.condition.condition_text == c.condition_text
-                    and r.processing_status in [DUE, OVERDUE, DRAFT]
-                ] 
-
-                for returns in discard_returns:
-                    # log action for discard.
-                    returns.log_user_action(
-                        ReturnUserAction.ACTION_DISCARD.format(returns.id),
-                        request,
-                    )
-                    returns.processing_status=DISCARD
-                    returns.save()
+                    and r.processing_status in [DISCARD]
+                ]
 
                 # When first Return is a Running Sheet copy discarded data.
                 # ie. retain stock total.
@@ -168,6 +227,16 @@ class ReturnService(object):
                     if returns:
                         util = ReturnSpeciesUtility(first_return)
                         util.copy_sheet_species(returns[0])
+
+            # log action
+            if not already_generated:
+                first_return.log_user_action(
+                    ReturnUserAction.ACTION_CREATE.format(
+                        first_return.lodgement_number,
+                        first_return.condition.condition,
+                        first_return.condition.licence_activity.short_name,
+                    ), request
+                )
 
             return first_return
 
@@ -277,32 +346,44 @@ class ReturnService(object):
 
             # discard/delete previous Returns from removed Conditions.
             if selected_activity.application.is_amendment():
+                # la = selected_activity.licence_activity
+                # future_returns = [
+                #     r for r in prev_ret
+                #     if not r.condition.licence_purpose in excl_purpose
+                #     and r.condition.licence_activity == la
+                #     and r.processing_status == FUTURE
+                # ]   # previous returns include Future ones.
+
+                # for returns in future_returns:
+                #     returns.delete()
+
+                # discard_returns = [
+                #     r for r in prev_ret
+                #     if not r.condition.licence_purpose in excl_purpose
+                #     and r.condition.licence_activity == la
+                #     and r.processing_status in [DUE, OVERDUE, DRAFT]
+                # ] 
+
+                # for returns in discard_returns:
+                #     # log action for discard.
+                #     returns.log_user_action(
+                #         ReturnUserAction.ACTION_DISCARD.format(returns.id),
+                #         request,
+                #     )
+                #     returns.processing_status=DISCARD
+                #     returns.save()
+
                 la = selected_activity.licence_activity
-                future_returns = [
-                    r for r in prev_ret
-                    if not r.condition.licence_purpose in excl_purpose
-                    and r.condition.licence_activity == la
-                    and r.processing_status == FUTURE
-                ]   # previous returns include Future ones.
-
-                for returns in future_returns:
-                    returns.delete()
-
-                discard_returns = [
+                discardable = [     # a subset excluding amended Returns.
                     r for r in prev_ret
                     if not r.condition.licence_purpose in excl_purpose
                     and r.condition.licence_activity == la
                     and r.processing_status in [DUE, OVERDUE, DRAFT]
                 ] 
 
-                for returns in discard_returns:
-                    # log action for discard.
-                    returns.log_user_action(
-                        ReturnUserAction.ACTION_DISCARD.format(returns.id),
-                        request,
-                    )
-                    returns.processing_status=DISCARD
-                    returns.save()
+                for r in discardable:
+                    command = DiscardRequestCommand(request, r.condition, r)
+                    command.execute()
 
         except Exception as e:
             logger.error('{0} {1} - {2}'.format(
@@ -697,6 +778,7 @@ class ReturnCommand(object):
     '''
     request = None                      # property for client request.
     the_return = None                   # property for the Return.
+    user_action = None                  # property for the logging action.
 
     __metaclass__ = abc.ABCMeta
 
@@ -706,6 +788,63 @@ class ReturnCommand(object):
         Method to perfom an operation on the Return.
         '''
         pass
+
+    def log_action(self):
+        '''
+        Method to log this command action.
+        '''
+        self.the_return.log_user_action(
+            self.user_action.format(
+                self.the_return.lodgement_number,
+                self.the_return.condition.condition,
+                self.the_return.condition.licence_activity.short_name,
+            ), self.request
+        )
+
+class DiscardRequestCommand(ReturnCommand):
+    '''
+    A ReturnCommand to execute the discarding process of a Return and to log
+    the Action.
+    '''
+    condition = None            # property to descard at condition level.
+
+    def __init__(self, request, condition, a_return=None):
+        self.request = request
+        self.condition = condition
+        self.the_return = a_return
+
+    def __str__(self):
+        return 'DiscardRequestCommand() CondID: {0}'.format(self.condition.id)
+
+    def execute(self):
+        '''
+        Concrete method.
+        '''
+        # 1. get all returns for the condition.
+        if self.the_return:
+            returns = Return.objects.filter(id=self.the_return.id)
+        else:           
+            returns = Return.objects.filter(condition=self.condition)
+
+        # 2  set decard
+        discardable = returns.exclude(
+            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE
+        )
+        discardable.update(
+            processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
+        )
+
+        # 3. delete all future returns.
+        future = returns.filter(
+            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE
+        )
+        future.delete()
+
+        # 4. log action.
+        self.user_action =  ReturnUserAction.ACTION_DISCARD
+        for a_return in discardable:
+            self.the_return = a_return
+            self.log_action()
 
 
 '''
