@@ -375,7 +375,7 @@ export default {
                     purpose.proposed_start_date = purpose.start_date
                     purpose.proposed_end_date = purpose.expiry_date              
                 }
-                return ['selected','reissue','propose'].includes(purpose.processing_status)
+                return ['reissue','propose'].includes(purpose.processing_status)
             });
             return proposed;
         },
@@ -476,6 +476,7 @@ export default {
             return this.spinner
         },
         preview_licence_url: function() {
+            this.initialiseLicenceDetails();
             return (this.application.id) ? `/preview/licence-pdf/${this.application.id}` : ''
         },
     },
@@ -529,7 +530,7 @@ export default {
                     let proposed = activity.proposed_purposes
                     for (let p=0; p<proposed.length; p++){
                         let purpose = proposed[p]
-                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                        if (['reissue','propose'].includes(purpose.processing_status)){
                             selected.push(purpose)
 
                             let picked_purpose = this.pickedPurposes.filter(picked => {
@@ -626,7 +627,7 @@ export default {
                     let proposed = activity.proposed_purposes
                     for (let p=0; p<proposed.length; p++){
                         let purpose = proposed[p]
-                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                        if (['reissue','propose'].includes(purpose.processing_status)){
                             selected.push(purpose)
 
                             let picked_purpose = this.pickedPurposes.filter(picked => {
