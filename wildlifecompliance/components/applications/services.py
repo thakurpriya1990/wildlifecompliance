@@ -1205,7 +1205,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
                 is_rendered=True,
                 standard=True,
                 application=self._application,
-                licence_activity_id=licence_activity.id
+                licence_activity_id=licence_activity.licence_activity_id,
             ):
                 condition.delete()
 

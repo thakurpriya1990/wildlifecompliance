@@ -48,13 +48,14 @@ logger = logging.getLogger(__name__)
 
 '''
 Associations:                                        +----------------------+
-                                  +--------------->  |    WildlifeLicence   |
-                                  |                  +----------------------+          
+                                  +----------------  |    WildlifeLicence   |
+                                  |                  +----------------------+
+                                  V
 +----------------+          +------------+           +----------------------+
-|   ReturnData   | <--+---  |   Return   |  ------>  | ApplicationCondition |
-+----------------+    |     +------------+           +----------------------+ 
-+----------------+    |           |                              |
-| ReturnQuestion | <--+           V                              V
+|   ReturnData   | <--+---  |   Return   | <-------  | ApplicationCondition |
++----------------+    |     +------------+           +----------------------+
++----------------+    |           ^                              |
+| ReturnQuestion | <--+           |                              V
 +----------------+    |     +------------+           +----------------------+
 +----------------+    |     | ReturnType |           |      Application     |
 |  ReturnSheet   | <--+     +------------+           +----------------------+
@@ -169,7 +170,7 @@ class ReturnService(object):
                 prev_app = selected_activity.application.previous_application
                 prev_ret = prev_app.returns_application.all()
 
-                # c = condition
+                c = condition
                 # future_returns = [
                 #     r for r in prev_ret 
                 #     if r.condition.licence_activity == c.licence_activity
@@ -200,9 +201,10 @@ class ReturnService(object):
                 #     returns.processing_status=DISCARD
                 #     returns.save()
 
-                for r in prev_ret:
-                    command = DiscardRequestCommand(request, r.condition)
-                    command.execute()
+                # for r in prev_ret:
+                #     command = DiscardRequestCommand(request, r.condition)
+                #     command.execute()
+                discard_return(condition, prev_ret)
 
                 discard_returns = [
                     r for r in prev_ret
@@ -210,7 +212,7 @@ class ReturnService(object):
                     and r.condition.licence_purpose == c.licence_purpose
                     and r.condition.return_type == c.return_type
                     and r.condition.condition_text == c.condition_text
-                    and r.processing_status in [DISCARD]
+                    # and r.processing_status in [DISCARD]
                 ]
 
                 # When first Return is a Running Sheet copy discarded data.
@@ -266,6 +268,31 @@ class ReturnService(object):
                     amended = previous
 
             return amended
+
+        def discard_return(condition, return_list):
+            '''
+            An internal function to discard a previously created return.
+
+            :param Condition is an Application Condition with Return Type.
+            :return Return that was amended. 
+            '''
+            discarded = False
+
+            discardable = [
+                r for r in return_list 
+                if r.condition.licence_activity == condition.licence_activity
+                and r.condition.licence_purpose == condition.licence_purpose
+                and r.condition.return_type == condition.return_type
+                and r.condition.condition_text == condition.condition_text
+                # and r.condition.due_date == condition.due_date
+            ]   # previous returns include Future ones.
+
+            for r in discardable:
+                discarded = True
+                command = DiscardRequestCommand(request, condition, r)
+                command.execute()
+
+            return discarded
 
         def create_return_recurrence(condition, a_date):
             '''
@@ -328,6 +355,25 @@ class ReturnService(object):
                 prev_ret = prev_app.returns_application.exclude(
                     processing_status=DISCARD,
                 )
+
+                # discard previous returns for ApplicationConditions which have
+                # been removed from the Amendment Application.
+                act_id = selected_activity.licence_activity_id
+                prev_conditions = [
+                    r.condition for r in prev_ret.filter(
+                        condition__licence_activity_id=act_id
+                    )
+                ]
+                next_conditions = [
+                    c for c in selected_activity.application.conditions.filter(
+                        licence_activity_id=act_id
+                    ).exclude(
+                        return_type=None
+                    )
+                ]
+                discardable = set(prev_conditions) - set(next_conditions)
+                for condition in discardable:
+                    discard_return(condition, prev_ret)
 
             # create or amend Return for each Condition.
             for condition in selected_activity.get_condition_list():
@@ -828,7 +874,7 @@ class DiscardRequestCommand(ReturnCommand):
         else:           
             returns = Return.objects.filter(condition=self.condition)
 
-        # 2  set decard
+        # 2  set discard
         discardable = returns.exclude(
             processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE
         )
