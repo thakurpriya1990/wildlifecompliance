@@ -1438,6 +1438,15 @@ class Application(RevisionedMixin):
             purposes.update(purpose_id=latest_licence_purpose.id)
 
         '''
+        Update Default Application Conditions.
+        '''
+        selected_conditions = self.conditions.filter(
+            licence_activity_id=selected_purpose.purpose.licence_activity_id,
+            licence_purpose_id=selected_purpose.purpose_id,                       
+        )
+        selected_conditions.update(licence_purpose_id=latest_licence_purpose.id)
+
+        '''
         Update Form Data for the Licence Purpose.
         '''
         form_data_rows = ApplicationFormDataRecord.objects.filter(
@@ -4612,6 +4621,14 @@ class ApplicationSelectedActivity(models.Model):
                         licence_activity_id=self.licence_activity_id,                
                     )
                 ]))
+                # NOTE: When no questions entered need to get allowed purposes
+                # from application.
+                if not cached_ids:
+                    cached_ids = list(set([
+                        p.id for p in a.licence_purposes.filter(
+                            licence_activity_id=self.licence_activity_id
+                        )
+                    ]))
                 self.set_property_cache_purposes(cached_ids)
 
             licence_purposes = a.licence_purposes.filter(id__in=cached_ids)
