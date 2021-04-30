@@ -439,9 +439,15 @@ class LicenceService(object):
             'LicenceService.version_licence_purpose()',
             licence_purpose_id            
         )
-        new_vresion = None
+        new_version = None
         try:
             licence_purpose = LicencePurpose.objects.get(id=licence_purpose_id)
+
+            # check licence_purpose is latest version.
+            latest_version = licence_purpose.get_latest_version()
+            if licence_purpose.version != latest_version.version:
+               log = '{0} {1}'.format(logger_title, 'Not Latest Version.')
+               raise LicenceServiceException(log)
 
             # 1. get licence_purpose and next version number.
             new_purpose = LicencePurpose.objects.get(id=licence_purpose_id)

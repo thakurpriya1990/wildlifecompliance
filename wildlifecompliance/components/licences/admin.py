@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db import transaction
 
 from wildlifecompliance.components.licences import models
@@ -67,13 +67,19 @@ class LicencePurposeAdmin(admin.ModelAdmin):
         from wildlifecompliance.components.licences.services import (
             LicenceService,
         )
+        warn = False
         with transaction.atomic():
 
             for selected in queryset:
-                LicenceService.version_licence_purpose(selected.id, request)
+                ok=LicenceService.version_licence_purpose(selected.id, request)
+                warn = warn if ok else True
 
-        self.message_user(
-            request, 'Selected Licence Purpose(s) have been versioned.')
+        if warn:
+            messages.warning(
+                request,'Not all Licence Purpose(s) have been versioned.')
+        else:
+            self.message_user(
+                request, 'Selected Licence Purpose(s) have been versioned.')
 
 
 @admin.register(models.LicenceSpecies)
