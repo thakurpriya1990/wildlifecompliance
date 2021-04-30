@@ -4185,7 +4185,7 @@ class Assessment(ApplicationRequest):
                     else:
                         self.application.set_activity_processing_status(
                             self.licence_activity_id,
-                            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER
+                            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
                         )
 
                 select_group = self.assessor_group.members.all()
