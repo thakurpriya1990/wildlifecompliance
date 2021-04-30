@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import transaction
+
 from wildlifecompliance.components.licences import models
 
 
@@ -23,8 +25,11 @@ class WildlifeLicence(admin.ModelAdmin):
         from wildlifecompliance.components.licences.services import (
             LicenceService,
         )
-        for selected in queryset:
-            LicenceService.verify_expired_licence_for(selected.id, request)
+        with transaction.atomic():
+
+            for selected in queryset:
+                LicenceService.verify_expired_licence_for(selected.id, request)
+
         self.message_user(
             request, 'Selected licence expired have been verified.')
 
@@ -32,12 +37,19 @@ class WildlifeLicence(admin.ModelAdmin):
         from wildlifecompliance.components.licences.services import (
             LicenceService,
         )
-        for selected in queryset:
-            LicenceService.verify_licence_renewal_for(selected.id, request)
+        with transaction.atomic():
+
+            for selected in queryset:
+                LicenceService.verify_licence_renewal_for(selected.id, request)
+
         self.message_user(
             request, 'Selected licence renewals have been verified.')
 
 class PurposeSpeciesInline(admin.TabularInline):
+    '''
+    HTML display with rich text for the Administration of Species Details to be
+    added to the Wildlife Licence document.
+    '''
     extra = 0
     model = models.PurposeSpecies
     exclude = ['header']
@@ -47,11 +59,22 @@ class LicencePurposeAdmin(admin.ModelAdmin):
     inlines = [
         PurposeSpeciesInline,
     ]
-    #pass
+    actions = [
+        'version_selected_Licence_purposes',
+    ]
 
-#@admin.register(models.PurposeSpecies)
-#class PurposeSpeciesAdmin(admin.ModelAdmin):
-#    list_display = ['id', 'header']
+    def version_selected_Licence_purposes(self, request, queryset):
+        from wildlifecompliance.components.licences.services import (
+            LicenceService,
+        )
+        with transaction.atomic():
+
+            for selected in queryset:
+                LicenceService.version_licence_purpose(selected.id, request)
+
+        self.message_user(
+            request, 'Selected Licence Purpose(s) have been versioned.')
+
 
 @admin.register(models.LicenceSpecies)
 class LicenceSpeciesAdmin(admin.ModelAdmin):
@@ -69,8 +92,11 @@ class LicenceSpeciesAdmin(admin.ModelAdmin):
         from wildlifecompliance.components.applications.services import (
             ApplicationService,
         )
-        for selected in queryset:
-            ApplicationService.verify_licence_specie_id(selected.specie_id)
+        with transaction.atomic():
+
+            for selected in queryset:
+                ApplicationService.verify_licence_specie_id(selected.specie_id)
+
         self.message_user(request, 'Selected species have been verified.')
 
 
