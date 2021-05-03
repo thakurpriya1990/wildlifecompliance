@@ -83,8 +83,10 @@
                                     </div>                                    
                                     <div class="col-sm-12">
                                         <strong>Application</strong><br/>
-                                        <a class="actionBtn" v-if="!showingApplication || !this.unfinishedActivities.length" @click.prevent="toggleApplication({show: true, showFinalised: true})">Show Application</a>
-                                        <a class="actionBtn" v-else @click.prevent="toggleApplication({show: false})">Hide Application</a>
+                                        <a class="actionBtn" v-if="showingApplication && !showingConditions" @click.prevent="toggleApplication({show: false})">Hide Application</a>
+                                        <a class="actionBtn" v-else-if="!showingApplication && showingConditions" @click.prevent="toggleConditions({show: false, showFinalised: true})">Hide Conditions</a>
+                                        <a class="actionBtn" v-else @click.prevent="toggleApplication({show: true, showFinalised: true})">Show Application</a><br/>
+                                        <a class="actionBtn" v-if="(!showingApplication || !this.unfinishedActivities.length) && !showingConditions" @click.prevent="toggleConditions({show: true})">Show Conditions</a>
                                     </div>
                                 </div>
                             </template>
@@ -546,7 +548,7 @@
                     <div class="col-md-12">
                         <div class="row">
                             <form :action="application_form_url" method="post" name="new_application" enctype="multipart/form-data">
-                                <Application form_width="inherit" :withSectionsSelector="false" v-if="isApplicationLoaded">
+                                <Application form_width="inherit" :withSectionsSelector="false" v-if="isApplicationLoaded && !showingApplicant">
                                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                                     <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                                     <input type='hidden' name="application_id" :value="1" />
@@ -615,9 +617,9 @@
                                 <div class="col-sm-12">
                                     <strong>&nbsp;</strong><br/>
                                     <strong>Licence Activity: {{ activity.activity_name_str }}</strong><br/>
-                                    <strong>Decision: {{ activity.decision_action }}</strong><br/>
-                                    <strong>Start date: {{ activity.start_date | formatDateNoTime }}</strong><br/>
-                                    <strong>Expiry date: {{ activity.expiry_date | formatDateNoTime }}</strong>                                    
+                                    <strong>Decision: {{ activity.processing_status.id === 'declined' ? activity.processing_status.name : activity.decision_action }}</strong><br/>
+                                    <strong>Start date: {{ activity.processing_status.id === 'declined' ? '' : activity.start_date | formatDateNoTime }}</strong><br/>
+                                    <strong>Expiry date: {{ activity.processing_status.id === 'declined' ? '' : activity.expiry_date | formatDateNoTime }}</strong>                                    
                                 </div>
                             </div>
                         </div>
@@ -901,6 +903,9 @@ export default {
         canProposeToOnlyDecline: function() {
             let decline_proposal = !this.hasCurrentLicence || this.selected_activity_tab_workflow_state[this.selected_activity_tab_id];
 
+            if (this.selectedActivity.processing_status.id === 'declined') {
+                return false;
+            }
             if (this.selectedActivity.processing_status.id === 'with_assessor') {
                 return false;
             }
@@ -1039,12 +1044,13 @@ export default {
             return true;
         },
         showFinalDecision: function() {
+            let show_final = (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline && !this.showingConditions
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
                 this.toggleApplication({show: false})
                 this.isSendingToAssessor=false
             }
-            let show = (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline
-            return show
+            if (show_final) {this.showingApplication=false}
+            return show_final
         },
         showSpinner: function() {
             return this.spinner
@@ -1061,6 +1067,9 @@ export default {
         },
         showBackToProcessingButton: function() {
             let show = this.isSendingToAssessor || this.showingConditions;
+            if (this.selectedActivity.processing_status.id === 'declined') {
+                return false;
+            }
             if (this.selectedActivity.processing_status.id === 'with_officer_finalisation') {
                 return false;
             }
@@ -1398,6 +1407,10 @@ export default {
             return true
         },
         toggleApplicant: function(){
+            let show_final = ['approved','declined','partially_approved','awaiting_payment'].includes(this.application.processing_status.id) && !this.unfinishedActivities.length
+            if (!this.showingApplication && show_final){
+                this.toggleApplication({show: true, showFinalised: true});
+            }
             this.showingApplicant=true;
             this.showingApplication=true;
 
@@ -1443,6 +1456,38 @@ export default {
                 this.initFirstTab();
             }, 50);
             !showFinalised && this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+        },
+        toggleConditions: async function({show=false, showFinalised=false}){
+            this.showingConditions = show;
+
+            if (showFinalised) {
+                this.toggleApplication({show: false, showFinalised: showFinalised});
+                return
+            }
+
+            if (this.showingConditions) {
+                this.toggleApplication({show: false})
+                this.condition_spinner = true;
+                await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+
+                    this.condition_spinner = false;
+                    this.spinner = false;
+                    this.setAssessStatus(false);
+
+                },(error)=>{
+
+                    this.condition_spinner = false;
+                    this.spinner = false;
+                    console.log(error)
+                    swal(
+                        'Application Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+            } else {
+                this.toggleApplication({show: true, showFinalised: true})
+            }
         },
         toggleOfficerConditions: async function(){
             this.isSendingToAssessor = !this.isSendingToAssessor;
