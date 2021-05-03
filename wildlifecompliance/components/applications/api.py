@@ -604,10 +604,11 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['application'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data['log_type'] = request.data['type']
-                serializer = ApplicationLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['application'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                request_data['log_type'] = request.data['type']
+                serializer = ApplicationLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
