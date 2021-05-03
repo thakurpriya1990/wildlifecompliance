@@ -164,6 +164,13 @@ class ApplicationSuccessView(TemplateView):
                             inv_lines
                         )
 
+                    # NOTE: If fee adjustments are paid with the amendment, the
+                    # status needs to be set to DRAFT instead of UnderReview,
+                    # so it can be resubmitted once invoice received.
+                    if application.amendment_requests:
+                        application.customer_status = \
+                            Application.CUSTOMER_STATUS_DRAFT
+
                     # can only submit again if application is in Draft.
                     if application.can_user_edit:
                         application.submit(request)

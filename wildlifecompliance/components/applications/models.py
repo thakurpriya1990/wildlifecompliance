@@ -232,7 +232,7 @@ class Application(RevisionedMixin):
         CUSTOMER_STATUS_DRAFT,
         CUSTOMER_STATUS_AWAITING_PAYMENT,
         CUSTOMER_STATUS_AMENDMENT_REQUIRED,
-        CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        # CUSTOMER_STATUS_PARTIALLY_APPROVED,
     ]
 
     # List of statuses from above that allow a customer to view an application
@@ -240,7 +240,7 @@ class Application(RevisionedMixin):
     CUSTOMER_VIEWABLE_STATE = [
         CUSTOMER_STATUS_UNDER_REVIEW,
         CUSTOMER_STATUS_ACCEPTED,
-        # CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        CUSTOMER_STATUS_PARTIALLY_APPROVED,
         CUSTOMER_STATUS_DECLINED,
     ]
 
