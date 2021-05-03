@@ -207,12 +207,12 @@
                                         <label class="control-label pull-left"  for="details">ID Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="details" style="width: 70%;">
-                                            <button v-if="isIdCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isIdCheckAwaitingUpdate">Awaiting update. Override to Issue: &nbsp;</label>
-                                            <label v-if="isIdNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isIdNotChecked || isIdCheckAwaitingUpdate" type="checkbox" v-model="licence.id_check" />
-                                        </div>
+                                        <!-- <div class="input-group date" ref="details" style="width: 70%;"> -->
+                                        <button v-if="isIdCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isIdCheckAwaitingUpdate">Awaiting update. Override to Issue: &nbsp;</label>
+                                        <label v-if="isIdNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isIdNotChecked || isIdCheckAwaitingUpdate" type="checkbox" :value="true" v-model="getCheckedItem('id_check').isChecked" />
+                                        <!-- </div> -->
                                     </div>
                                 </div>
                                 <div class="row">
@@ -220,11 +220,11 @@
                                         <label class="control-label pull-left"  for="details">Character Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="cc_email" style="width: 70%;">
-                                            <button v-if="isCharacterCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isCharacterNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isCharacterNotChecked" type="checkbox" v-model="licence.character_check" />
-                                        </div>
+                                        <!-- <div class="input-group date" ref="cc_email" style="width: 70%;"> -->
+                                        <button v-if="isCharacterCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isCharacterNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isCharacterNotChecked" type="checkbox" :value="true" v-model="getCheckedItem('character_check').isChecked" />
+                                        <!-- </div> -->
                                     </div>
                                 </div>
                                 <div class="row">
@@ -232,12 +232,12 @@
                                         <label class="control-label pull-left"  for="details">Return Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="cc_email" style="width: 70%;">
-                                            <button v-if="isReturnCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isReturnCheckAwaitingReturns">Awaiting return. Override to Issue: &nbsp;</label>
-                                            <label v-if="isReturnNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isReturnNotChecked || isReturnCheckAwaitingReturns" type="checkbox" v-model="licence.return_check" />
-                                        </div>
+                                        <!-- <div class="input-group date" ref="cc_email" style="width: 70%;"> -->
+                                        <button v-if="isReturnCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isReturnCheckAwaitingReturns">Awaiting return. Override to Issue: &nbsp;</label>
+                                        <label v-if="isReturnNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isReturnNotChecked || isReturnCheckAwaitingReturns" type="checkbox" :value="true" v-model="getCheckedItem('return_check').isChecked" />
+                                        <!-- </div> -->
                                     </div>
                                 </div>
                             </div>
@@ -318,9 +318,13 @@ export default {
             proposed_licence:{},
             licence:{
                 activity: [],
-                id_check:false,
-                character_check:false,
-                return_check:false,
+                checked_items: [{
+                    id: null,
+                    isChecked: false,
+                }],
+                // id_check:false,
+                // character_check:false,
+                // return_check:false,
                 current_application: vm.application.id,
                 purposes: [],
                 selected_purpose_ids: [],
@@ -375,14 +379,14 @@ export default {
                     purpose.proposed_start_date = purpose.start_date
                     purpose.proposed_end_date = purpose.expiry_date              
                 }
-                return ['reissue','propose'].includes(purpose.processing_status)
+                return ['reissue','propose','selected'].includes(purpose.processing_status)
             });
             return proposed;
         },
         canIssueOrDecline: function() {
-            return (this.allActivitiesDeclined || (
-                this.licence.id_check && this.licence.character_check && this.licence.return_check)
-            ) && this.visibleLicenceActivities.length;
+            // let is_checked = this.licence.id_check && this.licence.character_check && this.licence.return_check;
+            let is_checked = this.getCheckedItem('id_check').isChecked && this.getCheckedItem('character_check').isChecked  && this.getCheckedItem('return_check').isChecked;
+            return (this.allActivitiesDeclined || is_checked) && this.visibleLicenceActivities.length;
         },
         selectedActivity: function() {
             return this.visibleLicenceActivities.filter(
@@ -530,7 +534,7 @@ export default {
                     let proposed = activity.proposed_purposes
                     for (let p=0; p<proposed.length; p++){
                         let purpose = proposed[p]
-                        if (['reissue','propose'].includes(purpose.processing_status)){
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
                             selected.push(purpose)
 
                             let picked_purpose = this.pickedPurposes.filter(picked => {
@@ -627,7 +631,7 @@ export default {
                     let proposed = activity.proposed_purposes
                     for (let p=0; p<proposed.length; p++){
                         let purpose = proposed[p]
-                        if (['reissue','propose'].includes(purpose.processing_status)){
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
                             selected.push(purpose)
 
                             let picked_purpose = this.pickedPurposes.filter(picked => {
@@ -702,6 +706,17 @@ export default {
                 this.pickedPurposes.push(picked)
             }
             return picked
+        },
+        getCheckedItem: function(_id){
+            let checked = this.licence.checked_items.find(c => {return c.id===_id})
+            if (!checked) {
+                checked = {
+                    id: _id, 
+                    isChecked: false,
+                }
+                this.licence.checked_items.push(checked)
+            }
+            return checked;
         },
         initialiseLicenceDetails() {
             var final_status = null;

@@ -7,8 +7,8 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="form-group">
-                                <div class="row"><div class="col-sm-12"><label class="control-label" for="Name">Select licensed activities to Propose Issue:</label></div></div>
-                                <div class="row"><div class="col-sm-12"><label class="control-label"></label>&nbsp;</div></div>
+                                <!-- <div class="row"><div class="col-sm-12"><label class="control-label" for="Name">Select licensed activities to Propose Issue:</label></div></div>
+                                <div class="row"><div class="col-sm-12"><label class="control-label"></label>&nbsp;</div></div> -->
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <div v-if="canAssignOfficerFor(a.licence_activity)">
@@ -304,6 +304,7 @@ export default {
             'licenceActivities',
             'canAssignOfficerFor',
             'selected_activity_tab_id',
+            'selected_activity_tab_name',
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -313,8 +314,7 @@ export default {
             return vm.errors;
         },
         title: function(){
-        // TODO: application processing_status doesnt have a "with approver" status (disturbance legacy), need to fix
-            return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
+            return 'Propose to issue activity ' + this.selected_activity_tab_name;
         },
         applicationSelectedActivitiesForPurposes: function() {
             var selected_activity = this.application.activities.filter( activity => { 
