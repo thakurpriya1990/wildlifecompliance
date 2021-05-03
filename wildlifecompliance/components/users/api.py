@@ -368,15 +368,17 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = UserAddressSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             address, created = Address.objects.get_or_create(
-                line1=serializer.validated_data['line1'],
+                # line1=serializer.validated_data['line1'],
                 locality=serializer.validated_data['locality'],
                 state=serializer.validated_data['state'],
                 country=serializer.validated_data['country'],
                 postcode=serializer.validated_data['postcode'],
                 user=instance
             )
+            address.line1 = serializer.validated_data['line1']
             instance.residential_address = address
             with transaction.atomic():
+                address.save()
                 instance.save()
                 instance.log_user_action(
                     EmailUserAction.ACTION_POSTAL_ADDRESS_UPDATE.format(
