@@ -326,7 +326,10 @@ export default {
             })
         },
         updatedConditions(){
-            this.$refs.conditions_datatable.vmDataTable.ajax.reload();
+            if (this.$refs.conditions_datatable.vmDataTable){
+                this.$refs.conditions_datatable.vmDataTable.ajax.reload();            
+            }
+            // this.$refs.conditions_datatable.vmDataTable.ajax.reload();
         },
         eventListeners(){
             let vm = this;
@@ -428,6 +431,9 @@ export default {
         });
     },
     updated: function() {
+        this.$nextTick(() => {
+            this.updatedConditions()
+        });
     }
 }
 </script>
