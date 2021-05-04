@@ -10,7 +10,6 @@ from ledger.payments.invoice.models import Invoice
 from wildlifecompliance.components.applications.models import (
     ApplicationCondition,
     Application,
-    ApplicationFormDataRecord,
 )
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
@@ -19,7 +18,6 @@ from wildlifecompliance.components.main.models import (
 )
 from wildlifecompliance.components.returns.email import (
     send_external_submit_email_notification,
-    send_return_accept_email_notification,
 )
 
 import logging
@@ -816,7 +814,7 @@ class ReturnTable(RevisionedMixin):
         from wildlifecompliance.components.returns.utils import (
             BulkCreateManager,
         )
-        
+
         try:
             bulk_mgr = BulkCreateManager()      # chunking size = 100
 
@@ -829,7 +827,7 @@ class ReturnTable(RevisionedMixin):
                 bulk_mgr.add(return_row)
 
             bulk_mgr.done()
-        
+
         except Exception as e:
             logger.error('{0} ID: {1} - {2}'.format(
                 'ReturnTable.set_rows()',
@@ -839,6 +837,7 @@ class ReturnTable(RevisionedMixin):
             raise
 
         return ReturnRow.objects.filter(return_table=self)
+
 
 class ReturnRow(RevisionedMixin):
     return_table = models.ForeignKey(ReturnTable)
@@ -853,9 +852,9 @@ class ReturnRow(RevisionedMixin):
 
 
 class ReturnUserAction(UserAction):
-    ACTION_CREATE = "Lodge {} for Condition: {} (Activity: {})"
+    ACTION_CREATE = "Created {} for Condition: {} (Activity: {})"
     ACTION_DISCARD = "Discard {} for Condition: {} (Activity: {})"
-    ACTION_SUBMIT_REQUEST = "Submit Return {}"
+    ACTION_SUBMIT_REQUEST = "Lodged Return {}"
     ACTION_ACCEPT_REQUEST = "Accept Return {}"
     ACTION_SAVE_REQUEST = "Save Return {}"
     ACTION_SUBMIT_TRANSFER = "Submit transfer of species stock from Return {}"
