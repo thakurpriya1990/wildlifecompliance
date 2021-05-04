@@ -60,8 +60,10 @@ class SecureBaseUtils(object):
 
         http_host = request.META.get('HTTP_HOST', None)
 
-        if http_host and settings.SITE_URL_WLC \
-        and ('wlc' in http_host.lower() or http_host in settings.SITE_URL_WLC):
+        if http_host and settings.SITE_URL_WLC and (
+                'wlc' in http_host.lower()
+                or http_host in settings.SITE_URL_WLC
+        ):
             is_wlc = True
 
         return is_wlc
@@ -69,8 +71,8 @@ class SecureBaseUtils(object):
 
 class SecureBase(object):
     '''
-    An abstract base class to coordinate security components and to provide a 
-    client request with a central access point for administering security 
+    An abstract base class to coordinate security components and to provide a
+    client request with a central access point for administering security
     related functionality.
     '''
     request = None                              # composite client request.
@@ -102,7 +104,7 @@ class SecureAuthorisationEnforcer(SecureBase):
     '''
     def __init__(self, a_request):
         super(SecureBase, self).__init__()
-        self.request = a_request    
+        self.request = a_request
 
     def __str__(self):
         return 'SecureAuthrorisationEnforcer - user: {0}'.format(
@@ -121,15 +123,15 @@ class SecureAuthorisationEnforcer(SecureBase):
         '''
         pass
 
-    def process_request(self):
+    def process_request(self, request=None):
         '''
         Process a privileged request.
         '''
         from wildlifecompliance.helpers import is_new_to_wildlifelicensing
 
         if self.request.method == 'GET' and 'api' not in self.request.path \
-        and 'admin' not in self.request.path \
-        and self.request.user.is_authenticated():
+                and 'admin' not in self.request.path \
+                and self.request.user.is_authenticated():
 
             if is_new_to_wildlifelicensing(self.request):
                 path_ft = reverse('first_time')
@@ -172,7 +174,6 @@ class SecurePipe(SecureBase):
             )
             raise SecureBaseException(message)
 
-
     def validate_request_for_wildlifelicence(self, licence):
         '''
         Method responsible for validating the client request for wildife
@@ -190,16 +191,17 @@ class SecurePipe(SecureBase):
         if is_customer(self.request):
 
             customer_is_org_applicant = True \
-            if apps.org_applicant and apps.org_applicant == user else False
+                if apps.org_applicant and apps.org_applicant == user else False
 
             customer_is_proxy_applicant = True \
-            if apps.proxy_applicant and apps.proxy_applicant == user else False 
+                if apps.proxy_applicant and apps.proxy_applicant == user \
+                else False
 
             customer_is_submitter = True \
-            if apps.submitter and apps.submitter == user else False 
+                if apps.submitter and apps.submitter == user else False
 
             if not customer_is_proxy_applicant and not customer_is_submitter \
-            and not customer_is_org_applicant:
+                    and not customer_is_org_applicant:
 
                 self.allow_request = False
                 message = '{0} - {1} {2} No Permission.'.format(
@@ -232,7 +234,7 @@ class SecurePipe(SecureBase):
         except SecureBaseException as e:
             self.log_request(e)
 
-        except Exception as e:
+        except Exception:
             raise
 
         return response
@@ -246,9 +248,6 @@ class SecurePipe(SecureBase):
         '''
         import mimetypes
         from ledger.accounts.models import EmailUser
-        from wildlifecompliance.components.applications.models import (
-            Application,
-        )
         from wildlifecompliance.components.licences.models import (
             WildlifeLicence,
         )
@@ -287,13 +286,12 @@ class SecurePipe(SecureBase):
                 response = HttpResponse(content_type=mime)
                 response.write(document._file.read())
 
-        except SecureBaseException as e:
+        except SecureBaseException:
             raise
 
         except Exception as e:
             logger.error('{0} : {1}'.format(
-               'securebase_manager.SecurePipe.get_http_response_for_wlc()',
-                e
+               'securebase_manager.SecurePipe.get_http_response_for_wlc()', e
             ))
             raise
 
