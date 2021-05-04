@@ -63,7 +63,7 @@ class ApplicationService(object):
         logger.debug('ApplicationService.submit_application_request() - start')
         logger_title = '{0} AppID {1}:'.format(
             'ApplicationService.submit_application_request()',
-            application.id,            
+            application.id,
         )
 
         try:
@@ -72,11 +72,11 @@ class ApplicationService(object):
                 submit.execute()
 
         except ApplicationServiceException as ase:
-            log = '{0} {1}'.format( logger_title, ase )
+            log = '{0} {1}'.format(logger_title, ase)
             logger.exception(log)
 
         except Exception as e:
-            log = '{0} {1}'.format( logger_title, e )
+            log = '{0} {1}'.format(logger_title, e)
             logger.exception(log)
             raise
 
@@ -216,11 +216,12 @@ class ApplicationService(object):
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
 
         # Utilise correct Fee Field Element for Renewal Applications.
-        if application.application_type == Application.APPLICATION_TYPE_RENEWAL:
-           for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+        if application.application_type \
+                == Application.APPLICATION_TYPE_RENEWAL:
+            for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
 
         else:
-           for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+            for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
 
         # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
         for_increase_fee_fields.accept(checkbox)
@@ -263,7 +264,7 @@ class ApplicationService(object):
 
         if update_fee or application.processing_status not in process_status:
             do_update_dynamic_attributes(application)
-        # 
+        #
         # else:
         #     updated_app = Application.objects.get(id=application.id)
         #     updated_app.save()      # save for reversion log on form.
@@ -347,22 +348,22 @@ class SubmitRequestCommand(ApplicationCommand):
         Process the request for submit of application amendment request.
         '''
         qs = self.application.amendment_requests.filter(
-            status=REQUESTED
+            status=self.REQUESTED
         )
 
         if qs:
 
             for q in qs:
-                q.status = AMENDED
+                q.status = self.AMENDED
                 self.application.set_activity_processing_status(
-                    q.licence_activity.id, OFFICER)
+                    q.licence_activity.id, self.OFFICER)
                 q.save()
 
             self.amendment_request = True
             self.application.save()
-            self.log_action = AMEND_ACTION
+            self.log_action = self.AMEND_ACTION
 
-    def prepare_default_conditions(selected_activity):
+    def prepare_default_conditions(self, selected_activity):
         '''
         Process Default Conditions on the Application.
         '''
@@ -397,9 +398,9 @@ class SubmitRequestCommand(ApplicationCommand):
                     self.request
                 )
 
-    def prepare_selected_purposes(selected_activity):
+    def prepare_selected_purposes(self, selected_activity):
         '''
-        Process Selected Activity Purposes for the selected Activity for 
+        Process Selected Activity Purposes for the selected Activity for
         applicable licences. Set proposed dates to the previous date period.
         '''
         APPLICABLE_TYPES = [
@@ -426,7 +427,7 @@ class SubmitRequestCommand(ApplicationCommand):
 
                 p.save()
 
-    def prepare_reissue(selected_activity):
+    def prepare_reissue(self, selected_activity):
         '''
         Process the request for a reissue on the application.
         '''
@@ -444,10 +445,10 @@ class SubmitRequestCommand(ApplicationCommand):
                 raise Exception(log)
 
             self.application.set_activity_processing_status(
-                selected_activity.licence_activity_id, FIN
+                selected_activity.licence_activity_id, self.FIN
             )
 
-            selected_activity.proposed_action = PROPOSED
+            selected_activity.proposed_action = self.PROPOSED
             selected_activity.save()
 
     def prepare_application(self):
@@ -455,7 +456,7 @@ class SubmitRequestCommand(ApplicationCommand):
         Process the request for standard application submit.
         '''
         for activity in self.application.licence_type_data['activity']:
-            if activity["processing_status"]["id"] != DRAFT:
+            if activity["processing_status"]["id"] != self.DRAFT:
                 continue
 
             selected_activity = \
@@ -463,7 +464,7 @@ class SubmitRequestCommand(ApplicationCommand):
 
             # set licence to with-officer.
             self.application.set_activity_processing_status(
-                activity["id"], OFFICER
+                activity["id"], self.OFFICER
             )
 
             '''
@@ -490,7 +491,7 @@ class SubmitRequestCommand(ApplicationCommand):
         '''
         Concrete method.
         '''
-        from ledger.accounts.models import EmailUser, RevisionedMixin
+        from ledger.accounts.models import EmailUser
         from wildlifecompliance.components.applications.email import (
             send_application_submit_email_notification,
         )
@@ -510,30 +511,30 @@ class SubmitRequestCommand(ApplicationCommand):
         requires_refund = self.application.requires_refund_at_submit()
 
         # stop process when outstanding fee.
-        if self.application.submit_type == ONLINE \
-        and not self.application.application_fee_paid \
-        and not requires_refund:
-            self.application.customer_status = AWAITING_PAYMENT
+        if self.application.submit_type == self.ONLINE \
+                and not self.application.application_fee_paid \
+                and not requires_refund:
+            self.application.customer_status = self.AWAITING_PAYMENT
             self.application.save()
             return
 
-        self.application.customer_status = UNDER_REVIEW
+        self.application.customer_status = self.UNDER_REVIEW
         self.application.submitter = self.request.user
         self.application.lodgement_date = timezone.now()
 
-        # set assess status to True everytime. Flag is only used for 
-        # assessments and conditions and is set to false once conditions 
+        # set assess status to True everytime. Flag is only used for
+        # assessments and conditions and is set to false once conditions
         # are processed.
         self.application.set_property_cache_assess(True)
 
-        # if amendment is submitted change the status of only particular 
-        # activity else if the new application is submitted change the 
+        # if amendment is submitted change the status of only particular
+        # activity else if the new application is submitted change the
         # status of all the activities
         self.submit_amendment_request()
 
         if not self.amendment_request:
 
-            self.prepare_application()          
+            self.prepare_application()
 
             if not requires_refund:
 
@@ -548,7 +549,7 @@ class SubmitRequestCommand(ApplicationCommand):
                     )
                     raise Exception(log)
 
-            self.log_action = APPLICATION_ACTION
+            self.log_action = self.APPLICATION_ACTION
 
         # Create a log entry for the application
         self.application.log_user_action(
@@ -558,7 +559,6 @@ class SubmitRequestCommand(ApplicationCommand):
             self.application.alert_for_refund(self.request)
 
         self.application.documents.all().update(can_delete=False)
-
 
 
 """
@@ -687,7 +687,8 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            # schema_fields1 = self._application.get_schema_fields_for_purposes(
+            # schema_fields1
+            #       = self._application.get_schema_fields_for_purposes(
             #     selected_activity.purposes.values_list('id', flat=True)
             # )
             schema_fields = selected_activity.get_schema_fields_for_purposes()
@@ -708,9 +709,9 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 schema_data = schema_fields[schema_name]
 
                 if not selected_activity.licence_activity_id \
-                == schema_data['licence_activity_id']:
-                    # FIXME: this check is required because the function 
-                    # selected_activity.get_schema_fields_for_purposes() is 
+                        == schema_data['licence_activity_id']:
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
                     # retrieving fields for all purposes on the Application.
                     continue
 
@@ -787,8 +788,8 @@ class TextAreaCompositor(ApplicationFormCompositor):
                 if not selected_activity.licence_activity_id == schema_data[
                     'licence_activity_id',
                 ]:
-                    # FIXME: this check is required because the function 
-                    # selected_activity.get_schema_fields_for_purposes() is 
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
                     # retrieving fields for all purposes on the Application.
                     continue
 
@@ -844,8 +845,8 @@ class TextCompositor(ApplicationFormCompositor):
                 if not selected_activity.licence_activity_id == schema_data[
                     'licence_activity_id',
                 ]:
-                    # FIXME: this check is required because the function 
-                    # selected_activity.get_schema_fields_for_purposes() is 
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
                     # retrieving fields for all purposes on the Application.
                     continue
 
@@ -1246,6 +1247,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
 
+
 class IncreaseRenewalFeeFieldElement(SpecialFieldElement):
     '''
     An implementation of an SpecialFieldElement operation that takes an
@@ -1371,7 +1373,7 @@ class IncreaseRenewalFeeFieldElement(SpecialFieldElement):
                     return True
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
-                # increase_fee is for dynamic attributes so include negatives. 
+                # increase_fee is for dynamic attributes so include negatives.
                 # fees[field] = fees[field] if fees[field] >= 0 else D(0)
                 logger.debug('fees[field] = {}'.format(fees[field]))
                 return True
@@ -1826,12 +1828,12 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
     # Get all fee adjustments made with check boxes and radio buttons.
     checkbox = CheckboxAndRadioButtonVisitor(application, application.data)
 
-    # Utilise correct Fee Field Element for Renewal Applications. 
+    # Utilise correct Fee Field Element for Renewal Applications.
     if application.application_type == Application.APPLICATION_TYPE_RENEWAL:
-       for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+        for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
 
     else:
-       for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+        for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
 
     # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
     for_increase_fee_fields.set_updating(True)
