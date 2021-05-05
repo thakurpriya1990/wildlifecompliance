@@ -6217,13 +6217,16 @@ class ApplicationSelectedActivityPurpose(models.Model):
             Check licence and application fee has been paid with the latest
             invoice.
             '''
-            if self.selected_activity.application_fee == 0 \
-                    and self.selected_activity.total_paid_amount < 1:
+            # if self.selected_activity.application_fee == 0 \
+            #         and self.selected_activity.total_paid_amount < 1:
+            if self.selected_activity.application_fee == Decimal(0.0) \
+                    and self.selected_activity.licence_fee == Decimal(0.0) \
+                    and self.selected_activity.total_paid_amount < Decimal(1.0):
 
                 _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
-            elif self.selected_activity.application_fee < 0 \
-                    and self.selected_activity.total_paid_amount < 1:
+            elif self.selected_activity.application_fee < Decimal(0.0) \
+                    and self.selected_activity.total_paid_amount < Decimal(1.0):
 
                 _status = ActivityInvoice.PAYMENT_STATUS_OVERPAID
 

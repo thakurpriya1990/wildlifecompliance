@@ -1830,6 +1830,7 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
             Application.PROCESSING_STATUS_DRAFT,
             Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
             Application.PROCESSING_STATUS_UNDER_REVIEW,
+            Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
     ]:
         return
 
