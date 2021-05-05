@@ -69,14 +69,21 @@ class LicencePurpose(models.Model):
     not_renewable = models.BooleanField(
         default=False,
         help_text='If ticked, the licenced Purpose can not be renewed.')
+    replaced_by = models.ForeignKey(
+        'self',
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True)
+    version = models.SmallIntegerField(default=1, blank=False, null=False)
+
+    def __str__(self):
+        return '{0} - v{1}'.format(self.name, self.version)
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'Licence purpose'
         verbose_name_plural = 'Licence purposes'
-
-    def __str__(self):
-        return self.name
+        unique_together = ('name', 'version')
 
     @staticmethod
     def get_first_record(activity_name):
@@ -204,6 +211,27 @@ class LicencePurpose(models.Model):
                 species_list.append(option['value'])
 
         return options
+
+    def get_latest_version(self):
+        '''
+        Get the latest version available for this Licence Purpose code.
+
+        :return: LicencePurpose.
+        '''
+        return LicencePurpose.objects.filter(code=self.code).latest('version')
+
+    def get_previous_version(self):
+        '''
+        Get the previous version for this Licence Purpose code.
+
+        :return: LicencePurpose.
+        '''
+        prev_version = 1 if (self.version - 1) < 2 else self.version - 1
+        previous = LicencePurpose.objects.get(
+            code=self.code, version=prev_version,
+        )
+
+        return previous
 
     def to_json(self):
         _list = []
@@ -909,10 +937,14 @@ class WildlifeLicence(models.Model):
         logger.debug('WildlifeLicence.get_activities_open_apps()  - end')
         return open_activities
 
-    def get_purposes_in_open_applications(self):
+    def get_purposes_in_open_applications(self, as_objects=False):
         """
-        Return a list of LicencePurpose records for the licence that are
-        currently in an application being processed
+        Get list of LicencePurpose for applications on this licence currently 
+        being processed. The list can be either LicencePurpose objects or 
+        LicencePurpose identifiers.
+
+        :param: as_objects flag to determine list as objects or identifiers.
+        :return: list of LicencePurpose.
         """
         from wildlifecompliance.components.applications.models import (
             Application, ApplicationSelectedActivity)
@@ -939,6 +971,12 @@ class WildlifeLicence(models.Model):
         open_purposes = open_applications.values_list(
             'licence_purposes',
             flat=True)
+
+        if as_objects:
+            open_purposes = []
+            for a in open_applications:
+                open_purposes += a.licence_purposes.all()
+
 
         logger.debug('WildlifeLicence.get_purposes_in_open_apps() - end')
         return open_purposes
@@ -1095,32 +1133,32 @@ class WildlifeLicence(models.Model):
             except BaseException:
                 raise
 
-    def apply_action_to_licence(self, request, action):
-        """
-        Applies a specified action to a all of a licence's activities and purposes for a licence
-        """
-        if action not in [
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND,
-            WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
-        ]:
-            raise ValidationError('Selected action is not valid')
-        with transaction.atomic():
-            for activity_id in self.latest_activities.values_list('licence_activity_id', flat=True):
-                for activity in self.get_latest_activities_for_licence_activity_and_action(
-                        activity_id, action):
-                    if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
-                        activity.reactivate_renew(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
-                        activity.surrender(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
-                        activity.cancel(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
-                        activity.suspend(request)
-                    elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
-                        activity.reinstate(request)
+    # def apply_action_to_licence(self, request, action):
+    #     """
+    #     Applies a specified action to a all of a licence's activities and purposes for a licence
+    #     """
+    #     if action not in [
+    #         WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW,
+    #         WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER,
+    #         WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL,
+    #         WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND,
+    #         WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE
+    #     ]:
+    #         raise ValidationError('Selected action is not valid')
+    #     with transaction.atomic():
+    #         for activity_id in self.latest_activities.values_list('licence_activity_id', flat=True):
+    #             for activity in self.get_latest_activities_for_licence_activity_and_action(
+    #                     activity_id, action):
+    #                 if action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REACTIVATE_RENEW:
+    #                     activity.reactivate_renew(request)
+    #                 elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SURRENDER:
+    #                     activity.surrender(request)
+    #                 elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_CANCEL:
+    #                     activity.cancel(request)
+    #                 elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_SUSPEND:
+    #                     activity.suspend(request)
+    #                 elif action == WildlifeLicence.ACTIVITY_PURPOSE_ACTION_REINSTATE:
+    #                     activity.reinstate(request)
 
     def apply_action_to_purposes(self, request, action):
         """

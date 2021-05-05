@@ -7,16 +7,14 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="form-group">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <label class="control-label" for="Name">Select licensed activities to Propose Issue</label>
-                                    </div>
-                                </div>
+                                <!-- <div class="row"><div class="col-sm-12"><label class="control-label" for="Name">Select licensed activities to Propose Issue:</label></div></div>
+                                <div class="row"><div class="col-sm-12"><label class="control-label"></label>&nbsp;</div></div> -->
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <div v-if="canAssignOfficerFor(a.licence_activity)">
-                                        <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b>
-                                        <div v-show="checkedActivities.find(checked => checked===a.id)">
+                                        <!-- <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b> -->
+                                        <!-- <div v-show="checkedActivities.find(checked => checked===a.id)"> -->
+                                        <div v-show="selected_activity_tab_id === a.licence_activity">
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
                                 
                                                 <div class="panel panel-primary">
@@ -306,6 +304,7 @@ export default {
             'licenceActivities',
             'canAssignOfficerFor',
             'selected_activity_tab_id',
+            'selected_activity_tab_name',
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -315,22 +314,24 @@ export default {
             return vm.errors;
         },
         title: function(){
-        // TODO: application processing_status doesnt have a "with approver" status (disturbance legacy), need to fix
-            return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
+            return 'Propose to issue activity ' + this.selected_activity_tab_name;
         },
         applicationSelectedActivitiesForPurposes: function() {
-            return this.application.activities.filter( activity => { 
-
-                    return activity.processing_status.id === 'with_officer_conditions'
+            var selected_activity = this.application.activities.filter( activity => { 
+                    return activity.processing_status.id === 'with_officer_conditions' && activity.licence_activity === this.selected_activity_tab_id;
                 } // only non-processed activities.
             );
+            if (selected_activity[0]) {
+                this.checkedActivities = [selected_activity[0].id]
+            }
+            return selected_activity;
         },
-        applicationSelectedActivity: function() {
-            let val = this.application.activities.find(
-                activity => { return activity.licence_activity === this.selected_activity_tab_id } 
-            );
-            return val
-        },
+        // applicationSelectedActivity: function() {
+        //     let val = this.application.activities.find(
+        //         activity => { return activity.licence_activity === this.selected_activity_tab_id } 
+        //     );
+        //     return val
+        // },
     },
     methods:{
         ok:function () {

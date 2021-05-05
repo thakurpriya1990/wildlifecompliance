@@ -269,6 +269,8 @@ urlpatterns = [
 
     url(r'^preview/licence-pdf/(?P<application_pk>\d+)',application_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
+    url(r'^securebase-view/',views.SecureBaseView.as_view(), name='securebase-view'),
+
 ] + ledger_patterns
 
 if not are_migrations_running():

@@ -37,7 +37,7 @@ from wildlifecompliance.components.organisations.serializers import (
     ExternalOrganisationSerializer
 )
 from wildlifecompliance.components.users.serializers import (
-    UserAddressSerializer, DocumentSerializer
+    UserAddressSerializer, IdentificationSerializer
 )
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.management.permissions_manager import PermissionUser
@@ -264,6 +264,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
+    can_propose_purposes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -366,6 +367,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         logger.debug('SelectedActivitySerializer.has_inspection() - end')
 
         return has_inspection
+
+    def get_can_propose_purposes(self, obj):
+        return obj.can_propose_purposes()
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
@@ -675,9 +679,8 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
-    # identification = DocumentSerializer()
+    identification = IdentificationSerializer()
     dob = serializers.SerializerMethodField(read_only=True)
-    identification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -693,15 +696,6 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
-
-    def get_identification(self, obj):
-        uid = None
-        if obj.identification:
-            id_file = 'media/' + str(obj.identification.file)
-            if os.path.exists(id_file):
-                uid = DocumentSerializer(obj.identification).data
-
-        return uid
 
     def get_dob(self, obj):
 

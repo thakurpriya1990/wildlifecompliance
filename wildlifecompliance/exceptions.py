@@ -20,3 +20,52 @@ class ApplicationMissingFields(APIException):
 
 class BindApplicationException(Exception):
     pass
+
+
+class SecureBaseException(Exception):
+    '''
+    A specialised exception object for securebase errors allowing for logging
+    and auditing purposes.
+    '''
+    pass
+
+
+class ApplicationServiceException(Exception):
+    '''
+    A specialised exception object for Services errors allowing for logging
+    and auditing purposes.
+    '''
+    pass
+
+
+class ApplicationPaymentException(Exception):
+    '''
+    A specialised exception object for Application Payment errors allowing for
+    logging and auditing purposes.
+    '''
+    pass
+
+
+class LicenceServiceException(Exception):
+    '''
+    A specialised exception object for Services errors allowing for logging
+    and auditing purposes.
+    '''
+    pass
+
+
+class ReturnServiceException(Exception):
+    '''
+    A specialised exception object for Services errors allowing for logging
+    and auditing purposes.
+    '''
+    pass
+
+
+class ReturnPaymentException(Exception):
+    '''
+    A specialised exception object for Return Payment errors allowing for
+    logging and auditing purposes.
+    '''
+    pass
+

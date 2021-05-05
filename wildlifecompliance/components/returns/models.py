@@ -10,7 +10,6 @@ from ledger.payments.invoice.models import Invoice
 from wildlifecompliance.components.applications.models import (
     ApplicationCondition,
     Application,
-    ApplicationFormDataRecord,
 )
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
@@ -19,7 +18,6 @@ from wildlifecompliance.components.main.models import (
 )
 from wildlifecompliance.components.returns.email import (
     send_external_submit_email_notification,
-    send_return_accept_email_notification,
 )
 
 import logging
@@ -527,86 +525,6 @@ class Return(models.Model):
         except BaseException:
             raise
 
-    # def set_return_species(self):
-    #     '''
-    #     Set the species available for this return.
-    #     '''
-    #     try:
-    #         return_table = []
-    #         specie_names = []
-
-    #         if self.return_type.with_application_species:
-    #             specie_names = self.get_application_return_species()
-
-    #         elif self.return_type.with_regulated_species:
-    #             specie_names = self.get_regulated_return_species()
-
-    #         for name in specie_names:
-    #             return_table.append(
-    #                 ReturnTable(name=name, ret_id=str(self.id))
-    #             )
-
-    #         if return_table:
-    #             ReturnTable.objects.bulk_create(return_table)
-
-    #     except BaseException as e:
-    #         logger.error('set_return_speces() ID: {0} - {1}'.format(
-    #             self.id, e
-    #         ))
-
-    # def get_application_return_species(self):
-    #     '''
-    #     Set the species available for this return.
-    #     '''
-    #     species = []
-
-    #     return species
-
-    # def get_regulated_return_species(self):
-    #     '''
-    #     Set the species available for this return.
-    #     '''
-    #     species = []
-
-    #     return species
-
-    # def set_future_return_species(self):
-    #     '''
-    #     Set the species available for this return.
-    #     '''
-    #     SPECIES = ApplicationFormDataRecord.COMPONENT_TYPE_SELECT_SPECIES
-    #     STATUS = [
-    #         # Return.RETURN_PROCESSING_STATUS_FUTURE
-    #         'NO SPECIES ALLOWED'
-    #     ]
-
-    #     if self.processing_status not in STATUS:
-    #         '''
-    #         Species are only set for FUTURE processing status.
-    #         '''
-    #         return
-
-    #     species_qs = ApplicationFormDataRecord.objects.values(
-    #         'value',
-    #     ).filter(
-    #         licence_activity_id=self.condition.licence_activity_id,
-    #         licence_purpose_id=self.condition.licence_purpose_id,
-    #         application_id=self.condition.application_id,
-    #         component_type=SPECIES,
-    #     )
-    #     return_table = []
-    #     specie_ids = []
-    #     for specie_id in species_qs:
-    #         specie_ids += specie_id['value']
-
-    #     for id_name in specie_ids:
-    #         return_table.append(
-    #             ReturnTable(name=id_name, ret_id=str(self.id))
-    #         )
-
-    #     if return_table:
-    #         ReturnTable.objects.bulk_create(return_table)
-
     def is_amended(self):
         '''
         Verification that this Return has resulted from a Condition on an
@@ -693,20 +611,6 @@ class Return(models.Model):
 
         return ActivityPermissionGroup.get_groups_for_activities(
             selected_activity_ids, codename)
-
-    # @transaction.atomic
-    # def accept(self, request):
-    #     '''
-    #     TODO:AYN This is redundant. ReturnService.
-    #     '''
-    #     try:
-    #         self.processing_status = Return.RETURN_PROCESSING_STATUS_ACCEPTED
-    #         self.save()
-    #         self.log_user_action(
-    #             ReturnUserAction.ACTION_ACCEPT_REQUEST.format(self), request)
-    #         send_return_accept_email_notification(self, request)
-    #     except BaseException:
-    #         raise
 
     def save_return_table(self, table_name, table_rows, request):
         """
@@ -910,7 +814,7 @@ class ReturnTable(RevisionedMixin):
         from wildlifecompliance.components.returns.utils import (
             BulkCreateManager,
         )
-        
+
         try:
             bulk_mgr = BulkCreateManager()      # chunking size = 100
 
@@ -923,7 +827,7 @@ class ReturnTable(RevisionedMixin):
                 bulk_mgr.add(return_row)
 
             bulk_mgr.done()
-        
+
         except Exception as e:
             logger.error('{0} ID: {1} - {2}'.format(
                 'ReturnTable.set_rows()',
@@ -933,6 +837,7 @@ class ReturnTable(RevisionedMixin):
             raise
 
         return ReturnRow.objects.filter(return_table=self)
+
 
 class ReturnRow(RevisionedMixin):
     return_table = models.ForeignKey(ReturnTable)
@@ -947,9 +852,9 @@ class ReturnRow(RevisionedMixin):
 
 
 class ReturnUserAction(UserAction):
-    ACTION_CREATE = "Lodge Return {}"
-    ACTION_DISCARD = "Discard Return {}"
-    ACTION_SUBMIT_REQUEST = "Submit Return {}"
+    ACTION_CREATE = "Created {} for Condition: {} (Activity: {})"
+    ACTION_DISCARD = "Discard {} for Condition: {} (Activity: {})"
+    ACTION_SUBMIT_REQUEST = "Lodged Return {}"
     ACTION_ACCEPT_REQUEST = "Accept Return {}"
     ACTION_SAVE_REQUEST = "Save Return {}"
     ACTION_SUBMIT_TRANSFER = "Submit transfer of species stock from Return {}"

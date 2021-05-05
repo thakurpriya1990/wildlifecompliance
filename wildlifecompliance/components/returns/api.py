@@ -674,11 +674,12 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['compliance'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data['return_obj'] = instance.id
-                request.data['log_type'] = request.data['type']
-                serializer = ReturnLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['compliance'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                request_data['return_obj'] = instance.id
+                request_data['log_type'] = request.data['type']
+                serializer = ReturnLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
