@@ -1088,8 +1088,12 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
         """
         Reset the selected licence activity to have no CopyToLicenceFields.
         """
-        if self.is_refreshing:
-            # No user update with a page refesh.
+        ISSUED = [
+            licence_activity.DECISION_ACTION_ISSUED_WITH_REFUND,
+            licence_activity.DECISION_ACTION_ISSUED,
+        ]
+        if self.is_refreshing or licence_activity.decision_action in ISSUED:
+            # No user update with a page refesh or issued activities.
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
@@ -1196,8 +1200,12 @@ class StandardConditionFieldElement(SpecialFieldElement):
         NOTE: Standard Conditions created will need to be manually deleted
         by the officer when need to change so that it is audited.
         """
-        if self.is_refreshing:
-            # No user update with a page refesh.
+        ISSUED = [
+            licence_activity.DECISION_ACTION_ISSUED_WITH_REFUND,
+            licence_activity.DECISION_ACTION_ISSUED,
+        ]
+        if self.is_refreshing or licence_activity.decision_action in ISSUED:
+            # No user update with a page refesh or issued activities.
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
