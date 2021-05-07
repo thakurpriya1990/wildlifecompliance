@@ -23,14 +23,7 @@
                                     <form class="form-horizontal" action="index.html" method="post">
                                         <div class="col-sm-12">
                                             <div class="form-group">
-                                                <!-- <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Ready for finalisation?</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
-                                                    </div>
-                                                </div> -->
+
                                                 <div class="row">
                                                     <div class="col-sm-12"><label class="control-label pull-left">Proposed Purposes:</label></div>
                                                     <div class="col-sm-12"><label class="control-label pull-left">&nbsp;</label></div>
@@ -90,20 +83,7 @@
                                                                         <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
                                                                             <br/>
 
-                                                                            <!--
-                                                                            <div class="col-sm-12">
-                                                                                <div class="col-sm-3">
-                                                                                    <label class="control-label pull-left" for="Name">Header</label>
-                                                                                </div>
-                                                                                <div class="col-sm-6">
-                                                                                    <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
-                                                                                </div>
-                                                                                <div v-show="free_text.is_additional_info" class="col-sm-3">
-                                                                                    <input type="checkbox" checked disabled/>
-                                                                                    <label>Is additional info</label>
-                                                                                </div>
-                                                                            </div>
-                                                                            -->
+
                                                                             <div class="col-sm-12">
                                                                                 <div class="col-sm-3">
                                                                                     <label class="control-label pull-left" for="Name">Details</label>
@@ -113,9 +93,7 @@
                                                                                     </div>
                                                                                 </div>
                                                                                 <div class="col-sm-9">
-                                                                                    <!--
-                                                                                    <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
-                                                                                    -->
+
                                                                                     <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
                                                                                 </div>
 
@@ -207,12 +185,12 @@
                                         <label class="control-label pull-left"  for="details">ID Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <!-- <div class="input-group date" ref="details" style="width: 70%;"> -->
+
                                         <button v-if="isIdCheckAccepted" disabled class="btn btn-success">Accepted</button>
                                         <label v-if="isIdCheckAwaitingUpdate">Awaiting update. Override to Issue: &nbsp;</label>
                                         <label v-if="isIdNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
                                         <input v-if="isIdNotChecked || isIdCheckAwaitingUpdate" type="checkbox" :value="true" v-model="getCheckedItem('id_check').isChecked" />
-                                        <!-- </div> -->
+
                                     </div>
                                 </div>
                                 <div class="row">
@@ -220,11 +198,11 @@
                                         <label class="control-label pull-left"  for="details">Character Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <!-- <div class="input-group date" ref="cc_email" style="width: 70%;"> -->
+
                                         <button v-if="isCharacterCheckAccepted" disabled class="btn btn-success">Accepted</button>
                                         <label v-if="isCharacterNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
                                         <input v-if="isCharacterNotChecked" type="checkbox" :value="true" v-model="getCheckedItem('character_check').isChecked" />
-                                        <!-- </div> -->
+
                                     </div>
                                 </div>
                                 <div class="row">
@@ -232,12 +210,12 @@
                                         <label class="control-label pull-left"  for="details">Return Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <!-- <div class="input-group date" ref="cc_email" style="width: 70%;"> -->
+
                                         <button v-if="isReturnCheckAccepted" disabled class="btn btn-success">Accepted</button>
                                         <label v-if="isReturnCheckAwaitingReturns">Awaiting return. Override to Issue: &nbsp;</label>
                                         <label v-if="isReturnNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
                                         <input v-if="isReturnNotChecked || isReturnCheckAwaitingReturns" type="checkbox" :value="true" v-model="getCheckedItem('return_check').isChecked" />
-                                        <!-- </div> -->
+
                                     </div>
                                 </div>
                             </div>
@@ -322,9 +300,7 @@ export default {
                     id: null,
                     isChecked: false,
                 }],
-                // id_check:false,
-                // character_check:false,
-                // return_check:false,
+
                 current_application: vm.application.id,
                 purposes: [],
                 selected_purpose_ids: [],
@@ -338,7 +314,7 @@ export default {
             },
             pickedPurposes: [],
             spinner:false,
-            //editorData: '<p>Content of the editor.</p>',
+
             editorConfig: {
                 // The configuration of the editor.
                 toolbar: toolbar_options,
@@ -384,7 +360,7 @@ export default {
             return proposed;
         },
         canIssueOrDecline: function() {
-            // let is_checked = this.licence.id_check && this.licence.character_check && this.licence.return_check;
+
             let is_checked = this.getCheckedItem('id_check').isChecked && this.getCheckedItem('character_check').isChecked  && this.getCheckedItem('return_check').isChecked;
             return (this.allActivitiesDeclined || is_checked) && this.visibleLicenceActivities.length;
         },
@@ -394,12 +370,7 @@ export default {
             );
         },
         visibleLicenceActivities: function() {
-            // return this.filterActivityList({
-            //     activity_list: this.licenceActivities([
-            //         'with_officer_finalisation',
-            //     ], 'issuing_officer'),
-            //     exclude_processing_statuses: ['discarded']
-            // });
+
             return this.licenceActivities();
         },
         isActivityVisible: function(activity_id) {
@@ -455,11 +426,7 @@ export default {
             ).length;
         },
         canSubmit: function() {
-            console.log('canSubmit')
-            // const required_confirmations = this.visibleLicenceActivities.length
-            // const confirmations = this.licence.activity.filter(
-            //     activity => activity.confirmed
-            // ).length;
+
             let required_confirmations = this.application.activities.find(activity => {
  
                 return activity.licence_activity === this.selected_activity_tab_id
@@ -503,14 +470,6 @@ export default {
         },
        preview: async function () {
             let vm = this;
-
-            // if(!this.canSubmit) {
-            //     return swal(
-            //         'Cannot issue/decline',
-            //         "One or more activity tabs hasn't been marked as ready for finalisation!",
-            //         'error'
-            //     );
-            // }
 
             this.setApplicationWorkflowState({bool: true});
 
@@ -593,24 +552,6 @@ export default {
         ok: async function () {
             let vm = this;
 
-            // if(!this.canSubmit) {
-            //     return swal(
-            //         'Cannot issue/decline',
-            //         "One or more activity tabs hasn't been marked as ready for finalisation!",
-            //         'error'
-            //     );
-            // }
-
-            // swal({
-            //     title: "Issue/Decline Activities",
-            //     text: "Payment for issued licences will be charged from the applicant's last used card.",
-            //     type: "question",
-            //     showCancelButton: true,
-            //     confirmButtonText: 'Finalise'
-            // }).then( async (result) => {
-
-            //     if (result.value) {
-
             this.spinner = true;
             let selected = []
             let activity_pickedPurposes = []
@@ -678,7 +619,7 @@ export default {
                                 helpers.apiVueResourceError(error),
                                 'error'
                             )
-                            // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+
                         });
 
             },(error)=>{
@@ -689,11 +630,9 @@ export default {
                     helpers.apiVueResourceError(error),
                     'error'
                 )
-                // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
+
             });
-            //     }
-            // },(error) => {
-            // });
+
         },
         getActivity: function(id) {
             const activity = this.licence.activity.find(activity => activity.id == id);
@@ -851,7 +790,7 @@ export default {
                     let start_date = 'start_date_' + purpose.id
                     $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
                     $(`[name='${start_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${start_date}']`).data('DateTimePicker') && $(`[name='${start_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${start_date}']`).data('date') === "") {
@@ -864,7 +803,7 @@ export default {
                     let end_date = 'end_date_' + purpose.id
                     $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
                     $(`[name='${end_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${end_date}']`).data('DateTimePicker') && $(`[name='${end_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${end_date}']`).data('date') === "") {
@@ -887,7 +826,7 @@ export default {
 
         this.$nextTick(() => {
             vm.eventListeners();
-            // vm.initFirstTab();
+
         });
 
     },

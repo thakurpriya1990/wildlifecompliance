@@ -7,13 +7,10 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="form-group">
-                                <!-- <div class="row"><div class="col-sm-12"><label class="control-label" for="Name">Select licensed activities to Propose Issue:</label></div></div>
-                                <div class="row"><div class="col-sm-12"><label class="control-label"></label>&nbsp;</div></div> -->
                                 <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
                                         <div v-if="canAssignOfficerFor(a.licence_activity)">
-                                        <!-- <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b> -->
-                                        <!-- <div v-show="checkedActivities.find(checked => checked===a.id)"> -->
+
                                         <div v-show="selected_activity_tab_id === a.licence_activity">
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
                                 
@@ -69,20 +66,6 @@
                                                             <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
                                                                 <br/>
 
-                                                                <!--
-                                                                <div class="col-sm-12">
-                                                                    <div class="col-sm-3">
-                                                                        <label class="control-label pull-left" for="Name">Header</label>
-                                                                    </div>
-                                                                    <div class="col-sm-6">
-                                                                        <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
-                                                                    </div>
-                                                                    <div v-show="free_text.is_additional_info" class="col-sm-3">
-                                                                        <input type="checkbox" checked disabled/>
-                                                                        <label>Is additional info</label>
-                                                                    </div>
-                                                                </div>
-                                                                -->
                                                                 <div class="col-sm-12">
                                                                     <div class="col-sm-3">
                                                                         <label class="control-label pull-left" for="Name">Details</label>
@@ -92,9 +75,7 @@
                                                                         </div>
                                                                     </div>
                                                                     <div class="col-sm-9">
-                                                                        <!--
-                                                                        <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
-                                                                        -->
+
                                                                         <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
 
                                                                     </div>
@@ -174,30 +155,13 @@
                             </div> 
                             <div v-for="a, idx in checkedActivities">
                                 <div class="form-group">
-                                    <!-- <div class="row">
-                                        <div class="col-sm-12">
-                                            <label class="control-label pull-left" >Additional Fees for {{ getCheckedActivity(a).activity_name_str }}</label>
-                                        </div>
-                                    </div> -->
                                 </div>                                 
                                 <div class="form-group">
                                     <div class="row">
-                                        <!-- <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Description</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                            <input type="text" :name='"licence_fee_text_" + idx' class="form-control" style="width:70%;" v-model="getCheckedActivity(a).additional_fee_text" />
-                                        </div> -->
                                     </div>
                                 </div>  
                                 <div class="form-group">
                                     <div class="row">
-                                        <!-- <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Fee</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                            <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="getCheckedActivity(a).additional_fee" />
-                                        </div> -->
                                     </div>
                                 </div>
                             </div>  
@@ -262,8 +226,6 @@ export default {
                 cc_email:null,
                 reason:null,
                 approver_detail:null,
-                // additional_fee_text:null,
-                // additional_fee:0,
                 temporary_document_email_id: null,
                 activities: null,
             },
@@ -283,7 +245,6 @@ export default {
             pickedPurposes: [],
             checkedActivities: [],
             additionalFees: [],
-            //editorData: '<p>Content of the editor.</p>',
             editorConfig: {
                 // The configuration of the editor.
                 toolbar: toolbar_options,
@@ -326,12 +287,6 @@ export default {
             }
             return selected_activity;
         },
-        // applicationSelectedActivity: function() {
-        //     let val = this.application.activities.find(
-        //         activity => { return activity.licence_activity === this.selected_activity_tab_id } 
-        //     );
-        //     return val
-        // },
     },
     methods:{
         ok:function () {
@@ -355,10 +310,6 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
 
-            // this.application.activities.forEach(a => {
-            //     a.additional_fee = '0.00'
-            //     a.additional_fee_text = null
-            // });
             this.checkedActivities = [];
             this.pickedPurposes = [];
         },
@@ -455,10 +406,10 @@ export default {
                 }
             });
        },
-       initialiseAttributes: function() {
-           //this.preloadProposedPurpose()
+    //    initialiseAttributes: function() {
+    //        //this.preloadProposedPurpose()
 
-       },
+    //    },
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
@@ -469,7 +420,7 @@ export default {
                     let start_date = 'start_date_' + purpose.id
                     $(`[name='${start_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${start_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${start_date}']`).data('DateTimePicker') && $(`[name='${start_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${start_date}']`).data('date') === "") {
@@ -479,7 +430,7 @@ export default {
                     let end_date = 'end_date_' + purpose.id
                     $(`[name='${end_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${end_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${end_date}']`).data('DateTimePicker') && $(`[name='${end_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${end_date}']`).data('date') === "") {
@@ -538,7 +489,7 @@ export default {
         this.$nextTick(()=>{
             this.eventListeners();
         });
-        this.initialiseAttributes();
+        // this.initialiseAttributes();
    }
 }
 </script>
