@@ -24,6 +24,19 @@
                         </div>
                         <div class="row">
                             <div class="col-md-3">
+                                <label class="control-label pull-left" >Activity Date:</label>
+                            </div>
+                            <div class="col-md-6">
+                              <div class="input-group date" ref="activityDateToPicker">
+                                  <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="entryActivityDate">
+                                  <span class="input-group-addon">
+                                      <span class="glyphicon glyphicon-calendar"></span>
+                                  </span>
+                              </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">
                                 <label class="control-label pull-left" >Quantity:</label>
                             </div>
                             <div class="col-md-3">
@@ -123,6 +136,7 @@ export default {
         success:false,
         entrySpecies: '',
         entryDateTime: '',
+        entryActivityDate: '',
         entryActivity: '0',
         entryQty: 0,
         entryTotal: 0,
@@ -139,6 +153,13 @@ export default {
         isChangeEntry: false,
         activityList: {'0': {'label': null, 'licence': false, 'pay': false}},
         initialQty: 0,
+        datepickerOptions:{
+            format: 'DD/MM/YYYY',
+            showClear:true,
+            useCurrent:false,
+            keepInvalid:true,
+            allowInputToggle:true
+        },
       }
     },
     watch: {
@@ -225,6 +246,7 @@ export default {
                         licence: self.entryLicence,
                         transfer: self.entryTransfer,
                         supplier: self.entrySupplier,
+                        doa: self.entryActivityDate,
                       };
 
           if (self.isLicenceRequired) { // licence only required for transfers.
@@ -257,6 +279,7 @@ export default {
           _data.comment = self.entryComment;
           _data.transfer = self.entryTransfer;
           _data.supplier = self.entrySupplier;
+          _data.doa = self.entryActivityDate;
 
           if (self.isLicenceRequired) { // licence only required for transfers.
 
@@ -447,11 +470,27 @@ export default {
                 }
             });
        },
+      //Initialise Date Picker
+      initDatePicker: function() {
+        const vm = this;
+        $(vm.$refs.activityDateToPicker).datetimepicker(vm.datepickerOptions);
+        $(vm.$refs.activityDateToPicker).on('dp.change', function(e){
+            if ($(vm.$refs.activityDateToPicker).data('DateTimePicker') && $(vm.$refs.activityDateToPicker).data('DateTimePicker').date()) {
+                vm.entryActivityDate =  e.date.format('DD/MM/YYYY');
+            }
+            else if ($(vm.$refs.activityDateToPicker).data('date') === "") {
+                vm.entryActivityDate = "";
+            }
+          });
+
+
+      }
     },
     mounted: function() {
       let vm = this;
       vm.form = document.forms.sheetEntryForm;
       vm.addFormValidations();
+      vm.initDatePicker();
     }
 }
 </script>

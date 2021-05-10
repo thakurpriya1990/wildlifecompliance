@@ -14,11 +14,21 @@ from django.utils import timezone
 
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.main.utils import (
-    checkout,
-    flush_checkout_session
-)
+from wildlifecompliance.exceptions import ReturnServiceException
+from wildlifecompliance.components.main.utils import checkout
+from wildlifecompliance.components.main.utils import flush_checkout_session
+
+from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.utils_schema import Schema
+from wildlifecompliance.components.returns.utils import get_session_return
+from wildlifecompliance.components.returns.utils import bind_return_to_invoice
+from wildlifecompliance.components.returns.utils import ReturnSpeciesUtility
+
+from wildlifecompliance.components.returns.email import (
+    send_sheet_transfer_email_notification,
+    send_return_invoice_notification,
+    send_return_accept_email_notification,
+)
 from wildlifecompliance.components.returns.models import (
     Return,
     ReturnType,
@@ -28,19 +38,6 @@ from wildlifecompliance.components.returns.models import (
     ReturnUserAction,
     ReturnActivity,
 )
-from wildlifecompliance.components.returns.payments import ReturnFeePolicy
-from wildlifecompliance.components.returns.email import (
-    send_sheet_transfer_email_notification,
-    send_return_invoice_notification,
-    send_return_accept_email_notification,
-)
-from wildlifecompliance.components.returns.utils import (
-    get_session_return,
-    bind_return_to_invoice,
-    ReturnSpeciesUtility,
-)
-
-from wildlifecompliance.exceptions import ReturnServiceException
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -64,11 +61,10 @@ Associations:                                        +----------------------+
 
 class ReturnService(object):
     '''
-    Services available for Licence Species Returns.
+    A Facade for the Return (compliance) subsystem responsible for requests.
     '''
 
-    def __init__(self):
-        pass
+    __metaclass__ = abc.ABCMeta
 
     @staticmethod
     def discard_return_request(request, condition):
@@ -457,6 +453,35 @@ class ReturnService(object):
             raise
 
     @staticmethod
+    def etl_return_sheet(real_time=False, return_ids=None) -> bool:
+        '''
+        A service call to cleanse Return running sheets.
+
+        :param: return_ids is a List of identifiers.
+        '''
+        logger.debug('ReturnService.etl_return_sheet() - start')
+        logger_title = '{0}'.format(
+            'ReturnService.etl_return_sheet()',
+        )
+        successful = False
+        try:
+            etl = ReturnETL(CleanseReturnSheet(real_time, return_ids))
+            etl.process()
+            successful = True
+
+        except ReturnServiceException as rse:
+            log = '{0} {1}'.format(logger_title, rse)
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format(logger_title, e)
+            logger.exception(log)
+            raise
+
+        logger.debug('ReturnService.etl_return_sheet() - end')
+        return successful
+
+    @staticmethod
     def record_deficiency_request(request, a_return):
         '''
         '''
@@ -829,9 +854,134 @@ class ReturnService(object):
         return None
 
 
-'''
-NOTE: This section for objects relating to Return Commands.
-'''
+class ReturnETL(object):
+    '''
+    A context maintaining a reference for a ReturnETL strategy.
+    '''
+    strategy = None                     # composite strategy.
+
+    def __init__(self, strategy):
+        self.strategy = strategy
+
+    def process(self):
+        '''
+        Method to execute the strategy.
+        '''
+        self.strategy.do_algorithm()
+
+
+class ReturnETLStrategy(object):
+    '''
+    An interface for ReturnETL strategies.
+    '''
+    logger_title = 'ReturnService.ETL()'
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractclassmethod
+    def do_algorithm(self):
+        '''
+        Excutes the routine for this strategy.
+        '''
+        pass
+
+
+class CleanseReturnSheet(ReturnETLStrategy):
+    '''
+    A real-time ReturnETLStrategy to remove dirty Return running sheets.
+    '''
+    return_ids = None                   # list of specific returns.
+
+    def __init__(self, real_time, returns=None):
+        self.return_ids = returns
+        self.real_time = real_time
+
+    def do_algorithm(self):
+        '''
+        Process each Return running sheet ensuring data integrity.
+        '''
+        if not self.real_time:
+            log = '{0} {1}'.format(self.logger_title, 'Commencing cleansing.')
+            logger.info(log)
+
+        returns = Return.objects.filter(
+            return_type__data_format=ReturnType.FORMAT_SHEET
+        )
+
+        if self.return_ids:         # filter returns for specific ids.
+            returns = [r for r in returns if r.id in self.return_ids]
+
+        duplicate_cnt = 0
+        doa_cnt = 0
+
+        for r in returns:
+            utils = ReturnSpeciesUtility(r)
+            for specie in r.return_type.regulated_species.all():
+                name = utils.get_id_from_species_name(specie.species_name)
+                try:
+                    tables = [t for t in r.returntable_set.filter(name=name)]
+
+                except AttributeError:
+                    continue
+
+                first = tables[0]
+
+                '''
+                1. Remove any duplicate species existing in tables.
+                '''
+                for idx, t in enumerate(tables, start=0):
+                    if idx == 0:
+                        continue
+                    log = '{0} ReturnID: {1} {2} ReturnTableID: {3}'.format(
+                        self.logger_title,
+                        t.ret_id,
+                        'Deleted duplicate species table.',
+                        t.id,
+                    )
+                    duplicate_cnt += 1
+                    if self.real_time:
+                        logger.info(log)
+                        t.delete()
+
+                '''
+                2. Default the Date of Activity to the Date of Entry.
+                '''
+                for r in first.returnrow_set.all():
+                    updated = False
+                    doa = datetime.datetime.fromtimestamp(
+                        r.data['date'] / 1000).strftime('%d/%m/%Y')
+                    try:
+                        if r.data['doa'] == '':
+                            r.data['doa'] = doa
+                            updated = True
+
+                    except KeyError:
+                        r.data['doa'] = doa
+                        updated = True
+
+                    if updated:
+                        log = '{0} ReturnID: {1} {2} ReturnRowID: {3}'.format(
+                            self.logger_title,
+                            first.ret_id,
+                            'Added Date of Activity.',
+                            r.id,
+                        )
+                        doa_cnt += 1
+                        if self.real_time:
+                            logger.info(log)
+                            r.save()
+
+        if not self.real_time:
+            log = '{0} {1}'.format(self.logger_title, 'Completed cleansing.')
+            logger.info(log)
+            log = '{0} {1} {2}'.format(
+                self.logger_title, 'Total Deleted', duplicate_cnt
+            )
+            logger.info(log)
+            log = '{0} {1} {2}'.format(
+                self.logger_title, 'Total DOA added', doa_cnt
+            )
+            logger.info(log)
 
 
 class ReturnCommand(object):
@@ -1710,27 +1860,43 @@ class ReturnSheet(object):
                     "type": "date",
                     "format": "fmt:%d/%m/%Y",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "activity",
                     "type": "string",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
+                    "name": "doa",
+                    "type": "date",
+                    "format": "fmt:%d/%m/%Y",
+                    "constraints": {
+                        "required": True}
+                    }, {
                     "name": "qty",
                     "type": "number",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "total",
                     "type": "number",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "licence",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "comment",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "supplier",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "transfer",
-                    "type": "string"}]}}]}
+                    "type": "string"
+                    }
+                ]
+            }}]}
 
     _NO_ACTIVITY = {
         "echo": 1,
