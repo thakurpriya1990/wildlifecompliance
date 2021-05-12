@@ -1,14 +1,20 @@
 from __future__ import unicode_literals
 
+import json
+import reversion
+import logging
+
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
 from django.db.models import Q
 from django.forms.models import model_to_dict
-import json
-import reversion
-import logging
+
+from multiselectfield import MultiSelectField
+
+from smart_selects.db_fields import ChainedForeignKey
+
 from ckeditor.fields import RichTextField
 
 from ledger.licence.models import LicenceType
@@ -1619,6 +1625,164 @@ class LicenceInspection(models.Model):
             is_active = True
 
         return is_active
+
+
+class QuestionOption(models.Model):
+    '''
+    Model representation of Option available for a Licence Purpose Question.
+    '''
+    label = models.CharField(max_length=100, unique=True)
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Question Option'
+
+    def __str__(self):
+        return self.label
+
+
+class MasterlistQuestion(models.Model):
+    '''
+    Model representation of Question available for a Licence Purpose.
+    '''
+    ANSWER_TYPE_CHOICES = (
+        ('text', 'Text'),
+        ('radiobuttons', 'Radio button'),
+        ('checkbox', 'Checkbox'),
+        ('number', 'Number'),
+        ('email', 'Email'),
+        ('select', 'Select'),
+        ('multi-select', 'Multi-select'),
+        ('text_area', 'Text area'),
+        ('label', 'Label'),
+        ('declaration', 'Declaration'),
+        ('file', 'File'),
+        ('date', 'Date'),
+    )
+
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    option = models.ManyToManyField(QuestionOption, blank=True)
+    answer_type = models.CharField(
+        'Answer Type',
+        max_length=40,
+        choices=ANSWER_TYPE_CHOICES,
+        default=ANSWER_TYPE_CHOICES[0][0],
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Masterlist Question'
+
+    def __str__(self):
+        return self.question
+
+    @staticmethod
+    def limit_sectionquestion_choices():
+        '''
+        Filters this masterlist on available options.
+        '''
+        from django.db import connection
+
+        sql = '''
+            select m.id from wildlifecompliance_masterlistquestion as m
+            INNER JOIN wildlifecompliance_masterlistquestion_option as p
+            INNER JOIN wildlifecompliance_questionoption as o
+            ON p.masterlistquestion_id = m.id
+            ON p.questionoption_id = o.id
+            WHERE o.label IS NOT NULL
+        '''
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
+                row = set([item[0] for item in cursor.fetchall()])
+
+            return dict(id__in=row)
+
+        except Exception:
+            return {}
+
+
+class LicencePurposeSection(models.Model):
+    '''
+    A model represention of Licence Purpose Section for a licence application.
+    '''
+    section_name = models.CharField(max_length=100)
+    section_label = models.CharField(max_length=100)
+    index = models.IntegerField(blank=True, default=0)
+    licence_purpose = models.ForeignKey(
+        LicencePurpose, related_name='sections', on_delete=models.PROTECT
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Licence Purpose Section'
+
+    def __str__(self):
+        return '{} - {}'.format(self.section_label, self.licence_purpose)
+
+
+class SectionQuestion(models.Model):
+    '''
+    Model representation of Section available with questions.
+    '''
+    TAG_CHOICES = (
+        ('isCopiedToPermit', 'isCopiedToPermit'),
+        ('isRequired', 'isRequired'),
+        ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
+        ('isRepeatable', 'isRepeatable'),
+    )
+    section = models.ForeignKey(
+        LicencePurposeSection,
+        related_name='section_questions',
+        on_delete=models.PROTECT
+    )
+    question = models.ForeignKey(
+        MasterlistQuestion,
+        related_name='question_sections',
+        on_delete=models.PROTECT
+    )
+    parent_question = ChainedForeignKey(
+        'wildlifecompliance.MasterlistQuestion',
+        chained_field='section',
+        chained_model_field='question_sections__section',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='children_question',
+        limit_choices_to=MasterlistQuestion.limit_sectionquestion_choices(),
+        on_delete=models.SET_NULL
+    )
+    parent_answer = ChainedForeignKey(
+        'wildlifecompliance.QuestionOption',
+        chained_field='parent_question',
+        chained_model_field='masterlistquestion',
+        show_all=False,
+        null=True,
+        blank=True,
+        related_name='options',
+    )
+    tag = MultiSelectField(
+        choices=TAG_CHOICES,
+        max_length=400,
+        max_choices=10,
+        null=True, blank=True)
+    order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Section Question'
+
+    def __str__(self):
+        return str(self.id)
+
+    def clean(self):
+
+        if self.question and self.parent_question:
+            if self.question == self.parent_question:
+                raise ValidationError('Question cannot be linked to itself.')
 
 
 class LicenceLogEntry(CommunicationsLogEntry):

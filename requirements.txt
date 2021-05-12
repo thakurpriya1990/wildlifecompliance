@@ -63,3 +63,4 @@ BeautifulSoup4==4.9.1
 phonenumbers==8.12.15
 django-treebeard==4.3.1
 #django-ckeditor
+django-multiselectfield==0.1.12
