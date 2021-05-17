@@ -456,7 +456,8 @@ export default {
             return !this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
         },
         showAssessmentConditionButton: function() {
-            return this.showingApplication && this.canAssignAssessorFor(this.selectedActivity.licence_activity)
+            let show = this.selectedActivity.processing_status.id !== 'with_assessor';
+            return show
         },
         isWithAssessor: function() {
             return this.selectedActivity.processing_status.id === 'with_assessor';
@@ -474,7 +475,7 @@ export default {
             return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
         },
         showBackToProcessingButton: function() {
-            let show = this.selectedActivity.processing_status.id === 'with_assessor';
+            let show = this.selectedActivity.processing_status.id !== 'with_assessor';
             return show
         },
     },

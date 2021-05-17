@@ -14,6 +14,9 @@ from wildlifecompliance.components.main.models import (
 
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
+    LicencePurpose,
+    DefaultPurpose,
+    PurposeSpecies,
 )
 from wildlifecompliance.components.licences.email import (
     send_licence_renewal_notification,
@@ -27,7 +30,9 @@ from wildlifecompliance.components.applications.models import (
     ApplicationSelectedActivity,
     ApplicationSelectedActivityPurpose,
     ApplicationUserAction,
+    DefaultCondition,
 )
+from wildlifecompliance.exceptions import LicenceServiceException
 
 logger = logging.getLogger(__name__)
 logging.disable(logging.NOTSET)
@@ -418,6 +423,124 @@ class LicenceService(object):
             raise Exception('Failed verifying licence renewal.')
 
         return verified
+
+    @staticmethod
+    def version_licence_purpose(licence_purpose_id, request=None):
+        '''
+        Service to create a new version of a Licence Purpose.
+
+        :param: licence_purpose the LicencePurpose to be versioned.
+        :param: request is an incoming client request.
+
+        :return: LicencePurpose a new new licence purpose version.
+        '''
+        logger.debug('LicenceService.version_licence_purpose() - start')
+        logger_title = '{0} LicencePurposeID {1}'.format(
+            'LicenceService.version_licence_purpose()',
+            licence_purpose_id            
+        )
+        new_version = None
+        try:
+            licence_purpose = LicencePurpose.objects.get(id=licence_purpose_id)
+
+            # check licence_purpose is latest version.
+            latest_version = licence_purpose.get_latest_version()
+            if licence_purpose.version != latest_version.version:
+               log = '{0} {1}'.format(logger_title, 'Not Latest Version.')
+               raise LicenceServiceException(log)
+
+            # 1. get licence_purpose and next version number.
+            new_purpose = LicencePurpose.objects.get(id=licence_purpose_id)
+            new_version = licence_purpose.version + 1
+
+            # 2. clone licence_purpose with next version number.
+            new_purpose.id = None
+            new_purpose.version = new_version
+            new_purpose.save()
+
+            # 3. clone species with licence_purpose.
+            purpose_species = licence_purpose.purpose_species.all()
+            new_species = []
+            for species in purpose_species:
+                new_species.append(PurposeSpecies(
+                    licence_purpose=new_purpose,
+                    order=species.order,
+                    header=species.header,
+                    details=species.details,
+                    species=species.species,
+                    is_additional_info=species.is_additional_info,
+                ))
+            if new_species:
+                PurposeSpecies.objects.bulk_create(new_species)
+
+            # 4. clone default purposes with licence_purpose.
+            purpose_defaults = licence_purpose.default_purpose.all()
+            new_defaults = []
+
+            for default in purpose_defaults:
+                new_defaults.append(DefaultCondition(
+                    standard_condition=default.standard_condition,
+                    licence_activity=default.licence_activity,
+                    licence_purpose=new_purpose,
+                    comments=default.comments,
+                    order=default.order,
+                ))
+            if new_defaults:
+                DefaultCondition.objects.bulk_create(new_defaults)
+
+            # 5. update replaced_by on previous version.
+            licence_purpose.replaced_by=new_purpose
+            licence_purpose.save()
+
+            # 6. log.
+            log = '{0} {1}'.format(logger_title, 'New version created.')
+            logger.info(log)
+
+        except LicenceServiceException as lse:
+            log = '{0} {1}'.format( logger_title, lse )
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format( logger_title, e )
+            logger.exception(log)
+            raise
+
+        logger.debug('LicenceService.version_licence_purpose() - end')
+        return new_version
+
+
+"""
+NOTE: This section for objects relating to Licence Commands.
+"""
+
+
+class LicenceCommand(object):
+    '''
+    Declares an interface common to all supported Licence client requests.
+
+    '''
+    request = None                      # property for client request.
+    licence = None                      # property for WildlifeLicence.
+    user_action = None                  # property for the logging action.
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def execute(self):
+        '''
+        Method to perfom an operation on the Licence.
+        '''
+        pass
+
+    def log_action(self):
+        '''
+        Method to log this command action.
+        '''
+        self.the_return.log_user_action(
+            self.user_action.format(
+
+            ), self.request
+        )
 
 
 class LicenceActionable(object):

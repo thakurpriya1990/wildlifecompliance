@@ -24,7 +24,7 @@
 
                 <div :class="`${form_width ? form_width : 'col-md-9'}`" id="tabs">
                     <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
-                        <li class="nav-item" v-for="(activity, index) in allCurrentActivities">
+                        <li class="nav-item" v-for="(activity, index) in listVisibleActivities">
                             <a :class="{'nav-link amendment-highlight': application.has_amendment}"
                                 data-toggle="pill" v-on:click="selectTab(activity)">{{activity.label}}</a>
                         </li>
@@ -142,9 +142,12 @@ export default {
     application_form_data_url: function() {
       return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
     },
+    listVisibleActivities: function() {
+      return this.application.can_user_edit ? this.unfinishedActivities : this.allCurrentActivities;
+    },
     requiresCheckout: function() {
       return ((this.adjusted_application_fee > 0 || this.application.licence_fee > 0)
-      && ['draft', 'awaiting_payment', 'amendment_required'].includes(this.application_customer_status_onload.id))
+      && ['draft', 'awaiting_payment', 'amendment_required','partially_approved'].includes(this.application.customer_status.id))
     },
     showCardPayButton: function() {
       return !this.isProcessing && this.requiresCheckout && !this.showCashPayButton && !this.showNonePayButton;
