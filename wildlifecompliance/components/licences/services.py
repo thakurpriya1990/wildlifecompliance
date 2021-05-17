@@ -2,6 +2,7 @@ import logging
 import abc
 
 from datetime import date
+from wildlifecompliance.components.licences.utils import LicenceSchemaUtility
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -17,7 +18,6 @@ from wildlifecompliance.components.licences.models import (
     # DefaultPurpose,
     PurposeSpecies,
     LicencePurposeSection,
-    SectionQuestion,
 )
 from wildlifecompliance.components.licences.email import (
     send_licence_renewal_notification,
@@ -439,7 +439,7 @@ class LicenceService(object):
         try:
             admin = GenerateAdminLicenceSchema(licence_purpose, request)
             admin.do_action()
-            schema = admin.get_generated_schema()
+            schema = admin.get_action_result()
 
         except LicenceServiceException as lse:
             log = '{0} {1}'.format(logger_title, lse)
@@ -540,10 +540,9 @@ class LicenceService(object):
 
 class GenerateAdminLicenceSchema(AdministrationAction):
     '''
-    An AdministrationAction for a Licence Purpose that generates a licence JSON
-    schema.
+    An AdministrationAction for a Licence Purpose Schema.
     '''
-    generated_schema = None                 # the generated schema.
+    action_result = None                    # the generated schema.
     licence_purpose = None                  # the associated licence purpose.
 
     def __init__(self, licence_purpose, request):
@@ -554,173 +553,16 @@ class GenerateAdminLicenceSchema(AdministrationAction):
     def __str__(self):
         return 'GenerateLicenceSchema userID {0}'.format(self.request.user_id)
 
-    def do_action(self, row_ids=None):
+    def do_action(self, row_ids=None) -> None:
         '''
         Method to execute a command from Administration on selected rows.
         '''
-        import json
-
         section_list = LicencePurposeSection.objects.filter(
             licence_purpose=self.licence_purpose
         ).order_by('index')
-        section_count = 0
-        schema = []
-        special_types = ['checkbox', ]
 
-        # 'isRequired' tag for following types is added to first option dict
-        # instead of question.
-        group_types = ['checkbox', 'radiobuttons', 'multi-select']
-
-        for section in section_list:
-            section_dict = {
-                'name': '{}{}'.format(
-                    section.section_label.replace(" ", ""), section_count),
-                'type': 'section',
-                'label': section.section_label,
-            }
-            section_children = []
-            section_questions = SectionQuestion.objects.filter(
-                section=section,
-                parent_question__isnull=True,
-                parent_answer__isnull=True).order_by('order')
-            if section_questions:
-                sq_count = 0
-                for sq in section_questions:
-
-                    sq_name = 'Section{}-{}'.format(section_count, sq_count)
-                    sc = {
-                        'name': sq_name,
-                        'type': sq.question.answer_type,
-                        'label': sq.question.question,
-                    }
-                    if sq.question.answer_type in special_types:
-                        sq_option_children = self.get_checkbox_option_chidren(
-                            sq, sq.question, section, sq_name)
-                        sc['children'] = sq_option_children
-                        sc['type'] = 'group'
-                    else:
-                        if sq.question.option.count() > 0:
-                            sq_options = self.get_options(sq, sq.question)
-                            sc['options'] = sq_options
-
-                    if sq.tag:
-                        for t in sq.tag:
-                            if t == 'isRequired':
-                                if sq.question.answer_type not in group_types:
-                                    sc[t] = 'true'
-                            else:
-                                sc[t] = 'true'
-
-                    section_children.append(sc)
-                    sq_count += 1
-            if section_children:
-                section_dict['children'] = section_children
-            section_count += 1
-            schema.append(section_dict)
-        new_schema = json.dumps(schema)
-        new_Schema_return = json.loads(new_schema)
-
-        self.generated_schema = new_Schema_return
-        return True
-
-    def get_options(self, section_question, question):
-        options = []
-        special_types = ['radiobuttons', 'multi-select', ]
-        if question.option.count() > 0:
-            for op in question.option.all().order_by(
-                '-wildlifecompliance_masterlistquestion_option.id'
-            ):
-                op_dict = {
-                    'label': op.label,
-                    'value': op.label.replace(" ", "").lower(),
-                }
-                options.append(op_dict)
-
-        # For multi-select type questions, the isRequired flag goes to the
-        # first option dict instead of question dict
-        if 'isRequired' in section_question.get_tag_list(
-
-        ) and question.answer_type in special_types:
-            if options:
-                options[0]['isRequired'] = 'true'
-
-        return options
-
-    def get_checkbox_option_chidren(
-        self, section_question, question, section, parent_name=''
-    ):
-        conditions = {}
-        options = question.option.all().order_by(
-            '-wildlifecompliance_masterlistquestion_option.id')
-        options_list = []
-        special_types = ['checkbox', ]
-        group_types = ['checkbox', 'radiobuttons', 'multi-select']
-        option_count = 0
-        for op in options:
-            op_name = '{}-{}'.format(parent_name, option_count)
-            op_dict = {
-                    'name': op_name,
-                    'label': op.label,
-                    'type': 'checkbox',
-                    'group': parent_name
-            }
-            condition_questions = SectionQuestion.objects.filter(
-                section=section,
-                parent_question=question,
-                parent_answer=op
-            ).order_by('order')
-            if condition_questions:
-                option_section = []
-                option_children = []
-                condition_question_count = 1
-                for q in condition_questions:
-
-                    question_name = '{}-On-{}'.format(
-                        op_name, condition_question_count)
-                    child = {
-                        'name': question_name,
-                        'type': q.question.answer_type,
-                        'label': q.question.question,
-                    }
-                    if q.question.answer_type in special_types:
-                        qo_children = self.get_checkbox_option_chidren(
-                            q, q.question, section, question_name
-                        )
-                        child['children'] = qo_children
-                        child['type'] = 'group'
-                    else:
-                        if q.question.option.count() > 0:
-                            q_options = self.get_options(q, q.question)
-                            child['options'] = q_options
-
-                    if q.tag:
-                        for t in q.tag:
-                            if t == 'isRequired':
-                                if q.question.answer_type not in group_types:
-                                    child[t] = 'true'
-                            else:
-                                child[t] = 'true'
-
-                    option_children.append(child)
-                    condition_question_count += 1
-                section_group_name = op_name+'-OnGroup'
-                option_section_dict = {
-                    'name': section_group_name,
-                    'type': 'group',
-                    'label': '',
-                    'children': option_children
-                }
-                option_section.append(option_section_dict)
-                conditions['on'] = option_section
-                op_dict['conditions'] = conditions
-            options_list.append(op_dict)
-            option_count += 1
-
-        if 'isRequired' in section_question.get_tag_list():
-            if options_list:
-                options_list[0]['isRequired'] = 'true'
-
-        return options_list
+        util = LicenceSchemaUtility(section_list)
+        self.action_result = util.get_licence_schema()
 
     def log_action(self):
         '''
@@ -728,11 +570,11 @@ class GenerateAdminLicenceSchema(AdministrationAction):
         '''
         pass
 
-    def get_generated_schema(self):
+    def get_action_result(self):
         '''
         getter for generated schema.
         '''
-        return self.generated_schema
+        return self.action_result
 
 
 class LicenceCommand(object):

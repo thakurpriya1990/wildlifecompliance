@@ -1642,9 +1642,30 @@ class QuestionOption(models.Model):
         return self.label
 
 
+class QuestionOptionCondition(models.Model):
+    '''
+    Model representation of a special Condition associated with an Option.
+    '''
+    option = models.ForeignKey(
+        QuestionOption, related_name='question_options',
+    )
+    label = models.CharField(max_length=100)
+    value = models.CharField(max_length=100, blank=True, default='')
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Question Condition'
+
+    def __str__(self):
+        return '{} - {}'.format(
+            self.option,
+            self.id
+        )
+
+
 class MasterlistQuestion(models.Model):
     '''
-    Model representation of Question available for a Licence Purpose.
+    Model representation of Schema Question/Type available for construction.
     '''
     ANSWER_TYPE_CHOICES = (
         ('text', 'Text'),
@@ -1652,13 +1673,19 @@ class MasterlistQuestion(models.Model):
         ('checkbox', 'Checkbox'),
         ('number', 'Number'),
         ('email', 'Email'),
-        ('select', 'Select'),
-        ('multi-select', 'Multi-select'),
+        # ('select', 'Select'),
+        # ('multi-select', 'Multi-select'),
         ('text_area', 'Text area'),
         ('label', 'Label'),
-        ('declaration', 'Declaration'),
+        # ('declaration', 'Declaration'),
         ('file', 'File'),
         ('date', 'Date'),
+        ('group', 'Group'),
+        ('group2', 'Group2'),
+        ('expander_table', 'Expander Table'),
+        ('species-all', 'Species List'),
+        ('header', 'Expander Table Header'),
+        ('expander', 'Expander Table Expander'),
     )
 
     name = models.CharField(max_length=100)
@@ -1729,10 +1756,8 @@ class SectionQuestion(models.Model):
     Model representation of Section available with questions.
     '''
     TAG_CHOICES = (
-        ('isCopiedToPermit', 'isCopiedToPermit'),
-        ('isRequired', 'isRequired'),
-        ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
         ('isRepeatable', 'isRepeatable'),
+        ('isLicenceField', 'isLicenceField'),
     )
     section = models.ForeignKey(
         LicencePurposeSection,
@@ -1751,7 +1776,7 @@ class SectionQuestion(models.Model):
         show_all=False,
         null=True,
         blank=True,
-        related_name='children_question',
+        related_name='children_questions',
         limit_choices_to=MasterlistQuestion.limit_sectionquestion_choices(),
         on_delete=models.SET_NULL
     )
@@ -1769,6 +1794,10 @@ class SectionQuestion(models.Model):
         max_length=400,
         max_choices=10,
         null=True, blank=True)
+    apply_special_conditions = models.BooleanField(
+        default=False,
+        help_text='If ticked, select the Save and Continue Editing button.')
+
     order = models.PositiveIntegerField(default=1)
 
     class Meta:
@@ -1778,11 +1807,69 @@ class SectionQuestion(models.Model):
     def __str__(self):
         return str(self.id)
 
+    @property
+    def has_conditions(self) -> bool:
+        '''
+        Property to verify that this Section Question has special conditions.
+        '''
+        ok = False
+        if self.apply_special_conditions:
+            ok = True if self.special_conditions.first() else False
+
+        return ok
+
     def clean(self):
 
         if self.question and self.parent_question:
             if self.question == self.parent_question:
                 raise ValidationError('Question cannot be linked to itself.')
+
+    def set_conditions(self) -> bool:
+        '''
+        Set default special conditions for this Section Question.
+        '''
+        conditions = []
+        options = QuestionOptionCondition.objects.filter(
+            option=self.parent_answer
+        )
+
+        for o in options:
+            conditions.append(
+                SectionQuestionCondition(
+                    section_question=self,
+                    label=o.label,
+                    value=o.value,
+                )
+            )
+
+        if conditions:
+            SectionQuestionCondition.objects.bulk_create(
+                conditions
+            )
+
+        return True if conditions else False
+
+
+class SectionQuestionCondition(models.Model):
+    '''
+    Model representation of a Condition associated with a Section Question.
+    '''
+    section_question = models.ForeignKey(
+        SectionQuestion,
+        related_name='special_conditions',
+    )
+    label = models.CharField(max_length=100)
+    value = models.CharField(max_length=100)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Section Question Condition'
+
+    def __str__(self):
+        return '{} - {}'.format(
+            self.section_question,
+            self.id
+        )
 
 
 class LicenceLogEntry(CommunicationsLogEntry):
@@ -1891,6 +1978,18 @@ reversion.register(
         'activity',
     ]
 )
+reversion.register(
+    SectionQuestion,
+    follow=[
+        'section_questions',
+        'question_sections',
+        'children_questions',
+        'options',
+    ]
+)
+reversion.register(QuestionOption)
+reversion.register(MasterlistQuestion)
+reversion.register(LicencePurposeSection)
 reversion.register(LicenceSpecies)
 reversion.register(LicenceDocument)
 reversion.register(WildlifeLicenceReceptionEmail)

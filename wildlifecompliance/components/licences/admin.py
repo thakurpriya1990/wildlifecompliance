@@ -219,9 +219,14 @@ class QuestionOptionAdmin(admin.ModelAdmin):
     fields = ('label', )
 
 
+@admin.register(models.QuestionOptionCondition)
+class QuestionOptionConditionAdmin(admin.ModelAdmin):
+    list_display = ['option', 'label']
+
+
 @admin.register(models.MasterlistQuestion)
 class MasterlistQuestionAdmin(admin.ModelAdmin):
-    list_display = ['question', ]
+    list_display = ['answer_type', 'question', ]
     filter_horizontal = ('option', )
     form = forms.MasterlistQuestionAdminForm
 
@@ -232,14 +237,22 @@ class LicencePurposeSectionAdmin(admin.ModelAdmin):
     fields = ('section_label', 'index', 'licence_purpose')
 
 
+class SectionQuestionConditionInline(admin.TabularInline):
+    extra = 0
+    model = models.SectionQuestionCondition
+
+
 @admin.register(models.SectionQuestion)
 class SectionQuestionAdmin(admin.ModelAdmin):
     list_display = [
         'section',
         'section_question',
-        'order', 
+        'order',
         'section_parent_question',
         'parent_answer',
+    ]
+    inlines = [
+        SectionQuestionConditionInline,
     ]
     form = forms.SectionQuestionAdminForm
 
@@ -252,3 +265,17 @@ class SectionQuestionAdmin(admin.ModelAdmin):
         trim_text = obj.parent_question
         return trim_text.question[:100] if trim_text else ''
     section_parent_question.short_question = "question"
+
+    def get_inline_instances(self, request, obj=None):
+        inline = []
+
+        if obj and obj.apply_special_conditions:
+
+            if not obj.has_conditions:
+                obj.set_conditions()
+
+            inline = [
+                inline(self.model, self.admin_site) for inline in self.inlines
+            ]
+
+        return inline

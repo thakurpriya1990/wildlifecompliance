@@ -1743,18 +1743,28 @@ def do_process_form(
         officer_comment = field_data.get('officer_comment', '')
         assessor_comment = field_data.get('assessor_comment', '')
         deficiency = field_data.get('deficiency_value', '')
-        activity_id = field_data.get('licence_activity_id', '')
-        purpose_id = field_data.get('licence_purpose_id', '')
+
+        if not field_data.get('licence_activity_id', '') == '':
+            activity_id = field_data.get('licence_activity_id', '')
+
+        if not field_data.get('licence_purpose_id', '') == '':
+            purpose_id = field_data.get('licence_purpose_id', '')
+
         component_attribute = field_data.get('component_attribute', '')
 
         if ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR in field_name:
-            [parsed_schema_name, parsed_instance_name] = field_name.split(
-                ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
-            )
-            schema_name = schema_name if schema_name \
-                else parsed_schema_name
-            instance_name = instance_name if instance_name \
-                else parsed_instance_name
+
+            try:
+                [parsed_schema_name, parsed_instance_name] = field_name.split(
+                    ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
+                )
+                schema_name = schema_name if schema_name \
+                    else parsed_schema_name
+                instance_name = instance_name if instance_name \
+                    else parsed_instance_name
+
+            except ValueError:
+                pass
 
         try:
             visible_data_tree[instance_name][schema_name]
