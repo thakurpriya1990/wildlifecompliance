@@ -1757,7 +1757,9 @@ class SectionQuestion(models.Model):
     '''
     TAG_CHOICES = (
         ('isRepeatable', 'isRepeatable'),
-        ('isLicenceField', 'isLicenceField'),
+        ('isRequired', 'isRequired'),
+        ('isLicenceField', 'isRequired - Licence Field'),
+        ('PromptInspection', 'isRequired - Inspection'),
     )
     section = models.ForeignKey(
         LicencePurposeSection,

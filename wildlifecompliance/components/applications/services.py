@@ -1793,8 +1793,7 @@ def do_process_form(
             form_data_record.component_attribute = component_attribute
 
         if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-            if not is_draft and not value \
-                    and schema_name in required_fields:
+            if not value and schema_name in required_fields:
                 missing_item = {'field_name': field_name}
                 missing_item.update(required_fields[schema_name])
                 missing_fields.append(missing_item)

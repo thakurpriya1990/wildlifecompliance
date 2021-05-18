@@ -272,12 +272,26 @@ export default {
     save_form: async function() {
       this.isProcessing = true;
       let is_saved = false;
+
+      this.missing_fields.length = 0;
+      this.highlight_missing_fields();
+
       await this.saveFormData({ url: this.application_form_data_url, draft: true }).then(res=>{
         this.isProcessing = false;
         is_saved = true;
 
       },err=>{
-        console.log(err)
+        if (err.body.hasOwnProperty("missing")){
+            for (const missing_field of err.body.missing) {
+                this.missing_fields.push(missing_field)
+            }
+            this.highlight_missing_fields()
+            var top = ($('#error').offset() || { "top": NaN }).top;
+            $('html, body').animate({
+                scrollTop: top
+            }, 1);
+        }
+
         swal(
             'Error',
             'There was an error saving your application',
