@@ -10,8 +10,7 @@ import os
 import sys
 import django
 
-proj_path = 'app'
-proj_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+proj_path = '/app'
 sys.path.append(proj_path)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "wildlifecompliance.settings")
 django.setup()
