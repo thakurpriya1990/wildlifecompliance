@@ -885,6 +885,7 @@ class ReturnETLStrategy(object):
     '''
     An interface for ReturnETL strategies.
     '''
+    LOGFILE = 'logs/etl_tasks.log'
     logger_title = 'ReturnService.ETL()'
 
     __metaclass__ = abc.ABCMeta
@@ -900,6 +901,8 @@ class ReturnETLStrategy(object):
 class CleanseReturnSheet(ReturnETLStrategy):
     '''
     A real-time ReturnETLStrategy to remove dirty Return running sheets.
+
+    NOTE: Output is not logged but printed. Apply pipe tee statement to log.
     '''
     return_ids = None                   # list of specific returns.
 
@@ -911,9 +914,11 @@ class CleanseReturnSheet(ReturnETLStrategy):
         '''
         Process each Return running sheet ensuring data integrity.
         '''
-        if not self.real_time:
-            log = '{0} {1}'.format(self.logger_title, 'Commencing cleansing.')
-            logger.info(log)
+        import datetime
+        log = '{0} {1} {2}'.format(
+            datetime.datetime.now(), self.logger_title, 'Commencing cleansing.'
+        )
+        print(log)
 
         returns = Return.objects.filter(
             return_type__data_format=ReturnType.FORMAT_SHEET
@@ -951,7 +956,7 @@ class CleanseReturnSheet(ReturnETLStrategy):
                     )
                     duplicate_cnt += 1
                     if self.real_time:
-                        logger.info(log)
+                        print(log)
                         t.delete()
 
                 '''
@@ -979,20 +984,21 @@ class CleanseReturnSheet(ReturnETLStrategy):
                         )
                         doa_cnt += 1
                         if self.real_time:
-                            logger.info(log)
+                            print(log)
                             r.save()
 
-        if not self.real_time:
-            log = '{0} {1}'.format(self.logger_title, 'Completed cleansing.')
-            logger.info(log)
-            log = '{0} {1} {2}'.format(
-                self.logger_title, 'Total Deleted', duplicate_cnt
-            )
-            logger.info(log)
-            log = '{0} {1} {2}'.format(
-                self.logger_title, 'Total DOA added', doa_cnt
-            )
-            logger.info(log)
+        log = '{0} {1} {2}'.format(
+            datetime.datetime.now(), self.logger_title, 'Completed cleansing.'
+        )
+        print(log)
+        log = '{0} {1} {2}'.format(
+            self.logger_title, 'Total Deleted', duplicate_cnt
+        )
+        print(log)
+        log = '{0} {1} {2}'.format(
+            self.logger_title, 'Total DOA added', doa_cnt
+        )
+        print(log)
 
 
 class ReturnCommand(object):
