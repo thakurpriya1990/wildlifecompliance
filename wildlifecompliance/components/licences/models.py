@@ -1989,7 +1989,19 @@ reversion.register(
         'options',
     ]
 )
+reversion.register(
+    SectionQuestionCondition,
+    follow=[
+        'special_conditions',
+    ]
+)
 reversion.register(QuestionOption)
+reversion.register(
+    QuestionOptionCondition,
+    follow=[
+        'question_options',
+    ]    
+)
 reversion.register(MasterlistQuestion)
 reversion.register(LicencePurposeSection)
 reversion.register(LicenceSpecies)
