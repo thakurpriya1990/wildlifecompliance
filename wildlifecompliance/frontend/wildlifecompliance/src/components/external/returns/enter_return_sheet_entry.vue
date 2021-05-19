@@ -2,6 +2,14 @@
     <div id="externalReturnSheetEntry">
         <modal transition="modal fade" :title="title" large>
             <div class="container-fluid">
+                <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
+                    <b>Please answer the following mandatory question(s):</b>
+                    <ul>
+                        <li v-for="error in missing_fields">
+                            {{ error.label }}
+                        </li>
+                    </ul>
+                </div>
                 <div class="row">
                 <form class="form-horizontal" name="sheetEntryForm">
                     <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
@@ -27,7 +35,7 @@
                                 <label class="control-label pull-left" >Activity Date:</label>
                             </div>
                             <div class="col-md-6">
-                              <div class="input-group date" ref="activityDateToPicker">
+                              <div class="input-group date" ref="activityDateToPicker" name="activityDateToPicker" required="true">
                                   <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="entryActivityDate">
                                   <span class="input-group-addon">
                                       <span class="glyphicon glyphicon-calendar"></span>
@@ -114,6 +122,7 @@ import {
     api_endpoints,
     helpers
 } from "@/utils/hooks.js"
+import '@/scss/forms/return_sheet.scss';
 export default {
     name:'externalReturnSheetEntry',
     components:{
@@ -160,6 +169,7 @@ export default {
             keepInvalid:true,
             allowInputToggle:true
         },
+        missing_fields: [],
       }
     },
     watch: {
@@ -228,8 +238,14 @@ export default {
       addToList: function() {
 
       },
-      update:function () {
+      update: async function () {
         const self = this;
+
+        let is_valid = await this.validateMissingFields();
+
+        if (!is_valid){
+          return
+        }
 
         if (self.isAddEntry) {
 
@@ -298,6 +314,39 @@ export default {
 
         };
 
+      },
+      validateMissingFields: async function(){
+        let is_valid = true
+
+        this.missing_fields.length = 0;
+        await this.highlightMissingFields();
+
+        if (this.entryActivityDate === '') {
+          const missing_field = {
+            label: 'Activity Date',
+            name: 'activityDateToPicker',
+          }
+          this.missing_fields.push(missing_field)
+          is_valid = false;
+        }
+        this.highlightMissingFields();
+        var top = ($('#error').offset() || { "top": NaN }).top;
+        $('html, body').animate({
+            scrollTop: top
+        }, 1);        
+
+        return is_valid;
+      }, 
+      highlightMissingFields: async function(){
+        $('.missing-field').removeClass('missing-field');
+        for (const missing_field of this.missing_fields) {
+            $(`[name=${missing_field.name}`).addClass('missing-field');
+        }
+
+        var top = ($('#error').offset() || { "top": NaN }).top;
+        $('html, body').animate({
+            scrollTop: top
+        }, 1);
       },
       check_and_pay: async function() {
         const self = this;
