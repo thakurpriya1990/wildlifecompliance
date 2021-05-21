@@ -6857,6 +6857,7 @@ class ApplicationFormDataRecord(models.Model):
 
     ACTION_TYPE_ASSIGN_VALUE = 'value'
     ACTION_TYPE_ASSIGN_COMMENT = 'comment'
+    ACTION_TYPE_ASSIGN_SUBMIT = 'submit'
 
     COMPONENT_TYPE_TEXT = 'text'
     COMPONENT_TYPE_TAB = 'tab'

@@ -252,6 +252,11 @@ class ApplicationService(object):
         """
         logger.debug('ApplicationService.process_form() - start')
         update_fee = form_data.pop('__update_fee', False)
+        submitting = form_data.pop('__submit', False)
+
+        if submitting:
+            action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT
+
         do_process_form(
             request,
             application,
@@ -1792,7 +1797,7 @@ def do_process_form(
                 and not form_data_record.component_attribute:
             form_data_record.component_attribute = component_attribute
 
-        if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
+        if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT:
             if not value and schema_name in required_fields:
                 missing_item = {'field_name': field_name}
                 missing_item.update(required_fields[schema_name])
