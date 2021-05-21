@@ -295,15 +295,24 @@ class LicenceSchemaUtility(LicenceUtility):
             child = {
                 'name': question_name,
                 'type': q.question.answer_type,
-                'label': '',
+                'label': q.question.question,
             }
             if q.question.answer_type in special_types:
 
-                q_option_children = self.get_checkbox_option_children(
-                    q, q.question, section, question_name
-                )
-                child['children'] = q_option_children
-                child['type'] = 'group'
+                child['type'] = q.question.answer_type
+
+                options = q.question.option.all().order_by(
+                    '-wildlifecompliance_masterlistquestion_option.id')
+
+                for o in options:
+                    q_checkbox_children = SectionQuestion.objects.filter(
+                        section=question.section,
+                        parent_question=q.question,
+                        parent_answer=o,
+                    )
+                    for q in q_checkbox_children:
+                        for c in q.special_conditions.all():
+                            child[c.label] = c.value
 
             elif q.question.answer_type in expander_types:
 
@@ -317,7 +326,9 @@ class LicenceSchemaUtility(LicenceUtility):
                 q_expander_children = self.get_expander_children(
                     q, q.question, section, question_name
                 )
-                child['expander'] = q_expander_children
+
+                if q_expander_children:
+                    child['expander'] = q_expander_children
 
             else:
                 if q.question.option.count() > 0:
@@ -394,7 +405,9 @@ class LicenceSchemaUtility(LicenceUtility):
 
     def get_expander_children(self, sq, question, section, parent_name=''):
         expander_children = []
-        expander_types = ['expander']
+        special_types = ['checkbox', ]
+        group_types = ['checkbox', 'radiobuttons', 'multi-select']
+        expander_types2 = ['expander_table']
         # type_count = 0
 
         group_questions = SectionQuestion.objects.filter(
@@ -405,7 +418,7 @@ class LicenceSchemaUtility(LicenceUtility):
 
         for q in group_questions:
 
-            if q.question.answer_type not in expander_types:
+            if q.question.answer_type != 'expander':
                 continue
 
             expander_name = '{}-Expander{}'.format(
@@ -425,24 +438,63 @@ class LicenceSchemaUtility(LicenceUtility):
             }
 
             # NOTE: a recursive call here for groupings within the expander.
+            if expander_type.question.answer_type in special_types:
 
-            if expander_type.question.answer_type in self.SECTION_TYPES:
+                expander['type'] = q.question.answer_type
 
-                ex_group_children = self.get_group_children(
-                    expander_type, expander_type.question, section)
+                options = q.question.option.all().order_by(
+                    '-wildlifecompliance_masterlistquestion_option.id')
 
-                expander['children'] = ex_group_children
+                for o in options:
+                    q_checkbox_children = SectionQuestion.objects.filter(
+                        section=question.section,
+                        parent_question=q.question,
+                        parent_answer=o,
+                    )
+                    for q in q_checkbox_children:
+                        for c in q.special_conditions.all():
+                            expander[c.label] = c.value
 
-            # if q.question.option.count() > 0:
-            #     q_options = self.get_options(q, q.question)
-            #     header['options'] = q_options
+            elif expander_type.question.answer_type in expander_types2:
 
-            # if q.question.children_questions.exists():
+                expander['label'] = ''
 
-            #     q_conditions = self.get_condition_children(
-            #         q.question, section, question_name
-            #     )
-                # header['conditions'] = q_conditions
+                q_header_children = self.get_header_children(
+                    expander_type, expander_type.question,
+                    section, expander_name
+                )
+                expander['header'] = q_header_children
+
+                q_expander_children = self.get_expander_children(
+                    expander_type, expander_type.question,
+                    section, expander_name
+                )
+
+                if q_expander_children:
+                    expander['expander'] = q_expander_children
+
+            else:
+                if expander_type.question.option.count() > 0:
+                    q_options = self.get_options(
+                        expander_type, expander_type.question
+                    )
+                    expander['options'] = q_options
+
+                if expander_type.question.children_questions.exists():
+
+                    q_conditions = self.get_condition_children(
+                        expander_type.question, section, expander_name
+                    )
+                    expander['conditions'] = q_conditions
+
+            if expander_type.tag:
+                e_type = expander_type
+                for t in e_type.tag:
+                    if t == 'isRequired':
+                        if e_type.question.answer_type not in group_types:
+                            expander[t] = 'true'
+                    else:
+                        expander[t] = 'true'
 
             expander_question_count += 1
             expander_children.append(expander)
