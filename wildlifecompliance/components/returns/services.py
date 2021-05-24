@@ -14,11 +14,21 @@ from django.utils import timezone
 
 from ledger.checkout.utils import calculate_excl_gst
 
-from wildlifecompliance.components.main.utils import (
-    checkout,
-    flush_checkout_session
-)
+from wildlifecompliance.exceptions import ReturnServiceException
+from wildlifecompliance.components.main.utils import checkout, singleton
+from wildlifecompliance.components.main.utils import flush_checkout_session
+
+from wildlifecompliance.components.returns.payments import ReturnFeePolicy
 from wildlifecompliance.components.returns.utils_schema import Schema
+from wildlifecompliance.components.returns.utils import get_session_return
+from wildlifecompliance.components.returns.utils import bind_return_to_invoice
+from wildlifecompliance.components.returns.utils import ReturnSpeciesUtility
+
+from wildlifecompliance.components.returns.email import (
+    send_sheet_transfer_email_notification,
+    send_return_invoice_notification,
+    send_return_accept_email_notification,
+)
 from wildlifecompliance.components.returns.models import (
     Return,
     ReturnType,
@@ -28,19 +38,6 @@ from wildlifecompliance.components.returns.models import (
     ReturnUserAction,
     ReturnActivity,
 )
-from wildlifecompliance.components.returns.payments import ReturnFeePolicy
-from wildlifecompliance.components.returns.email import (
-    send_sheet_transfer_email_notification,
-    send_return_invoice_notification,
-    send_return_accept_email_notification,
-)
-from wildlifecompliance.components.returns.utils import (
-    get_session_return,
-    bind_return_to_invoice,
-    ReturnSpeciesUtility,
-)
-
-from wildlifecompliance.exceptions import ReturnServiceException
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -64,11 +61,10 @@ Associations:                                        +----------------------+
 
 class ReturnService(object):
     '''
-    Services available for Licence Species Returns.
+    A Facade for the Return (compliance) subsystem responsible for requests.
     '''
 
-    def __init__(self):
-        pass
+    __metaclass__ = abc.ABCMeta
 
     @staticmethod
     def discard_return_request(request, condition):
@@ -101,360 +97,66 @@ class ReturnService(object):
         return successful
 
     @staticmethod
-    def generate_return_request(request, licence, selected_activity):
+    def generate_return_request(request, licence, selected_activity) -> bool:
         '''
         Services a request for generating Returns for Conditions on the
         Selected Activity for the Wildlife Licence.
+
+        :param: request is an incoming client request.
+        :param: licence is a WildlifeLicence for the Return.
+        :param: selected_activity is the ApplicationSelectedActivity.
         '''
-        import six
-        from wildlifecompliance.components.applications.models import (
-            ApplicationCondition,
+        logger.debug('ReturnService.generate_return_request() - start')
+        logger_title = '{0} AppID {1}'.format(
+            'ReturnService.generate_return_request()',
+            selected_activity.application_id,
         )
-
-        FUTURE = Return.RETURN_PROCESSING_STATUS_FUTURE
-        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
-        DUE = Return.RETURN_PROCESSING_STATUS_DUE
-        OVERDUE = Return.RETURN_PROCESSING_STATUS_OVERDUE
-        DISCARD = Return.RETURN_PROCESSING_STATUS_DISCARDED
-
-        WEEKLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_WEEKLY
-        MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
-        YEARLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_YEARLY
-
-        prev_ret = []
-
-        def create_return(condition, a_date):
-            '''
-            An internal function to create the first return.
-
-            :param condition is an Application Condition with Return Type.
-            :param a_date is the due_date expected for the created return.
-
-            :return first_return set to Draft for immediate update.
-            '''
-            already_generated = False
-
-            try:
-                # NOTE: Must be unique application conditions on the selected
-                # activity otherwise first return not created.
-                first_return = Return.objects.get(
-                    condition=condition, due_date=a_date)
-                already_generated = True
-
-            except Return.DoesNotExist:
-                first_return = Return.objects.create(
-                    application=selected_activity.application,
-                    due_date=a_date,
-                    processing_status=DRAFT,
-                    licence=licence,
-                    condition=condition,
-                    return_type=condition.return_type,
-                )
-
-            # Make first return editable (draft) for applicant but cannot
-            # submit until due. Establish species list for first return.
-            first_return.save()
-            returns_utils = ReturnSpeciesUtility(first_return)
-
-            # raw_specie_names is a list of names defined manually by the
-            # licensing officer at the time of propose/issuance.
-            raw_specie_names = returns_utils.get_raw_species_list_for(
-                selected_activity
-            )
-            if not already_generated:
-                returns_utils.set_species_list(raw_specie_names)
-
-            # When first return generated is for a renewed application, discard
-            # previous returns which are draft, due or overdue.
-            if first_return.is_renewed():
-                prev_app = selected_activity.application.previous_application
-                prev_ret = prev_app.returns_application.all()
-
-                c = condition
-                # future_returns = [
-                #     r for r in prev_ret
-                #     if r.condition.licence_activity == c.licence_activity
-                #     and r.condition.licence_purpose == c.licence_purpose
-                #     and r.condition.return_type == c.return_type
-                #     and r.condition.condition_text == c.condition_text
-                #     and r.processing_status == FUTURE
-                # ]   # previous returns include Future ones.
-
-                # for returns in future_returns:
-                #     returns.delete()
-
-                # discard_returns = [
-                #     r for r in prev_ret
-                #     if r.condition.licence_activity == c.licence_activity
-                #     and r.condition.licence_purpose == c.licence_purpose
-                #     and r.condition.return_type == c.return_type
-                #     and r.condition.condition_text == c.condition_text
-                #     and r.processing_status in [DUE, OVERDUE, DRAFT]
-                # ]
-
-                # for returns in discard_returns:
-                #     # log action for discard.
-                #     returns.log_user_action(
-                #         ReturnUserAction.ACTION_DISCARD.format(returns.id),
-                #         request,
-                #     )
-                #     returns.processing_status=DISCARD
-                #     returns.save()
-
-                # for r in prev_ret:
-                #     command = DiscardRequestCommand(request, r.condition)
-                #     command.execute()
-                discard_return(condition, prev_ret)
-
-                discard_returns = [
-                    r for r in prev_ret
-                    if r.condition.licence_activity == c.licence_activity
-                    and r.condition.licence_purpose == c.licence_purpose
-                    and r.condition.return_type == c.return_type
-                    and r.condition.condition_text == c.condition_text
-                    # and r.processing_status in [DISCARD]
-                ]
-
-                # When first Return is a Running Sheet copy discarded data.
-                # ie. retain stock total.
-                if first_return.has_sheet:
-                    # la = selected_activity.licence_activity
-                    # pa = selected_activity.application.previous_application
-
-                    c = first_return.condition
-                    returns = [
-                        r for r in discard_returns
-                        if r.condition.condition_text == c.condition_text
-                    ]
-                    if returns:
-                        util = ReturnSpeciesUtility(first_return)
-                        util.copy_sheet_species(returns[0])
-
-            # log action
-            if not already_generated:
-                first_return.log_user_action(
-                    ReturnUserAction.ACTION_CREATE.format(
-                        first_return.lodgement_number,
-                        first_return.condition.condition,
-                        first_return.condition.licence_activity.short_name,
-                    ), request
-                )
-
-            return first_return
-
-        def amend_return(condition, amend_return_list):
-            '''
-            An internal function to amend a previously created return.
-
-            :param Condition is an Application Condition with Return Type.
-            :return Return that was amended.
-            '''
-            amended = None
-
-            previous_returns = [
-                r for r in amend_return_list
-                if r.condition.licence_activity == condition.licence_activity
-                and r.condition.licence_purpose == condition.licence_purpose
-                and r.condition.return_type == condition.return_type
-                # and r.condition.due_date == condition.due_date
-                and r.condition.condition_text == condition.condition_text
-            ]   # previous returns include Future ones.
-
-            for previous in previous_returns:
-                previous.application = selected_activity.application
-                previous.condition = condition
-                previous.save()
-                if (previous.processing_status == DRAFT):
-                    amended = previous
-
-            return amended
-
-        def discard_return(condition, return_list):
-            '''
-            An internal function to discard a previously created return.
-
-            :param Condition is an Application Condition with Return Type.
-            :return Return that was amended.
-            '''
-            discarded = False
-
-            discardable = [
-                r for r in return_list
-                if r.condition.licence_activity == condition.licence_activity
-                and r.condition.licence_purpose == condition.licence_purpose
-                and r.condition.return_type == condition.return_type
-                and r.condition.condition_text == condition.condition_text
-                # and r.condition.due_date == condition.due_date
-            ]   # previous returns include Future ones.
-
-            for r in discardable:
-                discarded = True
-                command = DiscardRequestCommand(request, condition, r)
-                command.execute()
-
-            return discarded
-
-        def create_return_recurrence(condition, a_date):
-            '''
-            An internal function to create FUTURE Return.
-
-            :param condition is an Application Condition with Return Type.
-            :param a_date is the due_date expected for the created return.
-            '''
-            # Set the recurrences as future returns.
-            # NOTE: species list will be determined and built when the
-            # return is due.
-            a_return = None
-            if condition.recurrence:
-
-                while a_date < licence_expiry:
-                    # set the due date for recurrence period.
-                    for x in range(condition.recurrence_schedule):
-                        # Weekly
-                        if condition.recurrence_pattern == WEEKLY:
-                            a_date += timedelta(weeks=1)
-                        # Monthly
-                        elif condition.recurrence_pattern == MONTHLY:
-                            a_date += timedelta(weeks=4)
-                        # Yearly
-                        elif condition.recurrence_pattern == YEARLY:
-                            a_date += timedelta(days=365)
-
-                        if a_date <= licence_expiry:
-                            # Create the Return.
-                            try:
-                                a_return = Return.objects.get(
-                                    condition=condition, due_date=a_date)
-
-                            except Return.DoesNotExist:
-                                a_return = Return.objects.create(
-                                    application=selected_activity.application,
-                                    due_date=a_date,
-                                    processing_status=FUTURE,
-                                    licence=licence,
-                                    condition=condition,
-                                    return_type=condition.return_type,
-                                )
-
-            return a_return
-
-        '''
-        Returns are generated at issuing; expiry_date may not be set yet.
-        correct expiry is on the licence purpose.
-        '''
+        successful = False
         try:
-            licence_expiry = selected_activity.get_expiry_date()
-            licence_expiry = datetime.datetime.strptime(
-                licence_expiry, "%Y-%m-%d"
-            ).date() if isinstance(
-                licence_expiry, six.string_types
-            ) else licence_expiry
-            today = timezone.now().date()
-            timedelta = datetime.timedelta
+            generator = ReturnGenerator()
+            generator.create_return(request, licence, selected_activity)
+            successful = True
 
-            excl_purpose = []
-            if selected_activity.application.is_amendment():
-                prev_app = selected_activity.application.previous_application
-                prev_ret = prev_app.returns_application.exclude(
-                    processing_status=DISCARD,
-                )
-
-                # discard previous returns for ApplicationConditions which have
-                # been removed from the Amendment Application.
-                act_id = selected_activity.licence_activity_id
-                prev_conditions = [
-                    r.condition for r in prev_ret.filter(
-                        condition__licence_activity_id=act_id
-                    )
-                ]
-                prev_conditions_ids = [
-                    c.standard_condition_id for c in prev_conditions
-                ]
-
-                next_conditions = [
-                    c for c in selected_activity.application.conditions.filter(
-                        licence_activity_id=act_id
-                    ).exclude(
-                        return_type=None
-                    )
-                ]
-                next_conditions_ids = [
-                    c.standard_condition_id for c in next_conditions
-                ]
-
-                discard = set(prev_conditions_ids) - set(next_conditions_ids)
-                discardable = [
-                    c for c in prev_conditions
-                    if c.standard_condition_id in list(discard)
-                ]
-                for condition in discardable:
-                    discard_return(condition, prev_ret)
-
-            # create or amend Return for each Condition.
-            for condition in selected_activity.get_condition_list():
-
-                if condition.return_type and condition.due_date \
-                        and condition.due_date >= today:
-
-                    current_date = condition.due_date
-                    amended = None
-                    if selected_activity.application.is_amendment():
-                        amended = amend_return(condition, prev_ret)
-
-                    if not amended:
-                        create_return(condition, current_date)
-                        create_return_recurrence(condition, current_date)
-
-                    excl_purpose.append(condition.licence_purpose)
-
-            # discard/delete previous Returns from removed Conditions.
-            if selected_activity.application.is_amendment():
-                # la = selected_activity.licence_activity
-                # future_returns = [
-                #     r for r in prev_ret
-                #     if not r.condition.licence_purpose in excl_purpose
-                #     and r.condition.licence_activity == la
-                #     and r.processing_status == FUTURE
-                # ]   # previous returns include Future ones.
-
-                # for returns in future_returns:
-                #     returns.delete()
-
-                # discard_returns = [
-                #     r for r in prev_ret
-                #     if not r.condition.licence_purpose in excl_purpose
-                #     and r.condition.licence_activity == la
-                #     and r.processing_status in [DUE, OVERDUE, DRAFT]
-                # ]
-
-                # for returns in discard_returns:
-                #     # log action for discard.
-                #     returns.log_user_action(
-                #         ReturnUserAction.ACTION_DISCARD.format(returns.id),
-                #         request,
-                #     )
-                #     returns.processing_status=DISCARD
-                #     returns.save()
-
-                la = selected_activity.licence_activity
-                discardable = [     # a subset excluding amended Returns.
-                    r for r in prev_ret
-                    if r.condition.licence_purpose not in excl_purpose
-                    and r.condition.licence_activity == la
-                    and r.processing_status in [DUE, OVERDUE, DRAFT]
-                ]
-
-                for r in discardable:
-                    command = DiscardRequestCommand(request, r.condition, r)
-                    command.execute()
+        except ReturnServiceException as rse:
+            log = '{0} {1}'.format(logger_title, rse)
+            logger.exception(log)
 
         except Exception as e:
-            logger.error('{0} {1} - {2}'.format(
-                'ReturnService.generate_return_request() ActivityID:',
-                selected_activity,
-                e
-            ))
+            log = '{0} {1}'.format(logger_title, e)
+            logger.exception(log)
             raise
+
+        logger.debug('ReturnService.generate_return_request() - end')
+        return successful
+
+    @staticmethod
+    def etl_return_sheet(real_time=False, return_ids=None) -> bool:
+        '''
+        A service call to cleanse Return running sheets.
+
+        :param: return_ids is a List of identifiers.
+        '''
+        logger.debug('ReturnService.etl_return_sheet() - start')
+        logger_title = '{0}'.format(
+            'ReturnService.etl_return_sheet()',
+        )
+        successful = False
+        try:
+            etl = ReturnETL(CleanseReturnSheet(real_time, return_ids))
+            etl.process()
+            successful = True
+
+        except ReturnServiceException as rse:
+            log = '{0} {1}'.format(logger_title, rse)
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format(logger_title, e)
+            logger.exception(log)
+            raise
+
+        logger.debug('ReturnService.etl_return_sheet() - end')
+        return successful
 
     @staticmethod
     def record_deficiency_request(request, a_return):
@@ -829,9 +531,474 @@ class ReturnService(object):
         return None
 
 
-'''
-NOTE: This section for objects relating to Return Commands.
-'''
+class ReturnFactory(object):
+    '''
+    An Abstract Factory interface that declares a method to create a Return.
+    '''
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def create_return(self, request, licence, selected_activity) -> Return:
+        '''
+        Method to create a Return.
+
+        :param: request is an incoming client request.
+        :param: licence is a WildlifeLicence.
+        :param: selected_activity is a ApplicationSelectedActivity.
+        '''
+        pass
+
+
+@singleton
+class ReturnGenerator(ReturnFactory):
+    '''
+    A spcialised ReturnFactory to generate a Return of different variants ie.
+    ReturnSheet, ReturnData, ReturnQuestion. Guarantees resulting products are
+    compatible.
+    '''
+
+    def __init__(self):
+        pass
+
+    def create_return(self, request, licence, selected_activity) -> Return:
+        '''
+        Method to create a Return.
+
+        NOTE: Will create multiple Return depending on Application Conditions
+        and return the last compliancy Return created.
+
+        :param: request is an incoming client request.
+        :param: licence is a WildlifeLicence.
+        :param: selected_activity is a ApplicationSelectedActivity.
+
+        :return: the_return the last compliancy Return created.
+        '''
+        import six
+        from wildlifecompliance.components.applications.models import (
+            ApplicationCondition,
+        )
+        FUTURE = Return.RETURN_PROCESSING_STATUS_FUTURE
+        DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
+        DUE = Return.RETURN_PROCESSING_STATUS_DUE
+        OVERDUE = Return.RETURN_PROCESSING_STATUS_OVERDUE
+        DISCARD = Return.RETURN_PROCESSING_STATUS_DISCARDED
+
+        WEEKLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_WEEKLY
+        MONTHLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_MONTHLY
+        YEARLY = ApplicationCondition.APPLICATION_CONDITION_RECURRENCE_YEARLY
+
+        prev_ret = []
+
+        def do_create_return(condition, a_date):
+            '''
+            An internal function to create the first return.
+
+            :param condition is an Application Condition with Return Type.
+            :param a_date is the due_date expected for the created return.
+
+            :return first_return set to Draft for immediate update.
+            '''
+            already_generated = False
+
+            try:
+                # NOTE: Must be unique application conditions on the selected
+                # activity otherwise first return not created.
+                first_return = Return.objects.get(
+                    condition=condition, due_date=a_date)
+                already_generated = True
+
+            except Return.DoesNotExist:
+                first_return = Return.objects.create(
+                    application=selected_activity.application,
+                    due_date=a_date,
+                    processing_status=DRAFT,
+                    licence=licence,
+                    condition=condition,
+                    return_type=condition.return_type,
+                )
+
+            # Make first return editable (draft) for applicant but cannot
+            # submit until due. Establish species list for first return.
+            first_return.save()
+            returns_utils = ReturnSpeciesUtility(first_return)
+
+            # raw_specie_names is a list of names defined manually by the
+            # licensing officer at the time of propose/issuance.
+            raw_specie_names = returns_utils.get_raw_species_list_for(
+                selected_activity
+            )
+            if not already_generated:
+                returns_utils.set_species_list(raw_specie_names)
+
+            # When first return generated is for a renewed application, discard
+            # previous returns which are draft, due or overdue.
+            if first_return.is_renewed():
+                prev_app = selected_activity.application.previous_application
+                prev_ret = prev_app.returns_application.all()
+
+                c = condition
+                do_discard_return(condition, prev_ret)
+                discard_returns = [
+                    r for r in prev_ret
+                    if r.condition.licence_activity == c.licence_activity
+                    and r.condition.licence_purpose == c.licence_purpose
+                    and r.condition.return_type == c.return_type
+                    and r.condition.condition_text == c.condition_text
+                    # and r.processing_status in [DISCARD]
+                ]
+
+                # When first Return is a Running Sheet copy discarded data.
+                # ie. retain stock total.
+                if first_return.has_sheet:
+
+                    c = first_return.condition
+                    returns = [
+                        r for r in discard_returns
+                        if r.condition.condition_text == c.condition_text
+                    ]
+                    if returns:
+                        util = ReturnSpeciesUtility(first_return)
+                        util.copy_sheet_species(returns[0])
+
+            # log action
+            if not already_generated:
+                first_return.log_user_action(
+                    ReturnUserAction.ACTION_CREATE.format(
+                        first_return.lodgement_number,
+                        first_return.condition.condition,
+                        first_return.condition.licence_activity.short_name,
+                    ), request
+                )
+
+            return first_return
+
+        def do_amend_return(condition, amend_return_list):
+            '''
+            An internal function to amend a previously created return.
+
+            :param Condition is an Application Condition with Return Type.
+            :return Return that was amended.
+            '''
+            amended = None
+
+            previous_returns = [
+                r for r in amend_return_list
+                if r.condition.licence_activity == condition.licence_activity
+                and r.condition.licence_purpose == condition.licence_purpose
+                and r.condition.return_type == condition.return_type
+                # and r.condition.due_date == condition.due_date
+                and r.condition.condition_text == condition.condition_text
+            ]   # previous returns include Future ones.
+
+            for previous in previous_returns:
+                previous.application = selected_activity.application
+                previous.condition = condition
+                previous.save()
+                if (previous.processing_status == DRAFT):
+                    amended = previous
+
+            return amended
+
+        def do_discard_return(condition, return_list):
+            '''
+            An internal function to discard a previously created return.
+
+            :param Condition is an Application Condition with Return Type.
+            :return Return that was amended.
+            '''
+            discarded = False
+
+            discardable = [
+                r for r in return_list
+                if r.condition.licence_activity == condition.licence_activity
+                and r.condition.licence_purpose == condition.licence_purpose
+                and r.condition.return_type == condition.return_type
+                and r.condition.condition_text == condition.condition_text
+                # and r.condition.due_date == condition.due_date
+            ]   # previous returns include Future ones.
+
+            for r in discardable:
+                discarded = True
+                command = DiscardRequestCommand(request, condition, r)
+                command.execute()
+
+            return discarded
+
+        def do_create_return_recurrence(condition, a_date):
+            '''
+            An internal function to create FUTURE Return.
+
+            :param condition is an Application Condition with Return Type.
+            :param a_date is the due_date expected for the created return.
+            '''
+            # Set the recurrences as future returns.
+            # NOTE: species list will be determined and built when the
+            # return is due.
+            a_return = None
+            if condition.recurrence:
+
+                while a_date < licence_expiry:
+                    # set the due date for recurrence period.
+                    for x in range(condition.recurrence_schedule):
+                        # Weekly
+                        if condition.recurrence_pattern == WEEKLY:
+                            a_date += timedelta(weeks=1)
+                        # Monthly
+                        elif condition.recurrence_pattern == MONTHLY:
+                            a_date += timedelta(weeks=4)
+                        # Yearly
+                        elif condition.recurrence_pattern == YEARLY:
+                            a_date += timedelta(days=365)
+
+                        if a_date <= licence_expiry:
+                            # Create the Return.
+                            try:
+                                a_return = Return.objects.get(
+                                    condition=condition, due_date=a_date)
+
+                            except Return.DoesNotExist:
+                                a_return = Return.objects.create(
+                                    application=selected_activity.application,
+                                    due_date=a_date,
+                                    processing_status=FUTURE,
+                                    licence=licence,
+                                    condition=condition,
+                                    return_type=condition.return_type,
+                                )
+
+            return a_return
+
+        '''
+        Returns are generated at issuing; expiry_date may not be set yet.
+        correct expiry is on the licence purpose.
+        '''
+        try:
+            the_return = None
+            licence_expiry = selected_activity.get_expiry_date()
+            licence_expiry = datetime.datetime.strptime(
+                licence_expiry, "%Y-%m-%d"
+            ).date() if isinstance(
+                licence_expiry, six.string_types
+            ) else licence_expiry
+            today = timezone.now().date()
+            timedelta = datetime.timedelta
+
+            excl_purpose = []
+            if selected_activity.application.is_amendment():
+                prev_app = selected_activity.application.previous_application
+                prev_ret = prev_app.returns_application.exclude(
+                    processing_status=DISCARD,
+                )
+
+                # discard previous returns for ApplicationConditions which have
+                # been removed from the Amendment Application.
+                act_id = selected_activity.licence_activity_id
+                prev_conditions = [
+                    r.condition for r in prev_ret.filter(
+                        condition__licence_activity_id=act_id
+                    )
+                ]
+                prev_conditions_ids = [
+                    c.standard_condition_id for c in prev_conditions
+                ]
+
+                next_conditions = [
+                    c for c in selected_activity.application.conditions.filter(
+                        licence_activity_id=act_id
+                    ).exclude(
+                        return_type=None
+                    )
+                ]
+                next_conditions_ids = [
+                    c.standard_condition_id for c in next_conditions
+                ]
+
+                discard = set(prev_conditions_ids) - set(next_conditions_ids)
+                discardable = [
+                    c for c in prev_conditions
+                    if c.standard_condition_id in list(discard)
+                ]
+                for condition in discardable:
+                    do_discard_return(condition, prev_ret)
+
+            # create or amend Return for each Condition.
+            for condition in selected_activity.get_condition_list():
+
+                if condition.return_type and condition.due_date \
+                        and condition.due_date >= today:
+
+                    current_date = condition.due_date
+                    the_return = None
+                    if selected_activity.application.is_amendment():
+                        the_return = do_amend_return(condition, prev_ret)
+
+                    if not the_return:
+                        the_return = do_create_return(condition, current_date)
+                        do_create_return_recurrence(condition, current_date)
+
+                    excl_purpose.append(condition.licence_purpose)
+
+            # discard/delete previous Returns from removed Conditions.
+            if selected_activity.application.is_amendment():
+
+                la = selected_activity.licence_activity
+                discardable = [     # a subset excluding amended Returns.
+                    r for r in prev_ret
+                    if r.condition.licence_purpose not in excl_purpose
+                    and r.condition.licence_activity == la
+                    and r.processing_status in [DUE, OVERDUE, DRAFT]
+                ]
+
+                for r in discardable:
+                    command = DiscardRequestCommand(request, r.condition, r)
+                    command.execute()
+
+        except Exception as e:
+            logger.error('{0} {1} - {2}'.format(
+                'ReturnService.generate_return_request() ActivityID:',
+                selected_activity,
+                e
+            ))
+            raise
+
+        return the_return
+
+
+class ReturnETL(object):
+    '''
+    A context maintaining a reference for a ReturnETL strategy.
+    '''
+    strategy = None                     # composite strategy.
+
+    def __init__(self, strategy):
+        self.strategy = strategy
+
+    def process(self):
+        '''
+        Method to execute the strategy.
+        '''
+        self.strategy.do_algorithm()
+
+
+class ReturnETLStrategy(object):
+    '''
+    An interface for ReturnETL strategies.
+    '''
+    LOGFILE = 'logs/etl_tasks.log'
+    logger_title = 'ReturnService.ETL()'
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractclassmethod
+    def do_algorithm(self):
+        '''
+        Excutes the routine for this strategy.
+        '''
+        pass
+
+
+class CleanseReturnSheet(ReturnETLStrategy):
+    '''
+    A real-time ReturnETLStrategy to remove dirty Return running sheets.
+
+    NOTE: Output is not logged but printed. Apply pipe tee statement to log.
+    '''
+    return_ids = None                   # list of specific returns.
+
+    def __init__(self, real_time, returns=None):
+        self.return_ids = returns
+        self.real_time = real_time
+
+    def do_algorithm(self):
+        '''
+        Process each Return running sheet ensuring data integrity.
+        '''
+        import datetime
+        log = '{0} {1} {2}'.format(
+            datetime.datetime.now(), self.logger_title, 'Commencing cleansing.'
+        )
+        print(log)
+
+        returns = Return.objects.filter(
+            return_type__data_format=ReturnType.FORMAT_SHEET
+        )
+
+        if self.return_ids:         # filter returns for specific ids.
+            returns = [r for r in returns if r.id in self.return_ids]
+
+        duplicate_cnt = 0
+        doa_cnt = 0
+
+        for r in returns:
+            utils = ReturnSpeciesUtility(r)
+            for specie in r.return_type.regulated_species.all():
+                name = utils.get_id_from_species_name(specie.species_name)
+                try:
+                    tables = [t for t in r.returntable_set.filter(name=name)]
+
+                except AttributeError:
+                    continue
+
+                first = tables[0]
+
+                '''
+                1. Remove any duplicate species existing in tables.
+                '''
+                for idx, t in enumerate(tables, start=0):
+                    if idx == 0:
+                        continue
+                    log = '{0} ReturnID: {1} {2} ReturnTableID: {3}'.format(
+                        self.logger_title,
+                        t.ret_id,
+                        'Deleted duplicate species table.',
+                        t.id,
+                    )
+                    duplicate_cnt += 1
+                    if self.real_time:
+                        print(log)
+                        t.delete()
+
+                '''
+                2. Default the Date of Activity to the Date of Entry.
+                '''
+                for r in first.returnrow_set.all():
+                    updated = False
+                    doa = datetime.datetime.fromtimestamp(
+                        r.data['date'] / 1000).strftime('%d/%m/%Y')
+                    try:
+                        if r.data['doa'] == '':
+                            r.data['doa'] = doa
+                            updated = True
+
+                    except KeyError:
+                        r.data['doa'] = doa
+                        updated = True
+
+                    if updated:
+                        log = '{0} ReturnID: {1} {2} ReturnRowID: {3}'.format(
+                            self.logger_title,
+                            first.ret_id,
+                            'Added Date of Activity.',
+                            r.id,
+                        )
+                        doa_cnt += 1
+                        if self.real_time:
+                            print(log)
+                            r.save()
+
+        log = '{0} {1} {2}'.format(
+            datetime.datetime.now(), self.logger_title, 'Completed cleansing.'
+        )
+        print(log)
+        log = '{0} {1} {2}'.format(
+            self.logger_title, 'Total Deleted', duplicate_cnt
+        )
+        print(log)
+        log = '{0} {1} {2}'.format(
+            self.logger_title, 'Total DOA added', doa_cnt
+        )
+        print(log)
 
 
 class ReturnCommand(object):
@@ -1710,27 +1877,43 @@ class ReturnSheet(object):
                     "type": "date",
                     "format": "fmt:%d/%m/%Y",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "activity",
                     "type": "string",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
+                    "name": "doa",
+                    "type": "date",
+                    "format": "fmt:%d/%m/%Y",
+                    "constraints": {
+                        "required": True}
+                    }, {
                     "name": "qty",
                     "type": "number",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "total",
                     "type": "number",
                     "constraints": {
-                        "required": True}}, {
+                        "required": True}
+                    }, {
                     "name": "licence",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "comment",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "supplier",
-                    "type": "string"}, {
+                    "type": "string"
+                    }, {
                     "name": "transfer",
-                    "type": "string"}]}}]}
+                    "type": "string"
+                    }
+                ]
+            }}]}
 
     _NO_ACTIVITY = {
         "echo": 1,

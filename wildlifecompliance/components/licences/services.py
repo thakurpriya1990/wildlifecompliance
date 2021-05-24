@@ -2,21 +2,22 @@ import logging
 import abc
 
 from datetime import date
+from wildlifecompliance.components.licences.utils import LicenceSchemaUtility
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from wildlifecompliance.components.main.models import (
-    GlobalSettings,
-)
+from wildlifecompliance.components.main.admin import AdministrationAction
+from wildlifecompliance.components.main.models import GlobalSettings
 
 from wildlifecompliance.components.licences.models import (
     WildlifeLicence,
     LicencePurpose,
-    DefaultPurpose,
+    # DefaultPurpose,
     PurposeSpecies,
+    LicencePurposeSection,
 )
 from wildlifecompliance.components.licences.email import (
     send_licence_renewal_notification,
@@ -79,7 +80,7 @@ class LicenceService(object):
                 on_licence_actioner = LicenceActioner(licence)
                 on_licence_actioner.apply_action(request, REISSUE)
                 application = on_licence_actioner.actioned_application
-                licence.current_application = application                   
+                licence.current_application = application
 
         except Exception as e:
             logger.error('ERR request_reissue_licence() ID {0}: {1}'.format(
@@ -425,6 +426,34 @@ class LicenceService(object):
         return verified
 
     @staticmethod
+    def generate_licence_schema(licence_purpose, request=None):
+        '''
+        Generate a JSON schema from the Licence Purpose.
+
+        :param: licence_purpose the LicencePurpose containing schema.
+        :param: request is an incoming client request.
+        '''
+        logger.debug('LicenceService.generate_licence_schema() - start')
+        logger_title = '{0}'.format('LicenceService.generate_licence_schema()')
+        schema = None
+        try:
+            admin = GenerateAdminLicenceSchema(licence_purpose, request)
+            admin.do_action()
+            schema = admin.get_action_result()
+
+        except LicenceServiceException as lse:
+            log = '{0} {1}'.format(logger_title, lse)
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format(logger_title, e)
+            logger.exception(log)
+            raise
+
+        logger.debug('LicenceService.generate_licence_schema() - end')
+        return schema
+
+    @staticmethod
     def version_licence_purpose(licence_purpose_id, request=None):
         '''
         Service to create a new version of a Licence Purpose.
@@ -437,7 +466,7 @@ class LicenceService(object):
         logger.debug('LicenceService.version_licence_purpose() - start')
         logger_title = '{0} LicencePurposeID {1}'.format(
             'LicenceService.version_licence_purpose()',
-            licence_purpose_id            
+            licence_purpose_id
         )
         new_version = None
         try:
@@ -446,8 +475,8 @@ class LicenceService(object):
             # check licence_purpose is latest version.
             latest_version = licence_purpose.get_latest_version()
             if licence_purpose.version != latest_version.version:
-               log = '{0} {1}'.format(logger_title, 'Not Latest Version.')
-               raise LicenceServiceException(log)
+                log = '{0} {1}'.format(logger_title, 'Not Latest Version.')
+                raise LicenceServiceException(log)
 
             # 1. get licence_purpose and next version number.
             new_purpose = LicencePurpose.objects.get(id=licence_purpose_id)
@@ -489,7 +518,7 @@ class LicenceService(object):
                 DefaultCondition.objects.bulk_create(new_defaults)
 
             # 5. update replaced_by on previous version.
-            licence_purpose.replaced_by=new_purpose
+            licence_purpose.replaced_by = new_purpose
             licence_purpose.save()
 
             # 6. log.
@@ -497,11 +526,11 @@ class LicenceService(object):
             logger.info(log)
 
         except LicenceServiceException as lse:
-            log = '{0} {1}'.format( logger_title, lse )
+            log = '{0} {1}'.format(logger_title, lse)
             logger.exception(log)
 
         except Exception as e:
-            log = '{0} {1}'.format( logger_title, e )
+            log = '{0} {1}'.format(logger_title, e)
             logger.exception(log)
             raise
 
@@ -509,9 +538,43 @@ class LicenceService(object):
         return new_version
 
 
-"""
-NOTE: This section for objects relating to Licence Commands.
-"""
+class GenerateAdminLicenceSchema(AdministrationAction):
+    '''
+    An AdministrationAction for a Licence Purpose Schema.
+    '''
+    action_result = None                    # the generated schema.
+    licence_purpose = None                  # the associated licence purpose.
+
+    def __init__(self, licence_purpose, request):
+        super(AdministrationAction, self).__init__()
+        self.request = request
+        self.licence_purpose = licence_purpose
+
+    def __str__(self):
+        return 'GenerateLicenceSchema userID {0}'.format(self.request.user_id)
+
+    def do_action(self, row_ids=None) -> None:
+        '''
+        Method to execute a command from Administration on selected rows.
+        '''
+        section_list = LicencePurposeSection.objects.filter(
+            licence_purpose=self.licence_purpose
+        ).order_by('index')
+
+        util = LicenceSchemaUtility(section_list)
+        self.action_result = util.get_licence_schema()
+
+    def log_action(self):
+        '''
+        Method to log this command action.
+        '''
+        pass
+
+    def get_action_result(self):
+        '''
+        getter for generated schema.
+        '''
+        return self.action_result
 
 
 class LicenceCommand(object):
@@ -696,7 +759,7 @@ class LicenceActioner(LicenceActionable):
             ).exclude(activity_status=SUSPENDED).count() > 0
 
         amendable = [
-            p for p in activity.proposed_purposes.all() 
+            p for p in activity.proposed_purposes.all()
             if p.is_issued and p.is_active and not p.is_replaced()
             and p.purpose_id in purpose_list
         ]
@@ -713,7 +776,7 @@ class LicenceActioner(LicenceActionable):
         ).exclude(activity_status=SUSPENDED).count() > 0
 
         renewable = [
-            p for p in activity.proposed_purposes.all() 
+            p for p in activity.proposed_purposes.all()
             if p.is_renewable and not p.is_replaced()
             and p.purpose_id in purpose_list
         ]
@@ -747,7 +810,7 @@ class LicenceActioner(LicenceActionable):
         ).exclude(activity_status=SUSPENDED).count() > 0
 
         surrenderable = [
-            p for p in activity.proposed_purposes.all() 
+            p for p in activity.proposed_purposes.all()
             if p.is_issued and p.is_active and not p.is_replaced()
             and p.purpose_id in purpose_list
         ]
@@ -800,7 +863,7 @@ class LicenceActioner(LicenceActionable):
             ).count() > 0
 
             reissuable = [
-                p for p in activity.proposed_purposes.all() 
+                p for p in activity.proposed_purposes.all()
                 if p.is_issued and p.is_active and not p.is_replaced()
                 and p.purpose_id in purpose_list
             ]
@@ -839,25 +902,25 @@ class LicenceActioner(LicenceActionable):
 
             # Use proposed purpose to ensure multiple purposes of the same type
             # are included.
-            opened_proposed_purpose_ids = None
+            # opened_proposed_purpose_ids = None
             opened_proposed_purposes = \
                 self.licence.get_proposed_purposes_in_open_applications()
-            if len(opened_proposed_purposes) > 0:
-                opened_proposed_purpose_ids = [
-                    p.purpose_id for p in opened_proposed_purposes
-                ]
-            purposes_in_open_applications = opened_proposed_purpose_ids
-        else:
-            purposes_in_open_applications = None
+            # if len(opened_proposed_purposes) > 0:
+            #     opened_proposed_purpose_ids = [
+            #         p.purpose_id for p in opened_proposed_purposes
+            #     ]
+            # purposes_in_open_applications = opened_proposed_purpose_ids
+        # else:
+        #     purposes_in_open_applications = None
 
-         # for activity in latest_activities:
+        # for activity in latest_activities:
         for purpose in licence_purposes:
 
             activity = purpose.selected_activity
 
             # if not purpose.purpose_id in purposes_in_open_applications or\
             #         purposes_in_open_applications == []:
-            if not purpose in opened_proposed_purposes \
+            if purpose not in opened_proposed_purposes \
                     or opened_proposed_purposes == []:
 
                 activity_can_action = self.can_action_purposes(

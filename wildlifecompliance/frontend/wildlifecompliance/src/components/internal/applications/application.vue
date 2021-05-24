@@ -1,5 +1,13 @@
 <template lang="html">
     <div v-if="isApplicationLoaded" class="container" id="internalApplication">
+        <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
+            <b>Please answer the following mandatory question(s):</b>
+            <ul>
+                <li v-for="error in missing_fields">
+                    {{ error.label }}
+                </li>
+            </ul>
+        </div>
         <div class="row" style="padding-bottom: 50px;">
         <h3>{{ headerLabel }}: {{ application.lodgement_number }}</h3>
         <div class="col-md-3">
@@ -747,6 +755,7 @@ export default {
             hasActionedConditionLink: false,
             hasActionedApplicationLink: false,
             hasActionedActivityTab: false,
+            missing_fields: [],
         }
     },
     components: {
@@ -1380,6 +1389,9 @@ export default {
             this.spinner = true;
             const { showNotification } = props;
 
+            this.missing_fields.length = 0;
+            this.highlight_missing_fields();
+
             await this.saveFormData({ url: this.form_data_application_url }).then(response => {
                 // this.spinner = false;
                 this.resetUpdateFeeStatus();
@@ -1389,7 +1401,19 @@ export default {
                     'success'
                 )     
             }, error => {
-                console.log('Failed to save Application: ', error);
+
+                if (error.body.hasOwnProperty("missing")){
+
+                    for (const missing_field of error.body.missing) {
+                        this.missing_fields.push(missing_field)
+                    }
+                    this.highlight_missing_fields()
+                    var top = ($('#error').offset() || { "top": NaN }).top;
+                    $('html, body').animate({
+                        scrollTop: top
+                    }, 1);
+                    return false;
+                }
                 swal(
                     'Application Error',
                     helpers.apiVueResourceError(error),
@@ -1397,6 +1421,16 @@ export default {
                 )
             });
 
+        },
+        highlight_missing_fields: function(){
+            $('.missing-field').removeClass('missing-field');
+            for (const missing_field of this.missing_fields) {
+                $(`[name=${missing_field.name}`).addClass('missing-field');
+            }
+            var top = ($('#error').offset() || { "top": NaN }).top;
+            $('html, body').animate({
+                scrollTop: top
+            }, 1);
         },
         save_button: async function() {
             await this.save()
