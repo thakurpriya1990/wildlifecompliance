@@ -1777,12 +1777,19 @@ class ApplicationViewSet(viewsets.ModelViewSet):
         logger.debug('form_data()')
         try:
             instance = self.get_object()
+            is_submit = self.request.data.pop('__submit', False)
+
+            if is_submit:
+                action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT
+            else:
+                action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+
             with transaction.atomic():
                 ApplicationService.process_form(
                     request,
                     instance,
                     request.data,
-                    action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+                    action=action
                 )
 
                 instance.log_user_action(

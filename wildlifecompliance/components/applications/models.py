@@ -2738,6 +2738,13 @@ class Application(RevisionedMixin):
             }) for record in self.form_data_records.all()]
 
         for field_name, item in form_data_records:
+            try:
+                item['instance_name']
+
+            except KeyError:
+                item['instance_name'] = item['value'][0]
+                item['schema_name'] = schema_name
+
             instance = item['instance_name']
             schema_name = item['schema_name']
 
@@ -6850,6 +6857,7 @@ class ApplicationFormDataRecord(models.Model):
 
     ACTION_TYPE_ASSIGN_VALUE = 'value'
     ACTION_TYPE_ASSIGN_COMMENT = 'comment'
+    ACTION_TYPE_ASSIGN_SUBMIT = 'submit'
 
     COMPONENT_TYPE_TEXT = 'text'
     COMPONENT_TYPE_TAB = 'tab'
