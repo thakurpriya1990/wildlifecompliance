@@ -287,10 +287,11 @@ export default {
             return api_endpoints.licences_paginated+'internal_datatable_list';
         },
         returns_url: function(){
+            console.log('returns_url')
             if (this.call_email.email_user && this.call_email.email_user.id){
-                return api_endpoints.returns_paginated+'?user_id=' + this.call_email.email_user.id;
+                return api_endpoints.returns_paginated+'user_datatable_list?user_id=' + this.call_email.email_user.id;
             }
-            return api_endpoints.returns_paginated;
+            return api_endpoints.returns_paginated+'user_datatable_list';
         }
     },
     mounted: function(){

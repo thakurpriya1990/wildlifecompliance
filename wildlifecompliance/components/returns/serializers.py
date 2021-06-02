@@ -478,15 +478,14 @@ class TableReturnSerializer(ReturnSerializer):
         datatables_always_serialize = fields
 
 
-class ExternalReturnSerializer(ReturnSerializer):
+class DTExternalReturnSerializer(ReturnSerializer):
     '''
-    Serialize returns information for external presentation.
+    Serialize returns information for data table presentation.
     '''
     class Meta:
         model = Return
         fields = (
             'id',
-            'application',
             'due_date',
             'processing_status',
             'customer_status',
@@ -494,6 +493,26 @@ class ExternalReturnSerializer(ReturnSerializer):
             'assigned_to',
             'lodgement_number',
             'lodgement_date',
+            'licence',
+            'resources',
+            'table',
+            'condition',
+            'format',
+            'template',
+            'has_payment',
+            'return_fee',
+            'return_fee_paid',
+            'invoice_url',
+            'activity_curators',
+            'amendment_requests',
+            'is_draft',
+            'total_paid_amount',
+            'base_fee',
+            'all_payments_url',
+            'payment_status',
+            'user_in_officers',
+            'can_be_processed',
+            'can_current_user_edit',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -503,15 +522,14 @@ class ExternalReturnSerializer(ReturnSerializer):
         datatables_always_serialize = fields
 
 
-class InternalReturnSerializer(ReturnSerializer):
+class DTInternalReturnSerializer(ReturnSerializer):
     '''
-    Serialize returns information for internal presentation.
+    Serialize returns information for data table presentation.
     '''
     class Meta:
         model = Return
         fields = (
             'id',
-            'application',
             'due_date',
             'processing_status',
             'customer_status',
@@ -519,6 +537,26 @@ class InternalReturnSerializer(ReturnSerializer):
             'assigned_to',
             'lodgement_number',
             'lodgement_date',
+            'licence',
+            'resources',
+            'table',
+            'condition',
+            'format',
+            'template',
+            'has_payment',
+            'return_fee',
+            'return_fee_paid',
+            'invoice_url',
+            'activity_curators',
+            'amendment_requests',
+            'is_draft',
+            'total_paid_amount',
+            'base_fee',
+            'all_payments_url',
+            'payment_status',
+            'user_in_officers',
+            'can_be_processed',
+            'can_current_user_edit',
         )
 
         # the serverSide functionality of datatables is such that only columns

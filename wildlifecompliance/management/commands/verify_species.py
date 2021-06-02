@@ -21,10 +21,10 @@ class Command(BaseCommand):
 
             ApplicationService.verify_licence_species()
 
-            notify = CommandsVerifyNotificationEmail()
-            notify.set_verified_total(0)
-            notify.set_subject('verify_species was executed.')
-            notify.out()            
+            # notify = CommandsVerifyNotificationEmail()
+            # notify.set_verified_total(0)
+            # notify.set_subject('verify_species was executed.')
+            # notify.out()            
 
             logger.info('Command {} finished'.format(__name__))
 
