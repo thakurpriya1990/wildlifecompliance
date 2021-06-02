@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Letter of Advice blah-blah-blah...:
+        Letter of Advice
 
         Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
 

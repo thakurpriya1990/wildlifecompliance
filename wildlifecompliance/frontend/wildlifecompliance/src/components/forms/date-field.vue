@@ -70,7 +70,15 @@ export default {
         $(`[name=${this.name}]`).datetimepicker({
             format: 'DD/MM/YYYY'
         }).off('dp.change').on('dp.change', (e) => {
-            this.value = $(e.target).data('DateTimePicker').date().format('DD/MM/YYYY');
+            if ($(`[name='${this.name}']`).data('DateTimePicker') && $(`[name='${this.name}']`).data('DateTimePicker').date()) {
+                this.value = $(e.target).data('DateTimePicker').date().format('DD/MM/YYYY');
+            }
+            else if ($(`[name='${this.name}']`).data('date') === "") {
+                this.value = "";
+            }
+            else {
+                this.value = "";
+            }
         });
     }
 }

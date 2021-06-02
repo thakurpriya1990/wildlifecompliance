@@ -18,24 +18,14 @@ BASIC_AUTH = env('BASIC_AUTH', False)
 logger = logging.getLogger(__name__)
 # logger = logging
 
-def is_wildlifelicensing_request(request=None):
-    '''
-    Verify in-coming request is for Wildlife Licensing.
-    '''
-    is_wlc = False
-
-    http_host = request.META.get('HTTP_HOST', None)
-
-    if http_host and settings.SITE_URL_WLC \
-    and ('wlc' in http_host.lower() or http_host in settings.SITE_URL_WLC):
-        is_wlc = True
-
-    return is_wlc
-
 def is_new_to_wildlifelicensing(request=None):
     '''
     Verify request user holds minimum details to use Wildlife Licensing.
     '''
+    from wildlifecompliance.management.securebase_manager import (
+        SecureBaseUtils
+    )
+
     has_user_details = True if request.user.first_name \
         and request.user.last_name \
         and request.user.dob \
@@ -43,7 +33,7 @@ def is_new_to_wildlifelicensing(request=None):
         and (request.user.phone_number or request.user.mobile_number) \
         and request.user.identification else False
 
-    if not is_wildlifelicensing_request(request):
+    if not SecureBaseUtils.is_wildlifelicensing_request(request):
          has_user_details = True
 
     if is_internal(request):
@@ -192,7 +182,7 @@ def is_compliance_internal_user(request):
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group) or request.user.is_superuser)
+    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(

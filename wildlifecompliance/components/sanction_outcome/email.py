@@ -560,14 +560,16 @@ def send_infringement_notice(to_address, sanction_outcome, workflow_entry, reque
     return email_data
 
 
-def create_infringement_notice_ybw(sanction_outcome, workflow_entry):
+def create_infringement_notice_ybw(sanction_outcome, workflow_entry=None):
     pdf_file_name_b = 'infringement_notice_b_{}_{}.pdf'.format(sanction_outcome.lodgement_number, datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
     document_b = create_infringement_notice_pdf(pdf_file_name_b, sanction_outcome)
-    attachments = prepare_attachments(workflow_entry.documents)
+    attachments = []
+    if workflow_entry:
+        attachments = prepare_attachments(workflow_entry.documents)
     attachments.append((pdf_file_name_b, document_b._file.read(), 'application/pdf'))
-    doc = workflow_entry.documents.create(name=document_b.name)
-    doc._file = document_b._file
-    doc.save()
+    # doc = workflow_entry.documents.create(name=document_b.name)
+    # doc._file = document_b._file
+    # doc.save()
     return attachments
 
 
