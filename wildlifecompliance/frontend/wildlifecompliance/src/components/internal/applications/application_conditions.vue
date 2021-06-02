@@ -151,7 +151,7 @@ export default {
                 rowCallback: function ( row, data, index) {
                     if (data.return_type && !data.due_date) {
                         $('td', row).css('background-color', 'Red');
-                        vm.setApplicationWorkflowState({bool: true})
+                        vm.setActivityTabWorkflowState({ tab_id: vm.selected_activity_tab_id, bool: true} )
                     }
                 },
                 drawCallback: function (settings) {
@@ -167,7 +167,7 @@ export default {
                     $('.dtMoveDown').click(vm.moveDown);
                 },
                 preDrawCallback: function (settings) {
-                    vm.setApplicationWorkflowState({bool: false})
+                    vm.setActivityTabWorkflowState({ tab_id: vm.selected_activity_tab_id, bool: false} )
                 }
             }
         }
@@ -187,7 +187,6 @@ export default {
             'canEditAssessmentFor',
             'current_user',
             'canAssignOfficerFor',
-            'application_workflow_state',
         ]),
         canAddConditions: function() {
             if(!this.selected_activity_tab_id || this.activity == null) {
@@ -198,9 +197,6 @@ export default {
             var selectedActivity = this.application.activities.find(activity => {
                 return activity.licence_activity === this.selected_activity_tab_id;
             });
-            if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
-                return false;
-            };
 
             let required_role = false;
             if (this.activity.processing_status.id === 'with_assessor') {
@@ -209,22 +205,21 @@ export default {
 
             } else if (this.activity.processing_status.id === 'with_officer') {
                 required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+                if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                    required_role = false;
+                };
+
             } else if (this.activity.processing_status.id === 'with_officer_conditions') {
                 required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
+                if (selectedActivity.assigned_officer != null && selectedActivity.assigned_officer !== this.current_user.id) {
+                    required_role = false;
+                };
             }
 
-            // switch(this.activity.processing_status.id) {
-            //     case 'with_assessor':
-            //         console.log('with_assessor')
-            //         let assessment = this.canEditAssessmentFor(this.selected_activity_tab_id)
-            //         required_role = assessment && assessment.assessors.find(assessor => assessor.id === this.current_user.id) ? 'assessor' : false;
-            //     break;
-            //     case 'with_officer_conditions':
-            //         console.log('with_officer_condit')
-            //         required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
-            //     break;
-            // }
-      
+            if (required_role && !['with_assessor', 'with_officer_conditions'].includes(selectedActivity.processing_status.id)) {
+                required_role = false;
+            }
+
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },
         canEditConditions: function() {
@@ -249,6 +244,11 @@ export default {
                     required_role =  this.canAssignOfficerFor(this.selected_activity_tab_id) ? 'licensing_officer' : false;
                 break;
             }
+
+            if (selectedActivity.processing_status.id !== 'with_officer_conditions') {
+                required_role = false;
+            }
+
             return required_role && this.hasRole(required_role, this.selected_activity_tab_id);
         },    
         isLicensingOfficer: function() {
@@ -257,7 +257,7 @@ export default {
     },
     methods:{
         ...mapActions([
-            'setApplicationWorkflowState',
+            'setActivityTabWorkflowState',
         ]),
         addCondition(preloadedCondition){
             var showDueDate = false
@@ -326,7 +326,10 @@ export default {
             })
         },
         updatedConditions(){
-            this.$refs.conditions_datatable.vmDataTable.ajax.reload();
+            if (this.$refs.conditions_datatable.vmDataTable){
+                this.$refs.conditions_datatable.vmDataTable.ajax.reload();            
+            }
+            // this.$refs.conditions_datatable.vmDataTable.ajax.reload();
         },
         eventListeners(){
             let vm = this;
@@ -428,6 +431,9 @@ export default {
         });
     },
     updated: function() {
+        this.$nextTick(() => {
+            this.updatedConditions()
+        });
     }
 }
 </script>

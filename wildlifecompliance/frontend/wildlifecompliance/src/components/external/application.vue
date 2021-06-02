@@ -10,8 +10,38 @@
                 </ul>
             </div>
 
+              <!-- <div :id="activityTab" class="tab-pane fade">
+                  <div v-for="(activity, index) in allCurrentActivities">
+                      <renderer-block
+                          :component="activity"
+                          v-if="activity.id == selected_activity_tab_id"
+                          v-bind:key="`renderer_block_${index}`"
+                          />
+                  </div>
+                  {{ this.$slots.default }}
+              </div> -->
               <Application v-if="isApplicationLoaded">
-            
+
+                <div :class="`${form_width ? form_width : 'col-md-9'}`" id="tabs">
+                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                        <li class="nav-item" v-for="(activity, index) in listVisibleActivities">
+                            <a :class="{'nav-link amendment-highlight': application.has_amendment}"
+                                data-toggle="pill" v-on:click="selectTab(activity)">{{activity.label}}</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content">
+                        <div v-for="(activity, index) in allCurrentActivities">
+                            <AmendmentRequestDetails :activity_id="activity.id" />
+                            <renderer-block
+                                :component="activity"
+                                v-if="activity.id == selected_activity_tab_id"
+                                v-bind:key="`renderer_block_${index}`"
+                                />
+                        </div>
+                        {{ this.$slots.default }}
+                    </div>
+                </div>
+           
                 <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                 <input type='hidden' name="schema" :value="JSON.stringify(application)" />
                 <input type='hidden' name="application_id" :value="1" />
@@ -57,6 +87,7 @@
 import Application from '../form.vue'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
+import AmendmentRequestDetails from '@/components/forms/amendment_request_details.vue';
 import {
   api_endpoints,
   helpers
@@ -64,6 +95,7 @@ import {
 from '@/utils/hooks';
 export default {
   data: function() {
+    let vm = this;
     return {
       form: null,
       isProcessing: false,
@@ -72,10 +104,18 @@ export default {
       missing_fields: [],
       adjusted_application_fee: 0,
       payment_method: null,
+      activityTab: 'activityTab'+vm._uid+'_'+0,
     }
   },
   components: {
     Application,
+    AmendmentRequestDetails,
+  },
+  props:{
+    form_width: {
+        type: String,
+        default: 'col-md-9'
+    }
   },
   computed: {
     ...mapGetters([
@@ -88,6 +128,7 @@ export default {
         'unfinishedActivities',
         'current_user',
         'reception_method_id',
+        'allCurrentActivities',
     ]),
     csrf_token: function() {
       return helpers.getCookie('csrftoken')
@@ -101,9 +142,12 @@ export default {
     application_form_data_url: function() {
       return (this.application) ? `/api/application/${this.application.id}/form_data.json` : '';
     },
+    listVisibleActivities: function() {
+      return this.application.can_user_edit ? this.unfinishedActivities : this.allCurrentActivities;
+    },
     requiresCheckout: function() {
       return ((this.adjusted_application_fee > 0 || this.application.licence_fee > 0)
-      && ['draft', 'awaiting_payment', 'amendment_required'].includes(this.application_customer_status_onload.id))
+      && ['draft', 'awaiting_payment', 'amendment_required','partially_approved'].includes(this.application.customer_status.id))
     },
     showCardPayButton: function() {
       return !this.isProcessing && this.requiresCheckout && !this.showCashPayButton && !this.showNonePayButton;
@@ -138,6 +182,10 @@ export default {
         'saveFormData',
         'refreshApplicationFees',
     ]),
+    selectTab: function(component) {
+        this.section_tab_id = component.id;
+        this.setActivityTab({id: component.id, name: component.label});
+    },
     eventListeners: function(){
       if(!this.tabSelected) {
         $('#tabs-section li:first-child a').click();
@@ -221,15 +269,29 @@ export default {
       }
       this.isProcessing = true;
     },
-    save_form: async function() {
+    save_form: async function(is_submitting=false) {
       this.isProcessing = true;
       let is_saved = false;
-      await this.saveFormData({ url: this.application_form_data_url, draft: true }).then(res=>{
+
+      this.missing_fields.length = 0;
+      this.highlight_missing_fields();
+
+      await this.saveFormData({ url: this.application_form_data_url, draft: true , submit: is_submitting}).then(res=>{
         this.isProcessing = false;
         is_saved = true;
 
       },err=>{
-        console.log(err)
+        if (err.body.hasOwnProperty("missing")){
+            for (const missing_field of err.body.missing) {
+                this.missing_fields.push(missing_field)
+            }
+            this.highlight_missing_fields()
+            var top = ($('#error').offset() || { "top": NaN }).top;
+            $('html, body').animate({
+                scrollTop: top
+            }, 1);
+        }
+
         swal(
             'Error',
             'There was an error saving your application',
@@ -279,7 +341,8 @@ export default {
 
         }).then( async (result) => {
             if (result.value) {
-                let is_saved = await this.save_form();
+                let is_submitting = true
+                let is_saved = await this.save_form(is_submitting);
                 if (is_saved) {
                   this.isProcessing = true;
                   vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/submit'),{}).then(res=>{
@@ -333,7 +396,8 @@ export default {
 
         }).then(async (result) => {
             if (result.value) {
-              let is_saved = await vm.save_form();
+              let is_submitting = true;
+              let is_saved = await vm.save_form(is_submitting);
 
               if (is_saved) {
                 vm.isProcessing = true;
@@ -389,8 +453,8 @@ export default {
             confirmButtonText: 'Submit'
         }).then(async (result) => {
             if (result.value) {
-
-              let is_saved = await this.save_form()
+              let is_submitting = true;
+              let is_saved = await this.save_form(is_submitting)
               
               if (is_saved) {
                 this.isProcessing = true;

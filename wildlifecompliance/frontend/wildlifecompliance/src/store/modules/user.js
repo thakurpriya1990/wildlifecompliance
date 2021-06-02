@@ -7,6 +7,7 @@ from '@/utils/hooks';
 import {
     UPDATE_SELECTED_TAB_ID,
     UPDATE_SELECTED_TAB_NAME,
+    UPDATE_SELECTED_TAB_WORKFLOW_STATE,
     UPDATE_CURRENT_USER,
     UPDATE_CURRENT_USER_ID,
     UPDATE_SELECTED_APPLY_ORG_ID,
@@ -20,6 +21,7 @@ export const userStore = {
     state: {
         selected_activity_tab_id: 0,
         selected_activity_tab_name: '',
+        selected_activity_tab_workflow_state: [],
         selected_apply_org_id: null,
         selected_apply_proxy_id: null,
         selected_apply_licence_select: null,
@@ -35,6 +37,7 @@ export const userStore = {
         compliance_allocated_group: state => state.compliance_allocated_group,
         selected_activity_tab_id: state => state.selected_activity_tab_id,
         selected_activity_tab_name: state => state.selected_activity_tab_name,
+        selected_activity_tab_workflow_state: state => state.selected_activity_tab_workflow_state,
         selected_apply_org_id: state => state.selected_apply_org_id,
         selected_apply_proxy_id: state => state.selected_apply_proxy_id,
         selected_apply_licence_select: state => state.selected_apply_licence_select,
@@ -182,6 +185,9 @@ export const userStore = {
         [UPDATE_SELECTED_TAB_NAME] (state, tab_name) {
             state.selected_activity_tab_name = tab_name;
         },
+        [UPDATE_SELECTED_TAB_WORKFLOW_STATE] (state, { key, value }) {
+            Vue.set(state.selected_activity_tab_workflow_state, key, value);
+        },
         [UPDATE_CURRENT_USER] (state, user) {
             Vue.set(state, 'current_user', {...user});
         },
@@ -208,6 +214,9 @@ export const userStore = {
         setActivityTab({ commit }, { id, name }) {
             commit(UPDATE_SELECTED_TAB_ID, id);
             commit(UPDATE_SELECTED_TAB_NAME, name);
+        },
+        setActivityTabWorkflowState({ commit }, {tab_id, bool}) {
+            commit(UPDATE_SELECTED_TAB_WORKFLOW_STATE, {key: tab_id, value: bool});
         },
         setApplyOrgId({ commit }, { id }) {
             commit(UPDATE_SELECTED_APPLY_ORG_ID, id);
