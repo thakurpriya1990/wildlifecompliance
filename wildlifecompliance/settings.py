@@ -187,6 +187,20 @@ LOGGING['loggers']['application_checkout'] = {
     'handlers': ['application_checkout'],
     'level': 'INFO'
 }
+# Additional logging for securebase manager.
+LOGGING['handlers']['securebase_manager'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(
+        BASE_DIR,
+        'logs',
+        'securebase_manager.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880}
+LOGGING['loggers']['securebase_manager'] = {
+    'handlers': ['securebase_manager'],
+    'level': 'INFO'
+}
 # # Additional logging for compliancemanagement
 # LOGGING['handlers']['compliancemanagement'] = {
 #     'level': 'INFO',

@@ -157,3 +157,14 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
+
+class SecureBaseView(View):
+    '''
+    A generic view that applies the securebase policy to a post request. 
+    '''
+    def post(self, request, *args, **kwargs):
+        from wildlifecompliance.management.securebase_manager import SecurePipe
+
+        securebase_view = SecurePipe(request)
+
+        return securebase_view.get_http_response()

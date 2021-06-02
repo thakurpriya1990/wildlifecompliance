@@ -189,7 +189,7 @@ export default {
                     {
                         data: "licence_document",
                         mRender:function(data,type,full){
-                            return `<a href="${data}" target="_blank"><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
+                            return `<a href='#' view-licence='${full.id}'><i style="color:red" class="fa fa-file-pdf-o"></i></a>`;
                         },
                         orderable: false,
                         searchable: false
@@ -307,6 +307,9 @@ export default {
         },
     },
     computed: {
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
         is_external: function(){
             return this.level == 'external';
         },        
@@ -914,6 +917,12 @@ export default {
                 vm.$refs.selected_licence_id = $(this).attr('inspection-licence');
                 vm.$refs.inspection.isModalOpen = true;
             });
+            // Create External view licence listener
+            vm.$refs.licence_datatable.vmDataTable.on('click', 'a[view-licence]', function(e) {
+                e.preventDefault();
+                const licence_id = $(this).attr('view-licence');
+                vm.viewLicence(licence_id);
+            });
             // Child row listener
             vm.$refs.licence_datatable.vmDataTable.on('click', 'tr.licRecordRow', function(e) {
                 // If a link is clicked, ignore
@@ -1018,6 +1027,26 @@ export default {
                 }
             });
 
+        },
+        post_and_redirect: function(url, postData) {
+            var postFormStr = "<form method='POST' target='_blank' name='securebase-view' action='" + url + "'>";
+
+            for (var key in postData) {
+                if (postData.hasOwnProperty(key)) {
+                    postFormStr += "<input type='hidden' name='" + key + "' value='" + postData[key] + "'>";
+                }
+            }
+            postFormStr += "</form>";
+            var formElement = $(postFormStr);
+            $('body').append(formElement);
+            $(formElement).submit();
+            this.spinner = false;
+        },
+        viewLicence: function(licence_id) {
+            this.post_and_redirect(
+                `/securebase-view/`,
+                {'csrfmiddlewaretoken' : this.csrf_token, 'licence_id': licence_id}
+            );
         },
         requestedInspection: function(event){
             const data = {
