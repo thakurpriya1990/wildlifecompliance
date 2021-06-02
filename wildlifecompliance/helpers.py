@@ -192,7 +192,7 @@ def is_compliance_internal_user(request):
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group) or request.user.is_superuser)
+    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
