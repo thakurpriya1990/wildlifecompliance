@@ -617,7 +617,7 @@ def _create_licence(licence_buffer, licence, application):
 
     licence_purposes = [
         p for p in licence.get_purposes_in_sequence()
-        if p.purpose_status in include and p.is_issued
+        if p.purpose_status in include and p.is_issued and p.expiry_date
     ]
 
     purposeList = ListFlowable(

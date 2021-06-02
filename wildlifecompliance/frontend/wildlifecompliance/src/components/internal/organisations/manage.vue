@@ -281,7 +281,7 @@ export default {
             contacts_headers_ref:["Name","Role","Email","Status"],
             applications_url: api_endpoints.applications_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
             licences_url: api_endpoints.licences_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
-            returns_url: api_endpoints.returns_paginated+'?org_id='+vm.$route.params.org_id,
+            returns_url: api_endpoints.returns_paginated+'user_datatable_list?org_id='+vm.$route.params.org_id,
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"

@@ -8,14 +8,10 @@
                         <div class="col-sm-12">
                             <div class="form-group">
                                 <div class="row">
-                                    <div class="col-sm-12">
-                                        <label class="control-label" for="Name">Select licensed activities to Propose Issue</label>
-                                    </div>
-                                </div>
-                                <div class="row">
                                     <div class="col-sm-12" v-for="(a, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`a_${index}`">
-                                        <input type="checkbox" name="licence_activity" :value ="a.id" :id="a.id" v-model="checkedActivities" > <b>{{a.activity_name_str}}</b>
-                                        <div v-show="checkedActivities.find(checked => checked===a.id)">
+                                        <div v-if="canAssignOfficerFor(a.licence_activity)">
+
+                                        <div v-show="selected_activity_tab_id === a.licence_activity">
                                             <div v-for="(p, p_idx) in a.proposed_purposes" v-bind:key="`p_${p_idx}`">
                                 
                                                 <div class="panel panel-primary">
@@ -28,24 +24,26 @@
                                                     </div>
                                                     <div class="panel-body panel-collapse collapse" :id="`${p_idx}${index}`+purposeBody">
                                                         <div class="row">
-                                                            <div class="col-sm-3">
-                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
-                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
-                                                            </div>
-                                                            <div class="col-sm-3">
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                            <div class="col-sm-12">
+                                                                <div class="col-sm-3">
+                                                                    <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                    <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
                                                                 </div>
-                                                            </div>
-                                                            <div class="col-sm-3">                                                        
-                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                    <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                    <span class="input-group-addon">
-                                                                        <span class="glyphicon glyphicon-calendar"></span>
-                                                                    </span>
+                                                                <div class="col-sm-3">
+                                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                        <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                        <span class="input-group-addon">
+                                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-sm-3">                                                        
+                                                                    <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                        <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                        <span class="input-group-addon">
+                                                                            <span class="glyphicon glyphicon-calendar"></span>
+                                                                        </span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <div class="col-sm-12" v-if="getPickedPurpose(p.purpose.id).isProposed">
@@ -68,34 +66,18 @@
                                                             <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
                                                                 <br/>
 
-                                                                <!--
                                                                 <div class="col-sm-12">
                                                                     <div class="col-sm-3">
-                                                                        <label class="control-label pull-left" for="Name">Header</label>
-                                                                    </div>
-                                                                    <div class="col-sm-6">
-                                                                        <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
-                                                                    </div>
-                                                                    <div v-show="free_text.is_additional_info" class="col-sm-3">
-                                                                        <input type="checkbox" checked disabled/>
-                                                                        <label>Is additional info</label>
-                                                                    </div>
-                                                                </div>
-                                                                -->
-                                                                <div class="col-sm-12">
-                                                                    <div class="col-sm-2">
                                                                         <label class="control-label pull-left" for="Name">Details</label>
+                                                                        <div v-show="free_text.is_additional_info" ><br/><br/>
+                                                                            <input type="checkbox" checked disabled/>
+                                                                            <label>Is additional info</label>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="col-sm-8">
-                                                                        <!--
-                                                                        <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
-                                                                        -->
+                                                                    <div class="col-sm-9">
+
                                                                         <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
 
-                                                                    </div>
-                                                                    <div v-show="free_text.is_additional_info" class="col-sm-2">
-                                                                        <input type="checkbox" checked disabled/>
-                                                                        <label>Is additional info</label>
                                                                     </div>
                                                                 </div>
 
@@ -107,6 +89,7 @@
 
                                             </div>
                                         </div>
+                                        </div> <!-- end of canAssignOfficerFor(activity.licence_activity) -->
                                     </div>
                                 </div>
                             </div>
@@ -172,30 +155,13 @@
                             </div> 
                             <div v-for="a, idx in checkedActivities">
                                 <div class="form-group">
-                                    <!-- <div class="row">
-                                        <div class="col-sm-12">
-                                            <label class="control-label pull-left" >Additional Fees for {{ getCheckedActivity(a).activity_name_str }}</label>
-                                        </div>
-                                    </div> -->
                                 </div>                                 
                                 <div class="form-group">
                                     <div class="row">
-                                        <!-- <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Description</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                            <input type="text" :name='"licence_fee_text_" + idx' class="form-control" style="width:70%;" v-model="getCheckedActivity(a).additional_fee_text" />
-                                        </div> -->
                                     </div>
                                 </div>  
                                 <div class="form-group">
                                     <div class="row">
-                                        <!-- <div class="col-sm-3">
-                                            <label class="control-label pull-left" for="Name">Fee</label>
-                                        </div>
-                                        <div class="col-sm-9">
-                                            <input type="text" ref="licence_fee" class="form-control" style="width:20%;" v-model="getCheckedActivity(a).additional_fee" />
-                                        </div> -->
                                     </div>
                                 </div>
                             </div>  
@@ -260,8 +226,6 @@ export default {
                 cc_email:null,
                 reason:null,
                 approver_detail:null,
-                // additional_fee_text:null,
-                // additional_fee:0,
                 temporary_document_email_id: null,
                 activities: null,
             },
@@ -281,7 +245,6 @@ export default {
             pickedPurposes: [],
             checkedActivities: [],
             additionalFees: [],
-            //editorData: '<p>Content of the editor.</p>',
             editorConfig: {
                 // The configuration of the editor.
                 toolbar: toolbar_options,
@@ -302,6 +265,7 @@ export default {
             'licenceActivities',
             'canAssignOfficerFor',
             'selected_activity_tab_id',
+            'selected_activity_tab_name',
         ]),
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -311,23 +275,17 @@ export default {
             return vm.errors;
         },
         title: function(){
-        // TODO: application processing_status doesnt have a "with approver" status (disturbance legacy), need to fix
-            return this.application.processing_status.id == 'with_approver' ? 'Issue Licence' : 'Propose to issue licence';
+            return 'Propose to issue activity ' + this.selected_activity_tab_name;
         },
         applicationSelectedActivitiesForPurposes: function() {
-            return this.application.activities.filter( activity => { 
-                // if (activity.additional_fee==null){
-                //     activity.additional_fee = '0.00'
-                // }
-                return activity.processing_status.name.match(/with officer/gi) 
+            var selected_activity = this.application.activities.filter( activity => { 
+                    return activity.processing_status.id === 'with_officer_conditions' && activity.licence_activity === this.selected_activity_tab_id;
                 } // only non-processed activities.
             );
-        },
-        applicationSelectedActivity: function() {
-            let val = this.application.activities.find(
-                activity => { return activity.licence_activity === this.selected_activity_tab_id } 
-            );
-            return val
+            if (selected_activity[0]) {
+                this.checkedActivities = [selected_activity[0].id]
+            }
+            return selected_activity;
         },
     },
     methods:{
@@ -352,10 +310,6 @@ export default {
             $('.has-error').removeClass('has-error');
             this.validation_form.resetForm();
 
-            // this.application.activities.forEach(a => {
-            //     a.additional_fee = '0.00'
-            //     a.additional_fee_text = null
-            // });
             this.checkedActivities = [];
             this.pickedPurposes = [];
         },
@@ -452,10 +406,10 @@ export default {
                 }
             });
        },
-       initialiseAttributes: function() {
-           //this.preloadProposedPurpose()
+    //    initialiseAttributes: function() {
+    //        //this.preloadProposedPurpose()
 
-       },
+    //    },
        eventListeners:function () {
             let vm = this;
             // Initialise Date Picker
@@ -466,7 +420,7 @@ export default {
                     let start_date = 'start_date_' + purpose.id
                     $(`[name='${start_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${start_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${start_date}']`).data('DateTimePicker') && $(`[name='${start_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${start_date}']`).data('date') === "") {
@@ -476,7 +430,7 @@ export default {
                     let end_date = 'end_date_' + purpose.id
                     $(`[name='${end_date}']`).datetimepicker(vm.datepickerOptions);
                     $(`[name='${end_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${end_date}']`).data('DateTimePicker') && $(`[name='${end_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${end_date}']`).data('date') === "") {
@@ -535,11 +489,10 @@ export default {
         this.$nextTick(()=>{
             this.eventListeners();
         });
-        this.initialiseAttributes();
+        // this.initialiseAttributes();
    }
 }
 </script>
-
 <style lang="css">
     br {
         padding-bottom: 5px;

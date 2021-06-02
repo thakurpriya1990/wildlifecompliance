@@ -203,10 +203,10 @@ export const applicationStore = {
                             }
                         });
                     }
-                    resolve();
                     dispatch('setIdCheckStatus', res.body.id_check_status.id);
                     dispatch('setCharacterCheckStatus', res.body.character_check_status.id);
                     dispatch('setReturnCheckStatus', res.body.return_check_status.id);
+                    resolve();
                 },
                 err => {
                     console.log(err);
@@ -255,6 +255,28 @@ export const applicationStore = {
         },
         resetUpdateFeeStatus({ commit }) {
             commit(UPDATE_APPLICATION_FEE_STATUS, false);
+        },
+        setLicenceTypeData({ dispatch, state, getters, rootGetters }, activity_data) {
+            return new Promise((resolve, reject) => {
+                Vue.http.post('/api/application/' + getters.application_id + '/update_licence_type_data/', {
+                        'application_id': getters.application_id,
+                        'licence_activity_id': activity_data.licence_activity_id,
+                        'licence_activity_workflow': activity_data.workflow,
+                }).then(res => {
+                    dispatch('setApplication', res.body);
+                    dispatch('setApplication', {
+                        ...state.application,
+                        application_fee: res.body.adjusted_paid_amount.application_fee,
+                        licence_fee: res.body.adjusted_paid_amount.licence_fee,
+                        update_fee: false,
+                        assess: false,
+                    });
+                    resolve();
+                }, err => {
+                    console.log(err);
+                    reject();
+                });
+            });
         },
     }
 }
