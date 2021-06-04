@@ -35,7 +35,7 @@ export default {
             initialTab: 'masterlist',
             tabs: [
                 {'masterlist': 'Schema Masterlist'},
-                {'purpose': 'Section Purposes'},
+                {'purpose': 'Purpose Sections'},
                 {'group': 'Section Groups'},
                 {'question': 'Section Questions'},
             ],

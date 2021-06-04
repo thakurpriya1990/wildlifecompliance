@@ -8,8 +8,10 @@ from wildlifecompliance.components.main.models import (
 )
 
 from wildlifecompliance.components.licences.models import SectionQuestion
+from wildlifecompliance.components.licences.models import SectionGroup
 from wildlifecompliance.components.licences.models import LicencePurposeSection
 from wildlifecompliance.components.licences.models import MasterlistQuestion
+from wildlifecompliance.components.licences.models import LicencePurpose
 
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
@@ -137,10 +139,21 @@ class DTSchemaMasterlistSelectSerializer(DTSchemaMasterlistSerializer):
         return answer_types
 
 
+class LicencePurposeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence Purpose.
+    '''
+    class Meta:
+        model = LicencePurpose
+        fields = '__all__'
+
+
 class SchemaPurposeSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Purpose sections.
     '''
+    section_name = serializers.CharField(allow_blank=True, required=False)
+
     class Meta:
         model = LicencePurposeSection
         fields = '__all__'
@@ -148,32 +161,131 @@ class SchemaPurposeSerializer(serializers.ModelSerializer):
 
 class DTSchemaPurposeSerializer(SchemaPurposeSerializer):
     '''
-    Serializer for Schema builder using Purpose sections.
+    Serializer for datatables using Purpose sections.
     '''
+    licence_purpose = serializers.SerializerMethodField()
+
     class Meta:
         model = LicencePurposeSection
-        fields = '__all__'
+        fields = (
+            'id',
+            'section_name',
+            'section_label',
+            'index',
+            'licence_purpose',
+        )
 
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
+
+    def get_licence_purpose(self, obj):
+        return LicencePurposeSerializer(obj.licence_purpose).data
+
+
+class DTSchemaPurposeSelectSerializer(DTSchemaPurposeSerializer):
+    '''
+    Serializer for all list selects required for Schema Purpose datatable.
+    '''
+    all_purpose = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = LicencePurposeSection
+        fields = (
+            'all_purpose',
+        )
+
+    def get_all_purpose(self, obj):
+        '''
+        Get all Licence Purpose available for Schema Section.
+        '''
+        sections = LicencePurposeSection.objects.all()
+        purposes = [
+            {
+                'label': s.licence_purpose.name, 'value': s.licence_purpose.id
+            } for s in sections
+        ]
+
+        return purposes
 
 
 class SchemaGroupSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Sections Groups.
     '''
+    group_name = serializers.CharField(allow_blank=True, required=False)
+
     class Meta:
-        model = SectionQuestion
+        model = SectionGroup
         fields = '__all__'
 
+
+class DTSchemaGroupSerializer(SchemaGroupSerializer):
+    '''
+    Serializer for Schema Group Datatables.
+    '''
+    licence_purpose = serializers.SerializerMethodField()
+    section = SchemaPurposeSerializer()
+
+    class Meta:
+        model = SectionGroup
+        fields = (
+            'id',
+            'licence_purpose',
+            'group_label',
+            'section',
+        )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
+
+    def get_licence_purpose(self, obj):
+        return LicencePurposeSerializer(obj.section.licence_purpose).data
+
+
+class DTSchemaGroupSelectSerializer(DTSchemaGroupSerializer):
+    '''
+    Serializer for all list selects required for Schema Group datatable.
+    '''
+    all_purpose = serializers.SerializerMethodField(read_only=True)
+    all_section = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = SectionQuestion
+        fields = (
+            'all_purpose',
+            'all_section',
+        )
+
+    def get_all_purpose(self, obj):
+        '''
+        Get all Licence Purpose available for Schema Section Question.
+        '''
+        sections = LicencePurposeSection.objects.all()
+        purposes = [
+            {
+                'label': s.licence_purpose.name, 'value': s.licence_purpose.id
+            } for s in sections
+        ]
+
+        return purposes
+
+    def get_all_section(self, obj):
+        '''
+        Get all Sections available for Schema Section Question.
+        '''
+        sections = LicencePurposeSection.objects.all()
+        names = [
+            {
+                'label': s.section_label, 'value': s.id
+            } for s in sections
+        ]
+
+        return names
 
 
 class SchemaQuestionSerializer(serializers.ModelSerializer):
@@ -187,11 +299,11 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
         fields = (
             'section',
             'question',
-            'question_id',
             'parent_question',
             'parent_answer',
             'order',
             'conditions',
+            'section_group',
         )
 
     def get_conditions(self, obj):
@@ -223,6 +335,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             'question_id',
             'conditions',
             'licence_purpose',
+            'section_group',
         )
 
         # the serverSide functionality of datatables is such that only columns

@@ -16,7 +16,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="">Licence Purpose</label>
-                                <select class="form-control" v-model="filterLicencePurpose" >
+                                <select class="form-control" v-model="filterTablePurpose" >
                                     <option value="All">All</option>
                                     <option v-for="(p, pid) in schemaPurposes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
                                 </select>
@@ -30,7 +30,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="">Section</label>
-                                <select class="form-control" v-model="filterSection" >
+                                <select class="form-control" v-model="filterTableSection" >
                                     <option value="All">All</option>
                                     <option v-for="(s, sid) in schemaSections" :value="s.value" v-bind:key="`section_${sid}`">{{s.label}}</option>
                                 </select>
@@ -96,7 +96,7 @@
                             <label class="control-label pull-left" >Question</label>
                         </div>
                         <div class="col-md-9">
-                            <select class="form-control" ref="select_question" name="select-question" v-model="sectionQuestion.question_id" >
+                            <select class="form-control" ref="select_question" name="select-question" v-model="sectionQuestion.question" >
                                 <option v-for="m in masterlist" :value="m.id" >{{m.question}}</option>
                             </select>                            
                         </div>
@@ -144,7 +144,7 @@
                             <label class="control-label pull-left" >Group</label>
                         </div>
                         <div class="col-md-6">
-                            <select class="form-control" ref="select_group" name="select-group" v-model="sectionQuestion.group_id" >
+                            <select class="form-control" ref="select_group" name="select-group" v-model="filterQuestionGroup" >
                                 <option v-for="g in groupList" :value="m.id" >{{g.label}}</option>
                             </select>                            
                         </div>
@@ -154,7 +154,7 @@
                             <label class="control-label pull-left" >Order</label>
                         </div>
                         <div class="col-md-3">
-                            <input type='text' />
+                            <input type='text' v-model="sectionQuestion.order"/>
                         </div>
                     </div>
                 </form>
@@ -203,12 +203,13 @@ export default {
             pQuestionBody: 'pQuestionBody' + vm._uid,
             isModalOpen:false,
             missing_fields: [],
-            filterLicencePurpose: 'All',
+            filterTablePurpose: 'All',
             filterParentQuestion: 'All',
-            filterSection: 'All',
+            filterTableSection: 'All',
             filterQuestionSection: 'All',
             filterQuestionPurpose: 'All',
-            dtHeadersSchemaQuestion: ["ID", "QuestionID", "SectionID", "QuestionOP", "Licence Purpose", "Section", "Question", "Action"],
+            filterQuestionGroup: '1',
+            dtHeadersSchemaQuestion: ["ID", "QuestionID", "SectionID", "QuestionOP", "GroupID", "Licence Purpose", "Section", "Question", "Action"],
             dtOptionsSchemaQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -227,7 +228,7 @@ export default {
                     }
                 },
                 columnDefs: [
-                    { visible: false, targets: [ 0, 1, 2, 3 ] } 
+                    { visible: false, targets: [ 0, 1, 2, 3, 4 ] } 
                 ],
                 columns: [
                     { 
@@ -244,6 +245,10 @@ export default {
                     },
                     { 
                         data: "conditions",
+                        searchable: false,
+                    },
+                    { 
+                        data: "section_group",
                         searchable: false,
                     },
                     { 
@@ -290,21 +295,13 @@ export default {
                 section: '',
                 question_id: 0,
                 question: '',
-                group_id: 0,
-                order_id: 0,
+                group: 0,
+                order: 0,
                 conditions: null,
                 purpose_id: 0,
                 parent_id: 0,
                 answer_id: 0,
             },
-            // condition: {
-            //     label: '',
-            //     value: '',
-            // },
-            // option: {
-            //     label: '',
-            //     value: '',
-            // },
             masterlist: null,
             checked: false,
             selectedType: '',
@@ -320,22 +317,22 @@ export default {
             defaultOptions: null,
             schemaPurposes: [],
             schemaSections: [],
+            schemaGroups: [],
             parentList: [],
             answerList: [],
         }
 
     },
     watch:{
-        filterLicencePurpose: function() {
+        filterTablePurpose: function() {
             this.$refs.schema_question_table.vmDataTable.draw();
         },
-        filterSection: function(){
+        filterTableSection: function(){
             this.$refs.schema_question_table.vmDataTable.draw();
         },
         filterQuestionPurpose: function(){
-            const data = {licence_purpose_id: this.filterQuestionPurpose};
-            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_sections'),JSON.stringify(data),{
-                        emulateJSON:true,
+            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_sections'),{
+                params: { licence_purpose_id: this.filterQuestionPurpose },
             }).then((res)=>{
 
             },err=>{
@@ -343,16 +340,23 @@ export default {
             });
         },
         filterQuestionSection: function(){
-            const data = {section_id: this.filterQuestionSection};
-            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_parents'),JSON.stringify(data),{
-                        emulateJSON:true,
+            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_parents'),{
+                params: { section_id: this.filterQuestionSection },
             }).then((res)=>{
-
+                this.sectionQuestion.section = this.filterQuestionSection;
             },err=>{
 
             });
         },
+        filterQuestionGroup: function(){
+            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_order'),{
+                params: { group_id: this.filterQuestionGroup },
+            }).then((res)=>{
+                this.sectionQuestion.order = res.body.question_order
+            },err=>{
 
+            });
+        },
     },
     computed: {      
     },
@@ -388,7 +392,6 @@ export default {
         saveQuestion: async function() {
             const self = this;
             const data = self.sectionQuestion
-
             if (data.id === '') {
 
                 await self.$http.post(api_endpoints.schema_question, JSON.stringify(data),{
@@ -433,6 +436,7 @@ export default {
             this.sectionQuestion.question = '';
             this.sectionQuestion.question_id = null;
             // this.sectionQuestion.question_options = null;
+            this.sectionQuestion.group = '';
 
             let newOption = Object.assign(this.addedOption)
             newOption.conditions = this.defaultOptions;
@@ -452,6 +456,8 @@ export default {
                 self.filterQuestionPurpose = self.$refs.schema_question_table.row_of_data.data().section.licence_purpose;
                 self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
                 // self.sectionQuestion.question_options = self.$refs.schema_question_table.row_of_data.data().question_options;
+                self.sectionQuestion.group = self.$refs.schema_question_table.row_of_data.data().section_group;
+
                 self.addedOption.conditions = self.$refs.schema_question_table.row_of_data.data().conditions
                 self.addedOptions.push(self.addedOption)
 
@@ -463,7 +469,7 @@ export default {
             self.$refs.schema_question_table.vmDataTable.on('click','.delete-row', function(e) {
                 e.preventDefault();
                 self.$refs.schema_question_table.row_of_data = self.$refs.schema_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-                self.question.id = self.$refs.schema_question_table.row_of_data.data().id;
+                self.sectionQuestion.id = self.$refs.schema_question_table.row_of_data.data().id;
 
                 swal({
                     title: "Delete Section Question",
@@ -476,7 +482,7 @@ export default {
 
                     if (result.value) {
 
-                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_question,(self.question.id+'/delete_question')))
+                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_question,(self.sectionQuestion.id+'/delete_question')))
     
                         .then((response) => {
 
@@ -507,12 +513,12 @@ export default {
                 }).
                 on("select2:select",function (e) {
                     let selected = $(e.currentTarget);
-                    self.sectionQuestion.question_id=selected.val()
+                    self.sectionQuestion.question=selected.val()
                     self.setShowOptions(selected.val())
                 }).
                 on("select2:unselect",function (e) {
                     let selected = $(e.currentTarget);
-                    self.sectionQuestion.question_id=selected.val()
+                    self.sectionQuestion.question=selected.val()
                 });
         },
         initParentSelector: function () {

@@ -1673,19 +1673,19 @@ class MasterlistQuestion(models.Model):
         ('checkbox', 'Checkbox'),
         ('number', 'Number'),
         ('email', 'Email'),
-        # ('select', 'Select'),
-        # ('multi-select', 'Multi-select'),
+        ('select', 'Select'),
+        ('multi-select', 'Multi-select'),
         ('text_area', 'Text area'),
         ('label', 'Label'),
-        # ('declaration', 'Declaration'),
+        ('declaration', 'Declaration'),
         ('file', 'File'),
         ('date', 'Date'),
-        ('group', 'Group'),
-        ('group2', 'Group2'),
+        ('group2', 'Group'),
+        # ('group2', 'Group2'),
         ('expander_table', 'Expander Table'),
         ('species-all', 'Species List'),
-        ('header', 'Expander Table Header'),
-        ('expander', 'Expander Table Expander'),
+        # ('header', 'Expander Table Header'),
+        # ('expander', 'Expander Table Expander'),
     )
 
     name = models.CharField(max_length=100)
@@ -1751,6 +1751,26 @@ class LicencePurposeSection(models.Model):
         return '{} - {}'.format(self.section_label, self.licence_purpose)
 
 
+class SectionGroup(models.Model):
+    '''
+    Model representation of Section Group.
+    '''
+    group_name = models.CharField(max_length=100)
+    group_label = models.CharField(max_length=100)
+    section = models.ForeignKey(
+        LicencePurposeSection,
+        related_name='section_groups',
+        on_delete=models.PROTECT
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Section Group'
+
+    def __str__(self):
+        return str(self.id)
+
+
 class SectionQuestion(models.Model):
     '''
     Model representation of Section available with questions.
@@ -1758,12 +1778,19 @@ class SectionQuestion(models.Model):
     TAG_CHOICES = (
         ('isRepeatable', 'isRepeatable'),
         ('isRequired', 'isRequired'),
-        ('PromptInspection', 'isRequired - Inspection'),
+        # ('PromptInspection', 'isRequired - Inspection'),
     )
     section = models.ForeignKey(
         LicencePurposeSection,
         related_name='section_questions',
         on_delete=models.PROTECT
+    )
+    section_group = models.ForeignKey(
+        SectionGroup,
+        related_name='group_questions',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     question = models.ForeignKey(
         MasterlistQuestion,

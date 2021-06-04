@@ -31,7 +31,7 @@ from wildlifecompliance.components.call_email.serializers import (
 )
 from wildlifecompliance.components.licences.models import MasterlistQuestion
 from wildlifecompliance.components.licences.models import LicencePurposeSection
-# from wildlifecompliance.components.licences.models import SectionQuestion
+from wildlifecompliance.components.licences.models import SectionGroup
 from wildlifecompliance.components.licences.models import SectionQuestion
 from wildlifecompliance.components.main.serializers import (
     TemporaryDocumentCollectionSerializer,
@@ -43,7 +43,11 @@ from wildlifecompliance.components.main.serializers import (
     DTSchemaQuestionSelectSerializer,
     SchemaQuestionSerializer,
     SchemaPurposeSerializer,
+    DTSchemaPurposeSerializer,
+    DTSchemaPurposeSelectSerializer,
     SchemaGroupSerializer,
+    DTSchemaGroupSerializer,
+    DTSchemaGroupSelectSerializer,
 )
 from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection
@@ -287,9 +291,19 @@ class SchemaPurposeFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
-        super_queryset = super(
-            SchemaPurposeFilterBackend, self
-        ).filter_queryset(request, queryset, view).distinct()
+        search_text = request.GET.get('search[value]')
+
+        if queryset.model is LicencePurposeSection:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_purpose_ids = LicencePurposeSection.objects.values(
+                    'id'
+                ).filter(section_label__icontains=search_text)
+
+                queryset = queryset.filter(
+                    id__in=search_text_purpose_ids
+                ).distinct()
 
         total_count = queryset.count()
         # override queryset ordering, required because the ordering is usually
@@ -301,7 +315,7 @@ class SchemaPurposeFilterBackend(DatatablesFilterBackend):
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
         if len(ordering):
-            queryset = super_queryset.order_by(*ordering)
+            queryset = queryset.order_by(*ordering)
 
         total_count = queryset.count()
 
@@ -324,7 +338,7 @@ class SchemaPurposePaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (SchemaPurposeRenderer,)
     queryset = LicencePurposeSection.objects.none()
-    serializer_class = SchemaPurposeSerializer
+    serializer_class = DTSchemaPurposeSerializer
     page_size = 10
 
     def get_queryset(self):
@@ -333,14 +347,14 @@ class SchemaPurposePaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET', ])
     def schema_purpose_datatable_list(self, request, *args, **kwargs):
-        self.serializer_class = SchemaPurposeSerializer
+        self.serializer_class = DTSchemaPurposeSerializer
         queryset = self.get_queryset()
 
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = SchemaPurposeSerializer(
+        serializer = DTSchemaPurposeSerializer(
             result_page, context={'request': request}, many=True
         )
         response = self.paginator.get_paginated_response(serializer.data)
@@ -350,27 +364,128 @@ class SchemaPurposePaginatedViewSet(viewsets.ModelViewSet):
 
 class SchemaPurposeViewSet(viewsets.ModelViewSet):
     queryset = LicencePurposeSection.objects.all()
-    serializer_class = SchemaMasterlistSerializer
+    serializer_class = SchemaPurposeSerializer
 
     def get_queryset(self):
         return self.queryset
 
-    @detail_route(methods=['POST', ])
-    def save_masterlist(self, request, *args, **kwargs):
+    @detail_route(methods=['GET', ])
+    def get_purpose_selects(self, request, *args, **kwargs):
         '''
-        Save Masterlist record.
+        Get independant Select lists associated with Schema Section Purpose.
         '''
         try:
+
+            instance = LicencePurposeSection.objects.last()
+            serializer = DTSchemaPurposeSelectSerializer(
+                instance, context={'is_internal': is_internal(request)}
+            )
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_purpose_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_purpose_sections(self, request, *args, **kwargs):
+        '''
+        Get all Schema Sections associated with Licence Purpose.
+        '''
+        try:
+            purpose_id = request.query_params.get('licence_purpose_id', 0)
+            sections = LicencePurposeSection.objects.filter(
+                licence_purpose_id=int(purpose_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            return Response(
+                {'purpose_sections': names},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_purpose_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_purpose(self, request, *args, **kwargs):
+        '''
+        Delete Licence Purpose Section record.
+        '''
+        try:
+            instance = self.get_object()
+
             with transaction.atomic():
 
-                serializer = SchemaMasterlistSerializer(data=request.data)
+                instance.delete()
+
+            return Response(
+                {'purpose_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_purpose()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_purpose(self, request, *args, **kwargs):
+        '''
+        Save Licence Purpose Section record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                serializer = SchemaPurposeSerializer(
+                    instance, data=request.data
+                )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
             return Response(serializer.data)
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('save_masterlist()', ve)
+            log = '{0} {1}'.format('save_purpose()', ve)
             logger.exception(log)
             raise
 
@@ -428,23 +543,23 @@ class SchemaGroupPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SchemaGroupFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (SchemaGroupRenderer,)
-    queryset = SectionQuestion.objects.none()
-    serializer_class = SchemaGroupSerializer
+    queryset = SectionGroup.objects.none()
+    serializer_class = DTSchemaGroupSerializer
     page_size = 10
 
     def get_queryset(self):
-        return SectionQuestion.objects.all()
+        return SectionGroup.objects.all()
 
     @list_route(methods=['GET', ])
     def schema_group_datatable_list(self, request, *args, **kwargs):
-        self.serializer_class = SchemaGroupSerializer
+        self.serializer_class = DTSchemaGroupSerializer
         queryset = self.get_queryset()
 
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = SchemaGroupSerializer(
+        serializer = DTSchemaGroupSerializer(
             result_page, context={'request': request}, many=True
         )
         response = self.paginator.get_paginated_response(serializer.data)
@@ -453,28 +568,129 @@ class SchemaGroupPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaGroupViewSet(viewsets.ModelViewSet):
-    queryset = SectionQuestion.objects.all()
-    serializer_class = SchemaMasterlistSerializer
+    queryset = SectionGroup.objects.all()
+    serializer_class = SchemaGroupSerializer
 
     def get_queryset(self):
         return self.queryset
 
-    @detail_route(methods=['POST', ])
-    def save_masterlist(self, request, *args, **kwargs):
+    @detail_route(methods=['GET', ])
+    def get_group_selects(self, request, *args, **kwargs):
         '''
-        Save Masterlist record.
+        Get independant Select lists associated with Section Groups.
         '''
         try:
+
+            instance = SectionGroup.objects.last()
+            serializer = DTSchemaGroupSelectSerializer(
+                instance, context={'is_internal': is_internal(request)}
+            )
+
+            return Response(serializer.data)
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_group_sections(self, request, *args, **kwargs):
+        '''
+        Get all Sections associated with Schema Group with Licence Purpose.
+        '''
+        try:
+            purpose_id = request.query_params.get('licence_purpose_id', 0)
+            sections = LicencePurposeSection.objects.filter(
+                licence_purpose_id=int(purpose_id)
+            )
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            return Response(
+                {'group_sections': names},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['DELETE', ])
+    def delete_group(self, request, *args, **kwargs):
+        '''
+        Delete Section Group record.
+        '''
+        try:
+            instance = self.get_object()
+
             with transaction.atomic():
 
-                serializer = SchemaMasterlistSerializer(data=request.data)
+                instance.delete()
+
+            return Response(
+                {'group_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_group()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST', ])
+    def save_group(self, request, *args, **kwargs):
+        '''
+        Save Section Group record.
+        '''
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+
+                serializer = SchemaGroupSerializer(
+                    instance, data=request.data
+                )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
             return Response(serializer.data)
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('save_masterlist()', ve)
+            log = '{0} {1}'.format('save_group()', ve)
             logger.exception(log)
             raise
 
@@ -511,7 +727,7 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
                 search_text_question_ids = SectionQuestion.objects.values(
                     'id'
                 ).filter(
-                    section__licence_purpose__name__icontains=search_text
+                    question__question__icontains=search_text
                 )
 
                 queryset = queryset.filter(
@@ -598,7 +814,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
     serializer_class = SchemaQuestionSerializer
 
     def get_queryset(self):
-        return self.qeryset
+        return self.queryset
 
     @detail_route(methods=['GET', ])
     def get_question_parents(self, request, *args, **kwargs):
@@ -606,11 +822,24 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         Get all Parent Question associated with Schema Questions in Section.
         '''
         try:
-            section_id = request.data.get('section_id', None)
-            instance = SectionQuestion.objects.last()
+            section_id = request.data.get('section_id', 0)
+            questions = SectionQuestion.objects.filter(
+                section_id=int(section_id)
+            )
+            parents = [
+                {
+                    'label': q.question, 'value': q.id
+                } for q in questions
+            ]
 
+            groups = [
 
-            return Response(serializer.data)
+            ]
+
+            return Response(
+                {'question_parents': parents, 'question_groups': groups},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('get_question_sections()', ve)
@@ -633,17 +862,52 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         Get all Sections associated with Schema Questions with Licence Purpose.
         '''
         try:
-            purpose_id = request.data.get('licence_purpose_id', None)
-
-            instance = SectionQuestion.objects.last()
+            purpose_id = request.query_params.get('licence_purpose_id', 0)
             sections = LicencePurposeSection.objects.filter(
                 licence_purpose_id=int(purpose_id)
             )
-            serializer = SchemaPurposeSerializer(
-                instance, context={'is_internal': is_internal(request)}
+            names = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in sections
+            ]
+
+            return Response(
+                {'question_sections': names},
+                status=status.HTTP_200_OK
             )
 
-            return Response(serializer.data)
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_question_sections()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_question_order(self, request, *args, **kwargs):
+        '''
+        Get order number for Schema Question using Schema Group.
+        '''
+        try:
+            group_id = request.query_params.get('group_id', 1)
+            # sections = LicencePurposeSection.objects.filter(
+            #     licence_purpose_id=int(group_id)
+            # )
+            order = group_id
+
+            return Response(
+                {'question_order': order},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('get_question_sections()', ve)
@@ -729,7 +993,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
 
-                serializer = SchemaMasterlistSerializer(data=request.data)
+                serializer = SchemaQuestionSerializer(data=request.data)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
