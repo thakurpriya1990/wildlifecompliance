@@ -148,7 +148,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
             obj.set_property_cache_headers(headers)
             obj.save()
 
-        except Exception as e:
+        except Exception:
             headers = None
             header_list = obj.get_headers()
             if header_list:
@@ -169,7 +169,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
             obj.set_property_cache_expanders(expanders)
             obj.save()
 
-        except Exception as e:
+        except Exception:
             expanders = None
             expander_list = obj.get_expanders()
             if expander_list:
@@ -312,6 +312,8 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
     Serializer for Schema builder using Section Questions.
     '''
     tag = serializers.ListField(child=serializers.CharField())
+    # parent_question = SchemaMasterlistSerializer(read_only=True)
+    # parent_answer = SchemaOptionSerializer(read_only=True)
 
     conditions = [
         {'label': 'IncreaseLicenceFee', 'value': ''},
@@ -331,7 +333,6 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
             'parent_question',
             'parent_answer',
             'order',
-            # 'conditions',
             'section_group',
             'options',
             'tag',
@@ -343,7 +344,7 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
             obj.set_property_cache_options(options)
             obj.save()
 
-        except Exception as e:
+        except Exception:
             options = None
             option_list = obj.get_options()
             if option_list:
@@ -371,6 +372,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
     question_id = serializers.SerializerMethodField()
     licence_purpose = serializers.SerializerMethodField()
     options = serializers.SerializerMethodField()
+    section_group = SchemaGroupSerializer()
 
     class Meta:
         model = SectionQuestion
@@ -385,6 +387,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             'section_group',
             'options',
             'tag',
+            'order',
         )
 
         # the serverSide functionality of datatables is such that only columns

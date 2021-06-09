@@ -309,6 +309,9 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
                 headers = request.data.get('headers', None)
                 instance.set_property_cache_headers(headers)
 
+                expanders = request.data.get('expanders', None)
+                instance.set_property_cache_expanders(expanders)
+
                 serializer = SchemaMasterlistSerializer(
                     instance, data=request.data
                 )
@@ -991,7 +994,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             questions = SectionQuestion.objects.filter(
                 section_group=int(group_id)
             )
-            next_order = questions.__len__ if questions else 0
+            next_order = len(questions) + 1 if questions else 0
 
             return Response(
                 {'question_order': str(next_order)},
@@ -1038,11 +1041,19 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
                 } for s in qs
             ]
 
+            qs = SectionGroup.objects.all()
+            groups = [
+                {
+                    'label': s.group_label, 'value': s.id
+                } for s in qs
+            ]
+
             return Response(
                 {
                     'all_masterlist': masterlist,
                     'all_purpose': purposes,
                     'all_section': sections,
+                    'all_group': groups,
                 },
                 status=status.HTTP_200_OK
             )

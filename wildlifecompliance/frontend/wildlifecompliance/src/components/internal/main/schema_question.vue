@@ -37,6 +37,17 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="">Group</label>
+                                <select class="form-control" v-model="filterTableGroup" >
+                                    <option value="All">All</option>
+                                    <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`group_${gid}`">{{g.label}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row"><br/></div> 
                     <div class="row">
                         <div class="col-md-12">
@@ -148,7 +159,7 @@
                             <label class="control-label pull-left" >Parent Question</label>
                         </div>
                         <div class="col-md-9">
-                            <select class="form-control" ref="select_parent" name="select-parent" v-on:change.prevent="filterQuestionParent(sectionQuestion.parent_question)" v-model="sectionQuestion.parent_question" >
+                            <select class="form-control" ref="select_parent" name="select-parent" v-if="filterQuestionParent(sectionQuestion.parent_question)" v-model="sectionQuestion.parent_question" >
                                 <option value="0"></option>
                                 <option v-for="(qp, qpid) in parentList" :value="qp.value" v-bind:key="`qparent_${qpid}`" >{{qp.label}}</option>
                             </select>                            
@@ -170,7 +181,7 @@
                             <label class="control-label pull-left" >Group</label>
                         </div>
                         <div class="col-md-6" >
-                            <select class="form-control" ref="select_groupp" name="select-groupp" v-on:change.prevent="filterQuestionGroup(sectionQuestion.section_group)" v-model="sectionQuestion.section_group">
+                            <select class="form-control" ref="select_groupp" name="select-groupp" v-if="filterQuestionGroup(sectionQuestion.section_group)" v-model="sectionQuestion.section_group">
                                 <option value="0"></option>
                                 <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`g_${gid}`" >{{g.label}}</option>
                             </select>                            
@@ -236,7 +247,8 @@ export default {
             filterTableSection: 'All',
             filterQuestionSection: 'All',
             filterQuestionPurpose: 'All',
-            dtHeadersSchemaQuestion: ["ID", "QuestionID", "SectionID", "OptionID", "Licence Purpose", "Section", "Question", "Action"],
+            filterTableGroup: 'All',
+            dtHeadersSchemaQuestion: ["ID", "SectionID", "OptionID", "Licence Purpose", "Section", "Group", "Question", "Order", "Action"],
             dtOptionsSchemaQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -255,15 +267,11 @@ export default {
                     }
                 },
                 columnDefs: [
-                    { visible: false, targets: [ 0, 1, 2, 3, ] } 
+                    { visible: false, targets: [ 0, 1, 2, ] } 
                 ],
                 columns: [
                     { 
                         data: "id",
-                        searchable: false,
-                    },
-                    { 
-                        data: "question_id",
                         searchable: false,
                     },
                     { 
@@ -286,12 +294,24 @@ export default {
                         }
                     },
                     { 
+                        data: "section_group",
+                        searchable: true,
+                        mRender:function (data,type,full) {
+                            let label = data ? data.group_label : ''
+                            return label
+                        }
+                    },
+                    { 
                         data: "question",
                         width: "80%",
                         searchable: false,
                         mRender:function (data,type,full) {
                             return data ? data.substring(0, 100) : ''
                         }
+                    },
+                    { 
+                        data: "order",
+                        searchable: false,
                     },
                     { 
                         data: "id",
@@ -319,14 +339,13 @@ export default {
             sectionQuestion: {
                 id: '',
                 section: '',
-                question_id: 0,
                 question: '',
-                section_group: 0,
-                order: 0,
-                conditions: null,
-                purpose_id: 0,
-                parent_question: 0,
-                parent_answer: 0,
+                section_group: '',
+                order: '0',
+                conditions: '',
+                purpose_id: '',
+                parent_question: null,
+                parent_answer: null,
                 tag: []
             },
             masterlist: null,
@@ -358,6 +377,9 @@ export default {
             this.$refs.schema_question_table.vmDataTable.draw();
         },
         filterTableSection: function(){
+            this.$refs.schema_question_table.vmDataTable.draw();
+        },
+        filterTableGroup: function(){
             this.$refs.schema_question_table.vmDataTable.draw();
         },
         filterQuestionPurpose: function(){
@@ -394,20 +416,21 @@ export default {
             };
         },
         filterQuestionGroup: function(g_id){
-            if (!this.isModalOpen) {
-                return
+            if (!this.isModalOpen || g_id == '' || g_id == null) {
+                return true
             }
-            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_order'),{
-                params: { group_id: g_id },
-            }).then((res)=>{
-                this.sectionQuestion.order = res.body.question_order;
-            },err=>{
+            // this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_order'),{
+            //     params: { group_id: g_id },
+            // }).then((res)=>{
+            //     this.sectionQuestion.order = res.body.question_order;
+            // },err=>{
 
-            });
+            // });
+            return true;
         },
         filterQuestionParent: function(q_id){
-            if (!this.isModelOpen || !this.masterlist) {
-                return
+            if (q_id == '' || q_id == null || !this.masterlist) {
+                return true
             }
             let master = this.masterlist.find( m => m.id == q_id)
             if (master) {
@@ -416,6 +439,7 @@ export default {
             } else {
                 this.sectionQuestion.parent_question = '';
             }
+            return true;
         },
         getCheckedTag: function(atag, set_checked=false){
             let checked = this.checkedTag.find(ch => {return ch.tag===atag})
@@ -513,7 +537,7 @@ export default {
             this.sectionQuestion.id = '';
             this.sectionQuestion.section = '';
             this.sectionQuestion.question = '';
-            this.sectionQuestion.question_id = null;
+            // this.sectionQuestion.question_id = null;
             this.sectionQuestion.section_group = '';
 
             this.filterQuestionSection = 'All';
@@ -532,7 +556,7 @@ export default {
                 self.sectionQuestion.section = self.$refs.schema_question_table.row_of_data.data().section.id;
                 self.filterQuestionSection = self.$refs.schema_question_table.row_of_data.data().section.id;
                 self.filterQuestionPurpose = self.$refs.schema_question_table.row_of_data.data().section.licence_purpose;
-                self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
+                // self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
                 self.sectionQuestion.question = self.$refs.schema_question_table.row_of_data.data().question_id;
 
                 self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group;
@@ -557,8 +581,8 @@ export default {
                 })
 
                 self.addedOptions = self.$refs.schema_question_table.row_of_data.data().options;
-                $(self.$refs.select_question).val(self.sectionQuestion.question_id).trigger('change');
-                self.setShowOptions(self.sectionQuestion.question_id)
+                $(self.$refs.select_question).val(self.sectionQuestion.question).trigger('change');
+                self.setShowOptions(self.sectionQuestion.question)
                 self.isNewEntry = false;
                 self.isModalOpen = true;
             });
@@ -680,9 +704,10 @@ export default {
 
             await this.$http.get(helpers.add_endpoint_join(api_endpoints.schema_question,'1/get_question_selects')).then(res=>{
 
-                    this.masterlist = res.body.all_masterlist
-                    this.schemaPurposes = res.body.all_purpose
-                    this.schemaSections = res.body.all_section
+                    this.masterlist = res.body.all_masterlist;
+                    this.schemaPurposes = res.body.all_purpose;
+                    this.schemaSections = res.body.all_section;
+                    this.schemaGroups = res.body.all_group
 
             },err=>{
                 swal(
