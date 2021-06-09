@@ -72,7 +72,7 @@
 
                     <div class="row" v-if="showOptions">
 
-                        <SchemaOption :addedOptions="addedOptions" :canAddMore="true" />
+                        <SchemaOption  ref="schema_option" :addedOptions="addedOptions" :canAddMore="true" />
 
                     </div>
                     <div class="row" v-else-if="showTables">
@@ -126,10 +126,11 @@ export default {
             pOptionBody: 'pOptionBody' + vm._uid,
             pHeaderBody: 'pHeaderBody' + vm._uid,
             pExpanderBody: 'pOptionBody' + vm._uid,
+            filterOptions: '',
             isModalOpen:false,
             missing_fields: [],
             // masterlist table
-            dtHeadersSchemaMasterlist: ["ID", "Question", "Answer Type", "Action"],
+            dtHeadersSchemaMasterlist: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
             dtOptionsSchemaMasterlist:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -142,23 +143,34 @@ export default {
                     "url": vm.schema_masterlist_url, 
                 },
                 columnDefs: [
-                    { visible: false, targets: [ 0 ] } 
+                    { visible: false, targets: [ 0, 1, 2, 3, ] } 
                 ],
                 columns: [
                     { 
                         data: "id",
-                        width: "10%",
+                    },
+                    { 
+                        data: "options",
+                    },
+                    { 
+                        data: "headers",
+                    },
+                    { 
+                        data: "expanders",
                     },
                     { 
                         data: "question",
-                        width: "60%",
+                        width: "80%",
+                        mRender:function (data,type,full) {
+                            return data ? data.substring(0, 100) : ''
+                        }
                     },
                     { 
                         data: "answer_type",
-                        width: "20%",
+                        width: "10%",
                     },
                     { 
-                        data: "question",
+                        data: "id",
                         width: "10%",
                         mRender:function (data,type,full) {
                             var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
@@ -185,18 +197,11 @@ export default {
                 name: '',
                 question: '',
                 answer_type: '',
-            },
-            answerTypes: [],
-            // questionOption: {
-            //     label: '',
-            //     value: '',
-            // },
-            questionTable: {
-                label: '',
-                value: '',
+                options: null,
                 headers: null,
                 expanders: null,
             },
+            answerTypes: [],
             addedHeaders: [],
             addedHeader: {
                 label: '',
@@ -211,25 +216,16 @@ export default {
             showTables: false,
             addedOptions: [],
             addedOption: {
+                id: '',
                 label: '',
                 value: '',
             },
         }
 
     },
+    watch:{
+    },
     computed: {
-        // questionOptions() {
-        //     let options = Array()
-        //     options.push(this.questionOption)
-
-        //     return options
-        // },
-        // questionTables() {
-        //     let tables = Array()
-        //     tables.push(this.questionTable)
-
-        //     return tables
-        // },
     },
     methods: {
         delay(callback, ms) {
@@ -251,6 +247,9 @@ export default {
             this.showTables = q_type && table.includes(q_type.value) ? true : false
 
             if (this.showOptions) {
+                this.addedOption.id = ''
+                this.addedOption.label = ''
+                this.addedOption.value = ''
                 let newOption = Object.assign(this.addedOption)
                 this.addedOptions.push(newOption);          
             }
@@ -280,6 +279,9 @@ export default {
                 let header_name = 'header-answer-type-0'
                 $(`[name='${header_name}]`).removeClass('header-answer-type-0')
                 self.addedOptions = [];
+                self.addedHeaders = [];
+                self.addedExpanders = [];
+
                 self.showOptions = false;
                 self.showTables = false;
                 self.isModalOpen = false;
@@ -287,7 +289,10 @@ export default {
         },
         saveMasterlist: async function() {
             const self = this;
-            const data = self.masterlist
+            const data = self.masterlist;
+            data.options = this.addedOptions;
+            data.headers = this.addedHeaders;
+            data.expanders = this.addedExpanders;
 
             if (data.id === '') {
 
@@ -325,6 +330,11 @@ export default {
             this.masterlist.answer_type = '';
             this.masterlist.question = '';
             this.masterlist.id = '';
+            this.addedOptions = [];
+            this.addedHeaders = [];
+            this.addedExpanders = [];
+
+            this.showOptions = false;
             this.isModalOpen = true;
         },
         initEventListeners: function(){
@@ -337,6 +347,9 @@ export default {
                 self.masterlist.id = self.$refs.schema_masterlist_table.row_of_data.data().id;
                 self.masterlist.answer_type = self.$refs.schema_masterlist_table.row_of_data.data().answer_type;
                 self.masterlist.question = self.$refs.schema_masterlist_table.row_of_data.data().question;
+                self.addedOptions = self.$refs.schema_masterlist_table.row_of_data.data().options;
+                self.addedHeaders = self.$refs.schema_masterlist_table.row_of_data.data().headers;       
+                self.addedExpanders = self.$refs.schema_masterlist_table.row_of_data.data().expanders;
 
                 $(self.$refs.select_answer_type).val(self.masterlist.answer_type).trigger('change');
                 self.setShowAdditional(self.masterlist.answer_type)

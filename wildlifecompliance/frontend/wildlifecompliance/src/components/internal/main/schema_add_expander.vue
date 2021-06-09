@@ -17,10 +17,12 @@
                             <label v-if="eidx===0" class="control-label pull-left" >Add Expanders</label>
                         </div>
                         <div class="col-md-3">
-                            <input type='text' />
+                            <input type='text' class="form-control" v-model="e.label" />
                         </div>
                         <div class="col-md-3">
-                            <input type='text' />
+                            <select class="form-control" :ref="`expander_answer_type_${eidx}`" :name="`select-answer-type-${eidx}`" v-model="e.value" >
+                                <option v-for="(ea, eaidx) in answerTypes" :value="ea.value" >{{ea.label}}</option>
+                            </select>
                         </div>
                         <div class="col-md-3">
                             <button v-if="eidx===0" class="btn btn-link pull-right" :name="`add_expander_link_1`" @click.prevent="addExpander()">[ Add Another ]</button>
@@ -38,6 +40,7 @@ export default {
     name:"schema-add-expander",
     props: {
         addedExpanders: Array,
+        answerTypes: Array,
     },
     data:function () {
         let vm = this;
@@ -51,33 +54,11 @@ export default {
         };
     },
     computed:{
-        initExpanderAnswerTypeSelector: function (index) {
-            const self = this;
-            let header_name = 'header-answer-type-' + index
-            $(`[name='${header_name}]`).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Answer Type..."
-            }).
-            on("select2:selecting",function (e) {
-                let selected = $(e.currentTarget);
-            }).
-            on("select2:select",function (e) {
-                let selected = $(e.currentTarget);
-            }).
-            on("select2:unselect",function (e) {
-                let selected = $(e.currentTarget);
-            });
-        },
     },
     methods: {
-        addHeader: function() {
+        addExpander: function() {
             this.addedExpanders.push(Object.assign(this.addedExpander))
         },
     },
-    mounted: function() {
-        this.$nextTick(() => {
-            this.initExpanderAnswerTypeSelector();
-        });
-    }
 }
 </script>

@@ -12,6 +12,7 @@ from wildlifecompliance.components.licences.models import SectionGroup
 from wildlifecompliance.components.licences.models import LicencePurposeSection
 from wildlifecompliance.components.licences.models import MasterlistQuestion
 from wildlifecompliance.components.licences.models import LicencePurpose
+from wildlifecompliance.components.licences.models import QuestionOption
 
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
@@ -76,33 +77,131 @@ class OracleSerializer(serializers.Serializer):
     override = serializers.BooleanField(default=False)
 
 
+class SchemaOptionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    label = serializers.CharField(allow_blank=True, required=False)
+    value = serializers.CharField(allow_blank=True, required=False)
+
+    class Meta:
+        model = QuestionOption
+        fields = '__all__'
+
+    def create(self, validated_data):
+        return QuestionOption.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.label = validated_data.get('label', instance.label)
+        instance.value = validated_data.get('value', instance.value)
+
+
 class SchemaMasterlistSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Masterlist questions.
     '''
-    # name = serializers.CharField(
-    #     required=False,
-    #     allow_blank=True,
-    #     allow_null=True)
+    options = serializers.SerializerMethodField()
+    headers = serializers.SerializerMethodField()
+    expanders = serializers.SerializerMethodField()
     name = serializers.CharField(read_only=True)
 
     class Meta:
         model = MasterlistQuestion
         fields = '__all__'
 
+    def get_options(self, obj):
+        option_labels = []
+        try:
+            options = self.initial_data.get('options', None)
+            for o in options:
+                option_labels.append(o)
+                qo = QuestionOption.objects.filter(label=o['label'])
+                if qo.exists():
+                    o['value'] = qo[0].id
+                    continue
+                option_serializer = SchemaOptionSerializer(data=o)
+                option_serializer.is_valid(raise_exception=True)
+                option_serializer.save()
+                opt_id = option_serializer.data['id']
+                o['value'] = opt_id
+            obj.set_property_cache_options(option_labels)
+
+        except Exception:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+    def get_headers(self, obj):
+
+        try:
+            headers = self.initial_data.get('headers', None)
+            obj.set_property_cache_headers(headers)
+            obj.save()
+
+        except Exception as e:
+            headers = None
+            header_list = obj.get_headers()
+            if header_list:
+                headers = [
+                    {
+                        'label': h['label'],
+                        'value': h['value'],
+
+                    } for h in header_list
+                ]
+
+        return headers
+
+    def get_expanders(self, obj):
+
+        try:
+            expanders = self.initial_data.get('expanders', None)
+            obj.set_property_cache_expanders(expanders)
+            obj.save()
+
+        except Exception as e:
+            expanders = None
+            expander_list = obj.get_expanders()
+            if expander_list:
+                expanders = [
+                    {
+                        'label': e['label'],
+                        'value': e['value'],
+
+                    } for e in expander_list
+                ]
+
+        return expanders
+
 
 class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
     '''
     Serializer for Schema Masterlist Datatables.
     '''
+    options = serializers.SerializerMethodField()
+    headers = serializers.SerializerMethodField()
+    expanders = serializers.SerializerMethodField()
+
     class Meta:
         model = MasterlistQuestion
         fields = (
             'id',
             'name',
             'question',
-            'option',
             'answer_type',
+            'options',
+            'headers',
+            'expanders',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
@@ -110,33 +209,20 @@ class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
         # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
 
+    def get_options(self, obj):
+        options = obj.get_options()
+        data = [{'value': o.value, 'label': o.label} for o in options]
+        return data
 
-class DTSchemaMasterlistSelectSerializer(DTSchemaMasterlistSerializer):
-    '''
-    Serializer for all list selects required for Schema Masterlist datatable.
-    '''
-    all_answer_types = serializers.SerializerMethodField()
+    def get_headers(self, obj):
+        headers = obj.get_headers()
+        data = [{'value': h['value'], 'label': h['label']} for h in headers]
+        return data
 
-    class Meta:
-        model = MasterlistQuestion
-        fields = (
-            'all_answer_types',
-        )
-
-    def get_all_answer_types(self, obj):
-        '''
-        Returns all Masterlist questions available for Schema Section Question.
-        '''
-
-        excl_choices = [
-            # None
-         ]
-
-        answer_types = [
-            {'value': a[0], 'label': a[1]} for a in obj.ANSWER_TYPE_CHOICES
-            if a[0] not in excl_choices
-        ]
-        return answer_types
+    def get_expanders(self, obj):
+        expanders = obj.get_expanders()
+        data = [{'value': e['value'], 'label': e['label']} for e in expanders]
+        return data
 
 
 class LicencePurposeSerializer(serializers.ModelSerializer):
@@ -185,32 +271,6 @@ class DTSchemaPurposeSerializer(SchemaPurposeSerializer):
         return LicencePurposeSerializer(obj.licence_purpose).data
 
 
-class DTSchemaPurposeSelectSerializer(DTSchemaPurposeSerializer):
-    '''
-    Serializer for all list selects required for Schema Purpose datatable.
-    '''
-    all_purpose = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = LicencePurposeSection
-        fields = (
-            'all_purpose',
-        )
-
-    def get_all_purpose(self, obj):
-        '''
-        Get all Licence Purpose available for Schema Section.
-        '''
-        sections = LicencePurposeSection.objects.all()
-        purposes = [
-            {
-                'label': s.licence_purpose.name, 'value': s.licence_purpose.id
-            } for s in sections
-        ]
-
-        return purposes
-
-
 class SchemaGroupSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Sections Groups.
@@ -247,52 +307,21 @@ class DTSchemaGroupSerializer(SchemaGroupSerializer):
         return LicencePurposeSerializer(obj.section.licence_purpose).data
 
 
-class DTSchemaGroupSelectSerializer(DTSchemaGroupSerializer):
-    '''
-    Serializer for all list selects required for Schema Group datatable.
-    '''
-    all_purpose = serializers.SerializerMethodField(read_only=True)
-    all_section = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = SectionQuestion
-        fields = (
-            'all_purpose',
-            'all_section',
-        )
-
-    def get_all_purpose(self, obj):
-        '''
-        Get all Licence Purpose available for Schema Section Question.
-        '''
-        sections = LicencePurposeSection.objects.all()
-        purposes = [
-            {
-                'label': s.licence_purpose.name, 'value': s.licence_purpose.id
-            } for s in sections
-        ]
-
-        return purposes
-
-    def get_all_section(self, obj):
-        '''
-        Get all Sections available for Schema Section Question.
-        '''
-        sections = LicencePurposeSection.objects.all()
-        names = [
-            {
-                'label': s.section_label, 'value': s.id
-            } for s in sections
-        ]
-
-        return names
-
-
 class SchemaQuestionSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Section Questions.
     '''
-    conditions = serializers.SerializerMethodField()
+    tag = serializers.ListField(child=serializers.CharField())
+
+    conditions = [
+        {'label': 'IncreaseLicenceFee', 'value': ''},
+        {'label': 'IncreaseRenewalFee', 'value': ''},
+        {'label': 'IncreaseApplicationFee', 'value': ''},
+        {'label': 'StandardCondition', 'value': ''},
+        {'label': 'RequestInspection', 'value': False},
+    ]
+    options = serializers.SerializerMethodField()
+    # conditions = serializers.SerializerMethodField()
 
     class Meta:
         model = SectionQuestion
@@ -302,19 +331,35 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
             'parent_question',
             'parent_answer',
             'order',
-            'conditions',
+            # 'conditions',
             'section_group',
+            'options',
+            'tag',
         )
 
-    def get_conditions(self, obj):
-        options = [
-            {'label': 'IncreaseLicenceFee', 'value': ''},
-            {'label': 'IncreaseRenewalFee', 'value': ''},
-            {'label': 'IncreaseApplicationFee', 'value': ''},
-            {'label': 'StandardCondition', 'value': ''},
-            {'label': 'RequestInspection', 'value': False},
-        ]
+    def get_options(self, obj):
+        try:
+            options = self.initial_data.get('options', None)
+            obj.set_property_cache_options(options)
+            obj.save()
+
+        except Exception as e:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        'conditions': self.conditions
+
+                    } for o in option_list
+                ]
+
         return options
+
+    # def get_conditions(self, obj):
+    #     return self.conditions
 
 
 class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
@@ -325,6 +370,7 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
     section = SchemaPurposeSerializer()
     question_id = serializers.SerializerMethodField()
     licence_purpose = serializers.SerializerMethodField()
+    options = serializers.SerializerMethodField()
 
     class Meta:
         model = SectionQuestion
@@ -333,9 +379,12 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
             'section',
             'question',
             'question_id',
-            'conditions',
+            'parent_question',
+            'parent_answer',
             'licence_purpose',
             'section_group',
+            'options',
+            'tag',
         )
 
         # the serverSide functionality of datatables is such that only columns
@@ -354,55 +403,13 @@ class DTSchemaQuestionSerializer(SchemaQuestionSerializer):
     def get_licence_purpose(self, obj):
         return obj.section.licence_purpose.name
 
-
-class DTSchemaQuestionSelectSerializer(DTSchemaQuestionSerializer):
-    '''
-    Serializer for all list selects required for Schema Question datatable.
-    '''
-    all_masterlist = serializers.SerializerMethodField(read_only=True)
-    all_purpose = serializers.SerializerMethodField(read_only=True)
-    all_section = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = SectionQuestion
-        fields = (
-            'all_masterlist',
-            'all_purpose',
-            'conditions',
-            'all_section'
-        )
-
-    def get_all_masterlist(self, obj):
-        '''
-        Get all Masterlist questions available for Schema Section Question.
-        '''
-        qs = MasterlistQuestion.objects.all()
-        serializer = SchemaMasterlistSerializer(qs, many=True)
-
-        return serializer.data
-
-    def get_all_purpose(self, obj):
-        '''
-        Get all Licence Purpose available for Schema Section Question.
-        '''
-        sections = LicencePurposeSection.objects.all()
-        purposes = [
+    def get_options(self, obj):
+        options = obj.get_options()
+        data = [
             {
-                'label': s.licence_purpose.name, 'value': s.licence_purpose.id
-            } for s in sections
+                'value': o['value'],
+                'label': o['label'],
+                'conditions': o['conditions']
+            } for o in options
         ]
-
-        return purposes
-
-    def get_all_section(self, obj):
-        '''
-        Get all Sections available for Schema Section Question.
-        '''
-        sections = LicencePurposeSection.objects.all()
-        names = [
-            {
-                'label': s.section_label, 'value': s.id
-            } for s in sections
-        ]
-
-        return names
+        return data

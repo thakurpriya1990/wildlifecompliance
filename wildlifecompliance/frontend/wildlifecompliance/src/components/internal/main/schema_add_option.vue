@@ -16,14 +16,19 @@
                         <div class="col-md-3">
                             <label v-if="aidx===0" class="control-label pull-left" >Add Options</label>
                         </div>
-                        <div class="col-md-3">
-                            <input type='text' />
+                        <div class="col-md-3" v-if="canAddMore">
+                            <input type="text" class="form-control" v-model="a.label"/>
                         </div>
-                        <div class="col-md-3">
-                            <div v-for="c in a.conditions" :value="c.value"><input type="checkbox">&nbsp; {{c.label}} &nbsp;</input><input type='text' v-if="c.value===''"/></div>
+                        <div class="col-md-3" v-else>
+                            <label class="form-control">{{ a.label }} </label>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6" v-if="canAddMore">
                             <button v-if="canAddMore && aidx===0" class="btn btn-link pull-right" :name="`select_option_link_1`" @click.prevent="addOption()">[ Add Another ]</button>
+                        </div>
+                        <div class="col-md-6" v-else>
+                            <div v-for="(c, cid) in a.conditions" v-bind:key="`condition_${cid}`" >
+                                <input type="checkbox" :value="true" v-model="getCheckedConditions(a,c).isChecked" >&nbsp;&nbsp;<label>{{c.label}}</label></input><input type='text' v-if="getCheckedConditions(a,c).isDisplay" class="pull-right" v-model="c.value" />                           
+                            </div>
                         </div>
                     </div>
 
@@ -45,17 +50,50 @@ export default {
         return {
             pOptionBody: 'pOptionBody' + vm._uid,
             addedOption: {
+                id: '',
                 label: '',
                 value: '',
                 conditions: null,
             },
+            checkedConditions: [{
+                id: null,
+                value: null,
+                addedOption: null,
+                isChecked: false,
+                isDisplay: false,
+            }],
         };
     },
     computed:{
     },
     methods: {
         addOption: function() {
-            this.addedOptions.push(Object.assign(this.addedOption))
+            this.addedOptions.push(Object.assign({}, this.addedOption))
+        },
+        getCheckedConditions: function(o, c){
+            let checked = this.checkedConditions.find(ch => {return ch.id===c.label && ch.value===c.value && ch.addedOption == o})
+            if (checked) {
+
+                let is_display = checked.isChecked && typeof c.value !== 'boolean' ? true : false;
+                checked.isDisplay = is_display;
+                if (typeof c.value === 'boolean') {
+                    c.value = checked.isChecked ? true : false;
+                } 
+
+            } else {
+
+                let is_checked = c.value ? true : false;
+                let is_display = is_checked && typeof c.value !== 'boolean' ? true : false; 
+                checked = {
+                    id: c.label,
+                    value: c.value,
+                    addedOption: o,
+                    isChecked: is_checked,
+                    isDisplay: is_display,
+                }
+                this.checkedConditions.push(checked)
+            }
+            return checked;
         },
     },
 }

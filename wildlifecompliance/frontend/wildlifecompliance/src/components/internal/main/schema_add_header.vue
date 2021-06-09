@@ -17,10 +17,10 @@
                             <label v-if="hidx===0" class="control-label pull-left" >Add Headers</label>
                         </div>
                         <div class="col-md-3">
-                            <input type='text' />
+                            <input type='text' class="form-control" v-model="h.label" />
                         </div>
                         <div class="col-md-3">
-                            <select class="form-control" :ref="`header_answer_type_${hidx}`" :name="`select-answer-type-${hidx}`" v-model="h.value">
+                            <select class="form-control" :ref="`header_answer_type_${hidx}`" :name="`select-answer-type-${hidx}`" v-model="h.value" >
                                 <option v-for="(ha, haidx) in answerTypes" :value="ha.value" >{{ha.label}}</option>
                             </select>
                         </div>
@@ -49,7 +49,6 @@ export default {
             addedHeader: {
                 label: '',
                 value: '',
-                conditions: null,
             },
         };
     },
@@ -59,31 +58,6 @@ export default {
         addHeader: function() {
             this.addedHeaders.push(Object.assign(this.addedHeader))
         },
-        initHeaderAnswerTypeSelector: function (index) {
-            const self = this;
-            let header_name = 'header-answer-type-' + index
-            $(`[name='${header_name}]`).select2({
-                "theme": "bootstrap",
-                placeholder:"Select Answer Type..."
-            }).
-            on("select2:selecting",function (e) {
-                let selected = $(e.currentTarget);
-            }).
-            on("select2:select",function (e) {
-                let selected = $(e.currentTarget);
-                // self.masterlist.answer_type = selected.val()
-                // self.setShowAdditional(selected.val())
-            }).
-            on("select2:unselect",function (e) {
-                let selected = $(e.currentTarget);
-                // self.masterlist.answer_type = selected.val()
-            });
-        },
     },
-    mounted: function() {
-        this.$nextTick(() => {
-            this.initHeaderAnswerTypeSelector();
-        });
-    }
 }
 </script>

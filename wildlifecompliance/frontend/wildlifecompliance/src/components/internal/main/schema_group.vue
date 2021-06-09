@@ -227,7 +227,7 @@ export default {
                 id: '',
                 group_name: '',
                 group_label: '',
-                section: '',
+                section: 'All',
             }
         }
 

@@ -29,6 +29,7 @@ from wildlifecompliance.components.call_email.models import Location
 from wildlifecompliance.components.call_email.serializers import (
     LocationSerializer
 )
+from wildlifecompliance.components.licences.models import LicencePurpose
 from wildlifecompliance.components.licences.models import MasterlistQuestion
 from wildlifecompliance.components.licences.models import LicencePurposeSection
 from wildlifecompliance.components.licences.models import SectionGroup
@@ -37,17 +38,13 @@ from wildlifecompliance.components.main.serializers import (
     TemporaryDocumentCollectionSerializer,
     BookingSettlementReportSerializer, OracleSerializer,
     DTSchemaMasterlistSerializer,
-    DTSchemaMasterlistSelectSerializer,
     SchemaMasterlistSerializer,
     DTSchemaQuestionSerializer,
-    DTSchemaQuestionSelectSerializer,
     SchemaQuestionSerializer,
     SchemaPurposeSerializer,
     DTSchemaPurposeSerializer,
-    DTSchemaPurposeSelectSerializer,
     SchemaGroupSerializer,
     DTSchemaGroupSerializer,
-    DTSchemaGroupSelectSerializer,
 )
 from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection
@@ -193,12 +190,60 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            instance = MasterlistQuestion.objects.last()
-            serializer = DTSchemaMasterlistSelectSerializer(
-                instance, context={'is_internal': is_internal(request)}
+            excl_choices = [
+                # None
+            ]
+
+            answer_types = [
+                {
+                    'value': a[0], 'label': a[1]
+                } for a in MasterlistQuestion.ANSWER_TYPE_CHOICES
+                if a[0] not in excl_choices
+            ]
+
+            return Response(
+                {
+                    'all_answer_types': answer_types,
+                },
+                status=status.HTTP_200_OK
             )
 
-            return Response(serializer.data)
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('get_masterlist_selects()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET', ])
+    def get_masterlist_options(self, request, *args, **kwargs):
+        '''
+        Get associated QuestionOption for Schema Masterlist type.
+        '''
+        try:
+
+            masterlist_id = request.query_params.get('masterlist_id', 0)
+            masterlist = MasterlistQuestion.objects.filter(
+                licence_purpose_id=int(masterlist_id)
+            )[0]
+
+            option_list = masterlist.get_property_cache_options()
+            options = [
+                {'label': o.label, 'value': ''} for o in option_list
+            ]
+
+            return Response(
+                {'masterlist_options': options},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('get_masterlist_selects()', ve)
@@ -256,6 +301,13 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
 
             with transaction.atomic():
+
+                options = request.data.get('options', None)
+                option_labels = [o['label'] for o in options]
+                instance.set_property_cache_options(option_labels)
+
+                headers = request.data.get('headers', None)
+                instance.set_property_cache_headers(headers)
 
                 serializer = SchemaMasterlistSerializer(
                     instance, data=request.data
@@ -376,12 +428,18 @@ class SchemaPurposeViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            instance = LicencePurposeSection.objects.last()
-            serializer = DTSchemaPurposeSelectSerializer(
-                instance, context={'is_internal': is_internal(request)}
-            )
+            sections = LicencePurpose.objects.all()
+            purposes = [
+                {
+                    'label': s.name,
+                    'value': s.id,
+                } for s in sections
+            ]
 
-            return Response(serializer.data)
+            return Response(
+                {'all_purpose': purposes},
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('get_purpose_selects()', ve)
@@ -581,15 +639,27 @@ class SchemaGroupViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            instance = SectionGroup.objects.last()
-            serializer = DTSchemaGroupSelectSerializer(
-                instance, context={'is_internal': is_internal(request)}
+            purpose_sections = LicencePurposeSection.objects.all()
+            purposes = [
+                {
+                    'label': s.licence_purpose.name,
+                    'value': s.licence_purpose.id,
+                } for s in purpose_sections
+            ]
+
+            sections = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in purpose_sections
+            ]
+
+            return Response(
+                {'all_purpose': purposes, 'all_section': sections},
+                status=status.HTTP_200_OK
             )
 
-            return Response(serializer.data)
-
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('get_question_selects()', ve)
+            log = '{0} {1}'.format('get_group_selects()', ve)
             logger.exception(log)
             raise
 
@@ -822,18 +892,24 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         Get all Parent Question associated with Schema Questions in Section.
         '''
         try:
-            section_id = request.data.get('section_id', 0)
+            section_id = request.query_params.get('section_id', 0)
             questions = SectionQuestion.objects.filter(
                 section_id=int(section_id)
             )
             parents = [
                 {
-                    'label': q.question, 'value': q.id
+                    'label': q.question.question, 'value': q.question.id
                 } for q in questions
             ]
 
-            groups = [
+            section_groups = SectionGroup.objects.filter(
+                section_id=int(section_id)
+            )
 
+            groups = [
+                {
+                    'label': g.group_label, 'value': g.id
+                } for g in section_groups
             ]
 
             return Response(
@@ -842,7 +918,7 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             )
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('get_question_sections()', ve)
+            log = '{0} {1}'.format('get_question_parents()', ve)
             logger.exception(log)
             raise
 
@@ -872,8 +948,21 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
                 } for s in sections
             ]
 
+            section_groups = SectionGroup.objects.filter(
+                section__licence_purpose=int(purpose_id)
+            )
+
+            groups = [
+                {
+                    'label': g.group_label, 'value': g.id
+                } for g in section_groups
+            ]
+
             return Response(
-                {'question_sections': names},
+                {
+                    'question_sections': names,
+                    'question_groups': groups,
+                },
                 status=status.HTTP_200_OK
             )
 
@@ -898,19 +987,19 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         Get order number for Schema Question using Schema Group.
         '''
         try:
-            group_id = request.query_params.get('group_id', 1)
-            # sections = LicencePurposeSection.objects.filter(
-            #     licence_purpose_id=int(group_id)
-            # )
-            order = group_id
+            group_id = request.query_params.get('group_id', 0)
+            questions = SectionQuestion.objects.filter(
+                section_group=int(group_id)
+            )
+            next_order = questions.__len__ if questions else 0
 
             return Response(
-                {'question_order': order},
+                {'question_order': str(next_order)},
                 status=status.HTTP_200_OK
             )
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('get_question_sections()', ve)
+            log = '{0} {1}'.format('get_question_order()', ve)
             logger.exception(log)
             raise
 
@@ -931,12 +1020,32 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            instance = SectionQuestion.objects.last()
-            serializer = DTSchemaQuestionSelectSerializer(
-                instance, context={'is_internal': is_internal(request)}
-            )
+            qs = MasterlistQuestion.objects.all()
+            masterlist = SchemaMasterlistSerializer(qs, many=True).data
 
-            return Response(serializer.data)
+            qs = LicencePurposeSection.objects.all()
+            purposes = [
+                {
+                    'label': s.licence_purpose.name,
+                    'value': s.licence_purpose.id
+                } for s in qs
+            ]
+
+            qs = LicencePurposeSection.objects.all()
+            sections = [
+                {
+                    'label': s.section_label, 'value': s.id
+                } for s in qs
+            ]
+
+            return Response(
+                {
+                    'all_masterlist': masterlist,
+                    'all_purpose': purposes,
+                    'all_section': sections,
+                },
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as ve:
             log = '{0} {1}'.format('get_question_selects()', ve)
@@ -991,14 +1100,22 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         Save Section Question record.
         '''
         try:
+            instance = self.get_object()
+
             with transaction.atomic():
 
-                serializer = SchemaQuestionSerializer(data=request.data)
+                # process options.
+                options = request.data.get('options', None)
+                instance.set_property_cache_options(options)
+
+                serializer = SchemaQuestionSerializer(
+                    instance, data=request.data
+                )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
             return Response(
-                {'question_id': serializer.data.id},
+                {'question_id': instance.id},
                 status=status.HTTP_200_OK
             )
 
