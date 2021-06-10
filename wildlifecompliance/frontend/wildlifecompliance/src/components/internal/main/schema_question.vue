@@ -383,6 +383,9 @@ export default {
             this.$refs.schema_question_table.vmDataTable.draw();
         },
         filterQuestionPurpose: function(){
+            if (this.filterQuestionPurpose==='All') {
+                return true
+            }
             this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_sections'),{
                 params: { licence_purpose_id: this.filterQuestionPurpose },
             }).then((res)=>{
@@ -392,6 +395,9 @@ export default {
             });
         },
         filterQuestionSection: function(){
+            if (this.filterQuestionSection==='All') {
+                return true
+            }
             this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_parents'),{
                 params: { section_id: this.filterQuestionSection },
             }).then((res)=>{
@@ -537,7 +543,6 @@ export default {
             this.sectionQuestion.id = '';
             this.sectionQuestion.section = '';
             this.sectionQuestion.question = '';
-            // this.sectionQuestion.question_id = null;
             this.sectionQuestion.section_group = '';
 
             this.filterQuestionSection = 'All';
@@ -550,6 +555,7 @@ export default {
 
             self.$refs.schema_question_table.vmDataTable.on('click','.edit-row', function(e) {
                 e.preventDefault();
+                self.isNewEntry = false;
                 self.$refs.schema_question_table.row_of_data = self.$refs.schema_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
 
                 self.sectionQuestion.id = self.$refs.schema_question_table.row_of_data.data().id;
@@ -559,7 +565,7 @@ export default {
                 // self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
                 self.sectionQuestion.question = self.$refs.schema_question_table.row_of_data.data().question_id;
 
-                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group;
+                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group.id;
                 // self.filterQuestionGroup = self.sectionQuestion.section_group
                 // $(self.$refs.select_group).val(self.sectionQuestion.section_group).trigger('change');
 
@@ -580,10 +586,10 @@ export default {
                     return
                 })
 
-                self.addedOptions = self.$refs.schema_question_table.row_of_data.data().options;
+                self.addedOptions = Object.assign(self.$refs.schema_question_table.row_of_data.data().options);
                 $(self.$refs.select_question).val(self.sectionQuestion.question).trigger('change');
                 self.setShowOptions(self.sectionQuestion.question)
-                self.isNewEntry = false;
+
                 self.isModalOpen = true;
             });
 
