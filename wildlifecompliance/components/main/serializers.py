@@ -276,10 +276,22 @@ class SchemaGroupSerializer(serializers.ModelSerializer):
     Serializer for Schema builder using Sections Groups.
     '''
     group_name = serializers.CharField(allow_blank=True, required=False)
+    repeatable = serializers.SerializerMethodField()
 
     class Meta:
         model = SectionGroup
         fields = '__all__'
+
+    def get_repeatable(self, obj):
+        try:
+            repeatable = self.initial_data.get('repeatable', None)
+            obj.set_property_cache_repeatable(repeatable)
+            obj.save()
+
+        except Exception:
+            repeatable = obj.repeatable
+
+        return repeatable
 
 
 class DTSchemaGroupSerializer(SchemaGroupSerializer):
@@ -296,6 +308,7 @@ class DTSchemaGroupSerializer(SchemaGroupSerializer):
             'licence_purpose',
             'group_label',
             'section',
+            'repeatable',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use

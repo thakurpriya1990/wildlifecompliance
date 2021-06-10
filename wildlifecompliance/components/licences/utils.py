@@ -904,7 +904,12 @@ class LicenceSchemaUtility(LicenceUtility):
                             sq, sq.question, sq_name)
 
                         sc['children'] = sq_group_children
-                        sc['type'] = 'group'
+                        sc['type'] = sq.section_group.TYPE_GROUP2
+                        sc['label'] = '',
+
+                        if sq.section_group.repeatable:
+                            sq.tag = ['isRepeatable']
+
                         groupings.append(sq.section_group)
 
                     elif sq.question.answer_type in special_types:

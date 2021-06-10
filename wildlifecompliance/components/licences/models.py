@@ -1991,6 +1991,7 @@ class SectionGroup(models.Model):
         related_name='section_groups',
         on_delete=models.PROTECT
     )
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1998,6 +1999,43 @@ class SectionGroup(models.Model):
 
     def __str__(self):
         return str(self.id)
+
+    @property
+    def repeatable(self) -> bool:
+        '''
+        Property to indicate the Group is repeatable.
+        '''
+        return self.get_property_cache_repeatable()
+
+    def get_property_cache_repeatable(self) -> bool:
+        '''
+        Getter for Repeatable on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        '''
+        repeatable = False
+        try:
+
+            repeatable = True if self.property_cache[
+                'repeatable'] == 'True' else False
+
+        except KeyError:
+            pass
+
+        return repeatable
+
+    def set_property_cache_repeatable(self, repeatable):
+        '''
+        Setter for repeatable on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param boolean: repeatable.
+        '''
+        if self.id:
+            data = 'True' if repeatable else 'False'
+            self.property_cache['repeatable'] = data
 
 
 class SectionQuestion(models.Model):

@@ -101,6 +101,12 @@
                             <input type="text" class="form-control" v-model="sectionGroup.group_label"/>
                         </div>
                     </div>
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedRepeatable('isRepeatable').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRepeatable</label></input>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
@@ -228,13 +234,31 @@ export default {
                 group_name: '',
                 group_label: '',
                 section: 'All',
-            }
+                repeatable: false,
+            },
+            checkedRepeatable: [{
+                id: null,
+                isChecked: false,
+            }],
         }
 
     },
     computed: {
     },
     methods: {
+        getCheckedRepeatable: function(anID, set_checked=false){
+            let checked = this.checkedRepeatable.find(r => {return r.id==anID})
+            if (!checked) {
+                checked = {
+                    id: anID,
+                    isChecked: set_checked,
+                }
+                if (['isRepeatable',].includes(anID)){
+                    this.checkedRepeatable.push(checked)
+                }
+            }
+            return checked;
+        },
         delay(callback, ms) {
             var timer = 0;
             return function () {
@@ -256,6 +280,17 @@ export default {
         saveGroup: async function() {
             const self = this;
             const data = self.sectionGroup;
+
+            data.repeatable = false;
+            if (self.checkedRepeatable.length>0){
+                self.checkedRepeatable.filter( r => {
+                    if (r.isChecked) {
+                        data.repeatable = true;
+                    }
+                    return
+                })
+            }
+
             if (data.id === '') {
 
                 await self.$http.post(api_endpoints.schema_group, JSON.stringify(data),{
@@ -300,7 +335,15 @@ export default {
             self.isModalOpen = false;
         },
         addTableEntry: function() {
-            self.licence_purpose = '';
+            this.licence_purpose = '';
+
+            this.sectionGroup.id = '';
+            this.sectionGroup.group_name = '';
+            this.sectionGroup.group_label = '';
+            this.sectionGroup.section = 'All';
+            this.sectionGroup.repeatable = false;
+            this.checkedRepeatable = [];
+
             this.isModalOpen = true;
         },
         initEventListeners: function(){
@@ -314,6 +357,10 @@ export default {
                 self.sectionGroup.section = self.$refs.schema_group_table.row_of_data.data().section.id;
                 self.sectionGroup.group_label = self.$refs.schema_group_table.row_of_data.data().group_label;
                 self.filterGroupSection = self.$refs.schema_group_table.row_of_data.data().licence_purpose.id;
+
+                self.sectionGroup.repeatable = self.$refs.schema_group_table.row_of_data.data().repeatable
+                self.checkedRepeatable = []
+                self.getCheckedRepeatable('isRepeatable', self.sectionGroup.repeatable);
 
                 self.isModalOpen = true;
             });
