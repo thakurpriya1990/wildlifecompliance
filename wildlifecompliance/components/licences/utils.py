@@ -136,87 +136,87 @@ class LicenceSchemaUtility(LicenceUtility):
 
     #     return conditions
 
-    def get_checkbox_option_children(
-        self, section_question, question, section, parent_name=''
-    ):
-        conditions = {}
-        options = question.option.all().order_by(
-            '-wildlifecompliance_masterlistquestion_option.id')
-        options_list = []
-        special_types = ['checkbox', ]
-        group_types = ['checkbox', 'radiobuttons', 'multi-select']
-        option_count = 0
-        for op in options:
-            op_name = '{}-{}'.format(parent_name, option_count)
-            op_dict = {
-                    'name': op_name,
-                    'label': op.label,
-                    'type': 'checkbox',
-                    'group': parent_name
-            }
-            condition_questions = SectionQuestion.objects.filter(
-                section=section,
-                parent_question=question,
-                parent_answer=op
-            ).order_by('order')
-            if condition_questions:
-                option_section = []
-                option_children = []
-                condition_question_count = 1
-                for q in condition_questions:
+    # def get_checkbox_option_children(
+    #     self, section_question, question, section, parent_name=''
+    # ):
+    #     conditions = {}
+    #     options = question.option.all().order_by(
+    #         '-wildlifecompliance_masterlistquestion_option.id')
+    #     options_list = []
+    #     special_types = ['checkbox', ]
+    #     group_types = ['checkbox', 'radiobuttons', 'multi-select']
+    #     option_count = 0
+    #     for op in options:
+    #         op_name = '{}-{}'.format(parent_name, option_count)
+    #         op_dict = {
+    #                 'name': op_name,
+    #                 'label': op.label,
+    #                 'type': 'checkbox',
+    #                 'group': parent_name
+    #         }
+    #         condition_questions = SectionQuestion.objects.filter(
+    #             section=section,
+    #             parent_question=question,
+    #             parent_answer=op
+    #         ).order_by('order')
+    #         if condition_questions:
+    #             option_section = []
+    #             option_children = []
+    #             condition_question_count = 1
+    #             for q in condition_questions:
 
-                    question_name = '{}-On-{}'.format(
-                        op_name, condition_question_count)
-                    child = {
-                        'name': question_name,
-                        'type': q.question.answer_type,
-                        'label': q.question.question,
-                    }
-                    if q.question.answer_type in special_types:
-                        qo_children = self.get_checkbox_option_children(
-                            q, q.question, section, question_name
-                        )
-                        child['children'] = qo_children
-                        child['type'] = 'group'
-                    else:
-                        if q.question.option.count() > 0:
-                            q_options = self.get_options2(q, q.question)
-                            child['options'] = q_options
+    #                 question_name = '{}-On-{}'.format(
+    #                     op_name, condition_question_count)
+    #                 child = {
+    #                     'name': question_name,
+    #                     'type': q.question.answer_type,
+    #                     'label': q.question.question,
+    #                 }
+    #                 if q.question.answer_type in special_types:
+    #                     qo_children = self.get_checkbox_option_children(
+    #                         q, q.question, section, question_name
+    #                     )
+    #                     child['children'] = qo_children
+    #                     child['type'] = 'group'
+    #                 else:
+    #                     if q.question.option.count() > 0:
+    #                         q_options = self.get_options2(q, q.question)
+    #                         child['options'] = q_options
 
-                        if q.question.children_question.exists():
-                            q_conditions = self.get_condition_children2(
-                                q.question, section, question_name
-                            )
-                            child['conditions'] = q_conditions
+    #                     if q.question.children_questions.exists():
+    #                         q_conditions = self.get_condition_children2(
+    #                             q.question, section, question_name
+    #                         )
+    #                         child['conditions'] = q_conditions
 
-                    if q.tag:
-                        for t in q.tag:
-                            if t == 'isRequired':
-                                if q.question.answer_type not in group_types:
-                                    child[t] = 'true'
-                            else:
-                                child[t] = 'true'
+    #                 if q.tag:
+    #                     for t in q.tag:
+    #                         if t == 'isRequired':
+    #                             if q.question.answer_type not in group_types:
+    #                                 child[t] = 'true'
+    #                         else:
+    #                             child[t] = 'true'
 
-                    option_children.append(child)
-                    condition_question_count += 1
-                section_group_name = op_name+'-OnGroup'
-                option_section_dict = {
-                    'name': section_group_name,
-                    'type': 'group',
-                    'label': '',
-                    'children': option_children
-                }
-                option_section.append(option_section_dict)
-                conditions['on'] = option_section
-                op_dict['conditions'] = conditions
-            options_list.append(op_dict)
-            option_count += 1
+    #                 option_children.append(child)
+    #                 condition_question_count += 1
+    #             section_group_name = op_name+'-OnGroup'
+    #             option_section_dict = {
+    #                 'name': section_group_name,
+    #                 'type': 'group',
+    #                 'label': '',
+    #                 'children': option_children
+    #             }
+    #             option_section.append(option_section_dict)
+    #             conditions['on'] = option_section
+    #             op_dict['conditions'] = conditions
+    #         options_list.append(op_dict)
+    #         option_count += 1
 
-        if 'isRequired' in section_question.get_tag_list():
-            if options_list:
-                options_list[0]['isRequired'] = 'true'
+    #     if 'isRequired' in section_question.get_tag_list():
+    #         if options_list:
+    #             options_list[0]['isRequired'] = 'true'
 
-        return options_list
+    #     return options_list
 
     def get_checkbox_option_children2(
         self, section_question, question, section, parent_name=''
@@ -294,7 +294,7 @@ class LicenceSchemaUtility(LicenceUtility):
                             q_options = self.get_options2(q, q.question)
                             child['options'] = q_options
 
-                        if q.question.children_question.exists():
+                        if q.question.children_questions.exists():
                             q_conditions = self.get_condition_children2(
                                 q.question, section, question_name
                             )
@@ -329,84 +329,84 @@ class LicenceSchemaUtility(LicenceUtility):
 
         return options_list
 
-    def get_condition_children(self, question, section, parent_name=''):
-        conditions = {}
-        options = question.option.all().order_by(
-            '-wildlifecompliance_masterlistquestion_option.id'
-        )
-        special_types = ['checkbox', ]
-        group_types = ['checkbox', 'radiobuttons', 'multi-select']
-        option_count = 0
+    # def get_condition_children(self, question, section, parent_name=''):
+    #     conditions = {}
+    #     options = question.option.all().order_by(
+    #         '-wildlifecompliance_masterlistquestion_option.id'
+    #     )
+    #     special_types = ['checkbox', ]
+    #     group_types = ['checkbox', 'radiobuttons', 'multi-select']
+    #     option_count = 0
 
-        for op in options:
-            condition_questions = SectionQuestion.objects.filter(
-                section=section, parent_question=question, parent_answer=op
-            ).order_by('order')
-            if condition_questions:
-                option_section = []
-                option_children = []
-                condition_question_count = 1
+    #     for op in options:
+    #         condition_questions = SectionQuestion.objects.filter(
+    #             section=section, parent_question=question, parent_answer=op
+    #         ).order_by('order')
+    #         if condition_questions:
+    #             option_section = []
+    #             option_children = []
+    #             condition_question_count = 1
 
-                for q in condition_questions:
-                    question_name = '{}-{}{}'.format(
-                        parent_name, op.label.replace(" ", ""),
-                        condition_question_count
-                    )
+    #             for q in condition_questions:
+    #                 question_name = '{}-{}{}'.format(
+    #                     parent_name, op.label.replace(" ", ""),
+    #                     condition_question_count
+    #                 )
 
-                    child = {
-                        'name': question_name,
-                        'type': q.question.answer_type,
-                        'label': q.question.question,
-                    }
-                    if q.question.answer_type in special_types:
-                        q_option_children = self.get_checkbox_option_children(
-                            q, q.question, section, question_name
-                        )
-                        child['children'] = q_option_children
-                        child['type'] = 'group'
+    #                 child = {
+    #                     'name': question_name,
+    #                     'type': q.question.answer_type,
+    #                     'label': q.question.question,
+    #                 }
+    #                 if q.question.answer_type in special_types:
+    #                     q_option_children = self.get_checkbox_option_children(
+    #                         q, q.question, section, question_name
+    #                     )
+    #                     child['children'] = q_option_children
+    #                     child['type'] = 'group'
 
-                    else:
-                        if q.question.option.count() > 0:
-                            q_options = self.get_options2(q, q.question)
-                            child['options'] = q_options
+    #                 else:
+    #                     if q.question.option.count() > 0:
+    #                         q_options = self.get_options2(q, q.question)
+    #                         child['options'] = q_options
 
-                        if q.question.children_questions.exists():
+    #                     if q.question.children_questions.exists():
 
-                            q_conditions = self.get_condition_children2(
-                                q.question, section, question_name
-                            )
-                            child['conditions'] = q_conditions
+    #                         q_conditions = self.get_condition_children2(
+    #                             q.question, section, question_name
+    #                         )
+    #                         child['conditions'] = q_conditions
 
-                    if q.tag:
-                        for t in q.tag:
-                            if t == 'isRequired':
-                                if q.question.answer_type not in group_types:
-                                    child[t] = 'true'
-                            else:
-                                child[t] = 'true'
+    #                 if q.tag:
+    #                     for t in q.tag:
+    #                         if t == 'isRequired':
+    #                             if q.question.answer_type not in group_types:
+    #                                 child[t] = 'true'
+    #                         else:
+    #                             child[t] = 'true'
 
-                    # if q.question.help_text_url:
-                    #     child['help_text_url']='{0}/anchor={1}'.format(
-                    # help_site_url, question_name)
+    #                 # if q.question.help_text_url:
+    #                 #     child['help_text_url']='{0}/anchor={1}'.format(
+    #                 # help_site_url, question_name)
 
-                    # create_richtext_help(q.question, question_name)
-                    option_children.append(child)
-                    condition_question_count += 1
-                # section_group_name=parent_name+'-'+op.label+'Group'
-                # section_group_name = parent_name + '-' + op.label.replace(
-                #     " ", ""
-                # ) + 'Group'
-                # option_section_dict = {
-                #     'name': section_group_name,
-                #     'type': 'group',
-                #     'label': '',
-                #     'children': option_children
-                # }
-                # option_section.append(option_section_dict)
-                option_section.append(option_children[0])
-                conditions[op.label.replace(" ", "").lower()] = option_section
-                option_count += 1
-        return conditions
+    #                 # create_richtext_help(q.question, question_name)
+    #                 option_children.append(child)
+    #                 condition_question_count += 1
+    #             # section_group_name=parent_name+'-'+op.label+'Group'
+    #             # section_group_name = parent_name + '-' + op.label.replace(
+    #             #     " ", ""
+    #             # ) + 'Group'
+    #             # option_section_dict = {
+    #             #     'name': section_group_name,
+    #             #     'type': 'group',
+    #             #     'label': '',
+    #             #     'children': option_children
+    #             # }
+    #             # option_section.append(option_section_dict)
+    #             option_section.append(option_children[0])
+    #             conditions[op.label.replace(" ", "").lower()] = option_section
+    #             option_count += 1
+    #     return conditions
 
     def get_condition_children2(self, question, section, parent_name=''):
         conditions = {}
@@ -918,7 +918,7 @@ class LicenceSchemaUtility(LicenceUtility):
                             sq, sq.question, section, sq_name)
 
                         sc['children'] = sq_option_children
-                        sc['type'] = 'checkbox'
+                        sc['type'] = 'group'
 
                     else:
 

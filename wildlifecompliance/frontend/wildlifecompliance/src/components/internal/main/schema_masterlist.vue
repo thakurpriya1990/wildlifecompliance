@@ -240,7 +240,7 @@ export default {
         },
         setShowAdditional: function(selected_id) {
             const table = ['expander_table']
-            const option = ['radiobuttons', 'checkbox']
+            const option = ['radiobuttons', 'checkbox', 'select', 'multi-select']
             const q_type = this.answerTypes.find( t => t.value === selected_id && (table.includes(t.value) || option.includes(t.value)))
 
             this.showOptions = q_type && option.includes(q_type.value) ? true : false

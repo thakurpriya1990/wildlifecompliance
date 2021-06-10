@@ -306,7 +306,7 @@ export default {
                         width: "80%",
                         searchable: false,
                         mRender:function (data,type,full) {
-                            return data ? data.substring(0, 100) : ''
+                            return data ? data.substring(0, 40) + '...[MORE]' : ''
                         }
                     },
                     { 
@@ -565,7 +565,7 @@ export default {
                 // self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
                 self.sectionQuestion.question = self.$refs.schema_question_table.row_of_data.data().question_id;
 
-                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group.id;
+                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group ? self.$refs.schema_question_table.row_of_data.data().section_group.id : null;
                 // self.filterQuestionGroup = self.sectionQuestion.section_group
                 // $(self.$refs.select_group).val(self.sectionQuestion.section_group).trigger('change');
 
