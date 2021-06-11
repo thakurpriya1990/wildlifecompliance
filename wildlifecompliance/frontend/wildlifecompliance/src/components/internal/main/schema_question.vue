@@ -306,8 +306,31 @@ export default {
                         width: "80%",
                         searchable: false,
                         mRender:function (data,type,full) {
-                            return data ? data.substring(0, 40) + '...[MORE]' : ''
-                        }
+                            var ellipsis = '...',
+                                truncated = _.truncate(data, {
+                                    length: 40,
+                                    omission: ellipsis,
+                                    separator: ' '
+                                }),
+                                result = '<span>' + truncated + '</span>',
+                                popTemplate = _.template('<a href="#" ' +
+                                    'role="button" ' +
+                                    'data-toggle="popover" ' +
+                                    'data-trigger="click" ' +
+                                    'data-placement="top auto"' +
+                                    'data-html="true" ' +
+                                    'data-content="<%= text %>" ' +
+                                    '>more</a>');
+                            if (_.endsWith(truncated, ellipsis)) {
+                                result += popTemplate({
+                                    text: data
+                                });
+                            }
+
+                            return result
+                            // return data ? data.substring(0, 40) + '...[MORE]' : ''
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
                     },
                     { 
                         data: "order",

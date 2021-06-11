@@ -162,8 +162,30 @@ export default {
                         data: "question",
                         width: "80%",
                         mRender:function (data,type,full) {
-                            return data ? data.substring(0, 100) : ''
-                        }
+                            var ellipsis = '...',
+                                truncated = _.truncate(data, {
+                                    length: 100,
+                                    omission: ellipsis,
+                                    separator: ' '
+                                }),
+                                result = '<span>' + truncated + '</span>',
+                                popTemplate = _.template('<a href="#" ' +
+                                    'role="button" ' +
+                                    'data-toggle="popover" ' +
+                                    'data-trigger="click" ' +
+                                    'data-placement="top auto"' +
+                                    'data-html="true" ' +
+                                    'data-content="<%= text %>" ' +
+                                    '>more</a>');
+                            if (_.endsWith(truncated, ellipsis)) {
+                                result += popTemplate({
+                                    text: data
+                                });
+                            }
+
+                            return result
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
                     },
                     { 
                         data: "answer_type",
