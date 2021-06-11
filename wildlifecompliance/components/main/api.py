@@ -896,8 +896,10 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         '''
         try:
             section_id = request.query_params.get('section_id', 0)
+            opt_list = MasterlistQuestion.ANSWER_TYPE_OPTIONS
             questions = SectionQuestion.objects.filter(
-                section_id=int(section_id)
+                section_id=int(section_id),
+                question__answer_type__in=opt_list,
             )
             parents = [
                 {

@@ -609,6 +609,7 @@ class LicenceSchemaUtility(LicenceUtility):
         special_types = ['checkbox', ]
         group_types = ['checkbox', 'radiobuttons', 'multi-select']
         expander_types = ['expander_table']
+        select_types = ['select', 'multi-select']
         section_count = 0
 
         group_questions = SectionQuestion.objects.filter(
@@ -673,6 +674,26 @@ class LicenceSchemaUtility(LicenceUtility):
 
                 if q_expander_children:
                     child['expander'] = q_expander_children
+
+            elif q.question.answer_type in select_types:
+                '''
+                NOTE: Select type option are defaulted from Masterlist
+                not from the SectionQuestion. Conditions are NOT added.
+                '''
+                if len(q.question.get_options()) > 0:
+                    opts = [
+                        {
+                            'label': o.label,
+                            'value': o.label.replace(" ", "").upper(),
+                            'conditions': ''
+                        } for o in q.question.get_options()
+                    ]
+                    q.set_property_cache_options(opts)
+                    sq_options = self.get_options2(
+                        q, q.question
+                    )
+
+                    child['options'] = sq_options
 
             else:
                 if len(q.question.get_options()) > 0:
@@ -896,6 +917,7 @@ class LicenceSchemaUtility(LicenceUtility):
         section_count = 0
         schema = []
         special_types = ['checkbox', ]
+        select_types = ['select', 'multi-select']
 
         # 'isRequired' tag for following types is added to first option dict
         # instead of question.
@@ -952,6 +974,27 @@ class LicenceSchemaUtility(LicenceUtility):
 
                         sc['children'] = sq_option_children
                         sc['type'] = 'group'
+
+                    elif sq.question.answer_type in select_types:
+                        '''
+                        NOTE: Select type option are defaulted from Masterlist
+                        not from the SectionQuestion. Conditions are NOT added.
+                        '''
+                        if len(sq.question.get_options()) > 0:
+                            opts = [
+                                {
+                                    'label': o.label,
+                                    'value': o.label.replace(" ", "").upper(),
+                                    'conditions': ''
+                                } for o in sq.question.get_options()
+                            ]
+                            sq.set_property_cache_options(opts)
+                            sq_options = self.get_options2(
+                                sq, sq.question
+                            )
+
+                            sc['options'] = sq_options
+                            sc['type'] = sq.question.answer_type
 
                     else:
 
