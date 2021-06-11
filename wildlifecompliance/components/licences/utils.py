@@ -272,7 +272,7 @@ class LicenceSchemaUtility(LicenceUtility):
                     if q.section_group and q.section_group not in option_groupings:
 
                         q_group_children = self.get_group_children2(
-                            q, q.question, question_name)
+                            q, section, question_name)
 
                         if q.section_group.repeatable:
                             option_repeatable = ['isRepeatable']
@@ -956,7 +956,7 @@ class LicenceSchemaUtility(LicenceUtility):
                     if sq.section_group and sq.section_group not in groupings:
 
                         sq_group_children = self.get_group_children2(
-                            sq, sq.question, sq_name)
+                            sq, section, sq_name)
 
                         sc['children'] = sq_group_children
                         sc['type'] = sq.section_group.TYPE_GROUP2
@@ -1016,12 +1016,13 @@ class LicenceSchemaUtility(LicenceUtility):
 
                             sc['options'] = sq_options
 
-                    # if sq.question.children_questions.exists():
-                    #     sq_children = self.get_condition_children2(
-                    #         sq.question, section, sq_name
-                    #     )
-                    #     if sq_children:
-                    #         sc['conditions'] = sq_children
+                    if sq.question.children_questions.exists() \
+                            and sc['type'] != 'group':
+                        sq_children = self.get_condition_children2(
+                            sq.question, section, sq_name
+                        )
+                        if sq_children:
+                            sc['conditions'] = sq_children
 
                     if sq.tag:
                         for t in sq.tag:
