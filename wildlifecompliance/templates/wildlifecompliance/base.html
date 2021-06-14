@@ -130,6 +130,7 @@
                                                 {% endif %}
                                                 {% if is_wildlifecompliance_admin_login %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
+                                                    <li><a href="/internal/schema">Manage Licence Schema</a></li>
                                                     {% if request.user.is_superuser %}
                                                         <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
                                                     {% endif %}

@@ -74,5 +74,13 @@ module.exports = {
         return `https://api.mapbox.com/geocoding/v5/mapbox.places?access_token=${token}`;
     }
     */
+    schema_masterlist:"/api/schema_masterlist/",
+    schema_masterlist_paginated:"/api/schema_masterlist_paginated/",
+    schema_purpose:"/api/schema_purpose/",
+    schema_purpose_paginated:"/api/schema_purpose_paginated/",
+    schema_group:"/api/schema_group/",
+    schema_group_paginated:"/api/schema_group_paginated/",
+    schema_question:"/api/schema_question/",
+    schema_question_paginated:"/api/schema_question_paginated/",
 }
 

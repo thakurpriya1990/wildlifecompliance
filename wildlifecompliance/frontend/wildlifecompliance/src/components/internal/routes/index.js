@@ -24,6 +24,7 @@ import OffenceDashTable from '../offence/offence_dashboard.vue'
 import Offence from '../offence/offence.vue'
 import DashboardSwitcher from '../dashboard_switcher.vue'
 import Reports from '@/components/reports/reports.vue'
+import SchemaManager from '../main/schema_manager.vue'
 
 export default
 {
@@ -282,6 +283,11 @@ export default
                 },
  
             ]
+        },
+        {
+            path: 'schema',
+            component: SchemaManager,
+            name:"schema-manager"
         },
         /*{
             path: 'application',
