@@ -441,7 +441,7 @@ class SchemaPurposeViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            sections = LicencePurpose.objects.filter().exclude(sections=None)
+            sections = LicencePurpose.objects.all()
             purposes = [
                 {
                     'label': s.name,
