@@ -644,6 +644,11 @@ class LicenceSchemaUtility(LicenceUtility):
                 'type': q.question.answer_type,
                 'label': q.question.question,
             }
+
+            if q.parent_answer:
+                # Question already added as part of option groupings.
+                continue
+
             if q.question.answer_type in special_types:
 
                 child['type'] = q.question.answer_type
@@ -968,6 +973,10 @@ class LicenceSchemaUtility(LicenceUtility):
                         'type': sq.question.answer_type,
                         'label': sq.question.question,
                     }
+
+                    if sq.section_group and sq.section_group in groupings:
+                        # Question already added as part of groupings.
+                        continue
 
                     if sq.section_group and sq.section_group not in groupings:
 
