@@ -347,6 +347,7 @@ class SchemaPurposeFilterBackend(DatatablesFilterBackend):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
         search_text = request.GET.get('search[value]')
+        purpose = request.GET.get('licence_purpose_id')
 
         if queryset.model is LicencePurposeSection:
 
@@ -359,6 +360,15 @@ class SchemaPurposeFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(
                     id__in=search_text_purpose_ids
                 ).distinct()
+
+            purpose = purpose.lower() if purpose else 'all'
+            if purpose != 'all':
+                purpose_ids = LicencePurposeSection.objects.values(
+                    'id'
+                ).filter(
+                    licence_purpose_id=int(purpose)
+                )
+                queryset = queryset.filter(id__in=purpose_ids)
 
         total_count = queryset.count()
         # override queryset ordering, required because the ordering is usually
@@ -431,7 +441,7 @@ class SchemaPurposeViewSet(viewsets.ModelViewSet):
         '''
         try:
 
-            sections = LicencePurpose.objects.all()
+            sections = LicencePurpose.objects.filter().exclude(sections=None)
             purposes = [
                 {
                     'label': s.name,
@@ -568,9 +578,41 @@ class SchemaGroupFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
-        super_queryset = super(
-            SchemaGroupFilterBackend, self
-        ).filter_queryset(request, queryset, view).distinct()
+        search_text = request.GET.get('search[value]')
+        purpose = request.GET.get('licence_purpose_id')
+        section = request.GET.get('section_id')
+
+        if queryset.model is SectionGroup:
+
+            if search_text:
+                search_text = search_text.lower()
+                search_text_group_ids = SectionGroup.objects.values(
+                    'id'
+                ).filter(
+                    group_label__icontains=search_text
+                )
+
+                queryset = queryset.filter(
+                    id__in=search_text_group_ids
+                ).distinct()
+
+            purpose = purpose.lower() if purpose else 'all'
+            if purpose != 'all':
+                purpose_ids = SectionGroup.objects.values(
+                    'id'
+                ).filter(
+                    section__licence_purpose_id=int(purpose)
+                )
+                queryset = queryset.filter(id__in=purpose_ids)
+
+            section = section.lower() if section else 'all'
+            if section != 'all':
+                section_ids = SectionGroup.objects.values(
+                    'id'
+                ).filter(
+                    section_id=int(section)
+                )
+                queryset = queryset.filter(id__in=section_ids)
 
         total_count = queryset.count()
         # override queryset ordering, required because the ordering is usually
@@ -582,7 +624,7 @@ class SchemaGroupFilterBackend(DatatablesFilterBackend):
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
         if len(ordering):
-            queryset = super_queryset.order_by(*ordering)
+            queryset = queryset.order_by(*ordering)
 
         total_count = queryset.count()
 
@@ -643,17 +685,18 @@ class SchemaGroupViewSet(viewsets.ModelViewSet):
         try:
 
             purpose_sections = LicencePurposeSection.objects.all()
-            purposes = [
-                {
-                    'label': s.licence_purpose.name,
-                    'value': s.licence_purpose.id,
-                } for s in purpose_sections
-            ]
-
             sections = [
                 {
                     'label': s.section_label, 'value': s.id
                 } for s in purpose_sections
+            ]
+
+            qs = LicencePurpose.objects.filter().exclude(sections=None)
+            purposes = [
+                {
+                    'label': p.name,
+                    'value': p.id
+                } for p in qs
             ]
 
             return Response(
@@ -792,6 +835,7 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
         search_text = request.GET.get('search[value]')
         purpose = request.GET.get('licence_purpose_id')
         section = request.GET.get('section_id')
+        group = request.GET.get('group_id')
 
         if queryset.model is SectionQuestion:
 
@@ -824,6 +868,15 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
                     section_id=int(section)
                 )
                 queryset = queryset.filter(id__in=section_ids)
+
+            group = group.lower() if group else 'all'
+            if group != 'all':
+                group_ids = SectionQuestion.objects.values(
+                    'id'
+                ).filter(
+                    section_group_id=int(group)
+                )
+                queryset = queryset.filter(id__in=group_ids)
 
         total_count = queryset.count()
         # override queryset ordering, required because the ordering is usually
@@ -897,13 +950,18 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
         try:
             section_id = request.query_params.get('section_id', 0)
             opt_list = MasterlistQuestion.ANSWER_TYPE_OPTIONS
-            questions = SectionQuestion.objects.filter(
+            all_questions = SectionQuestion.objects.filter(
                 section_id=int(section_id),
-                question__answer_type__in=opt_list,
             )
+            questions = [
+                q for q in all_questions if q.question.answer_type in opt_list
+            ]
+
             parents = [
                 {
-                    'label': q.question.question, 'value': q.question.id
+                    'label': q.question.question,
+                    'value': q.question.id,
+                    'group': q.section_group_id,
                 } for q in questions
             ]
 
@@ -918,7 +976,10 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             ]
 
             return Response(
-                {'question_parents': parents, 'question_groups': groups},
+                {
+                    'question_parents': parents,
+                    'question_groups': groups,
+                },
                 status=status.HTTP_200_OK
             )
 
@@ -1028,12 +1089,12 @@ class SchemaQuestionViewSet(viewsets.ModelViewSet):
             qs = MasterlistQuestion.objects.all()
             masterlist = SchemaMasterlistSerializer(qs, many=True).data
 
-            qs = LicencePurposeSection.objects.all()
+            qs = LicencePurpose.objects.filter().exclude(sections=None)
             purposes = [
                 {
-                    'label': s.licence_purpose.name,
-                    'value': s.licence_purpose.id
-                } for s in qs
+                    'label': p.name,
+                    'value': p.id
+                } for p in qs
             ]
 
             qs = LicencePurposeSection.objects.all()

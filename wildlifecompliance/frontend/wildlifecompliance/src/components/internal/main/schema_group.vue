@@ -147,7 +147,7 @@ export default {
             this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_group,'1/get_group_sections'),{
                 params: { licence_purpose_id: this.filterGroupSection },
             }).then((res)=>{
-
+                this.schemaSections = res.body.group_sections;
             },err=>{
 
             });
@@ -175,7 +175,12 @@ export default {
                 autowidth: false,
                 processing: true,
                 ajax: {
-                    "url": vm.schema_group_url, 
+                    "url": vm.schema_group_url,
+                    "dataSrc": 'data',
+                    "data": function (d) {
+                        d.licence_purpose_id = vm.filterTablePurpose;
+                        d.section_id = vm.filterTableSection;
+                    }
                 },
                 columnDefs: [
                     { visible: false, targets: [ 0 ] } 
@@ -184,10 +189,12 @@ export default {
                     { 
                         data: "id",
                         width: "10%",
+                        searchable: false,
                     },
                     { 
                         data: "licence_purpose",
                         width: "20%",
+                        searchable: false,
                         mRender:function (data,type,full) {
                             return data.name;
                         }
@@ -195,6 +202,7 @@ export default {
                     { 
                         data: "section",
                         width: "20%",
+                        searchable: false,
                         mRender:function (data,type,full) {
                             return data.section_label;
                         }
@@ -202,10 +210,12 @@ export default {
                     { 
                         data: "group_label",
                         width: "60%",
+                        searchable: false,
                     },
                     { 
                         data: "id",
                         width: "10%",
+                        searchable: false,
                         mRender:function (data,type,full) {
                             var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
                             column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;

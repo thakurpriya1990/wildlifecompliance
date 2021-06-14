@@ -228,6 +228,7 @@ class LicenceSchemaUtility(LicenceUtility):
         special_types = ['checkbox', ]
         group_types = ['checkbox', 'radiobuttons', 'multi-select']
         expander_types = ['expander_table']
+        declaration = ['declaration']
         option_count = 0
 
         if len(question.get_options()) > 0:
@@ -283,6 +284,10 @@ class LicenceSchemaUtility(LicenceUtility):
                         option_label = q.section_group.group_label
 
                         option_groupings.append(q.section_group)
+
+                    elif q.question.answer_type in declaration:
+
+                        child['type'] = 'checkbox'
 
                     elif q.question.answer_type in special_types:
                         qo_children = self.get_checkbox_option_children2(
@@ -440,6 +445,7 @@ class LicenceSchemaUtility(LicenceUtility):
         options = []
         special_types = ['checkbox', ]
         group_types = ['checkbox', 'radiobuttons', 'multi-select']
+        declaration = ['declaration']
         option_count = 0
 
         if len(question.get_options()) > 0:
@@ -480,6 +486,10 @@ class LicenceSchemaUtility(LicenceUtility):
                         )
                         child['children'] = q_option_children
                         child['type'] = 'group'
+
+                    elif q.question.answer_type in declaration:
+
+                        child['type'] = 'checkbox'
 
                     else:
                         if len(q.question.get_options()) > 0:
@@ -609,6 +619,7 @@ class LicenceSchemaUtility(LicenceUtility):
         special_types = ['checkbox', ]
         group_types = ['checkbox', 'radiobuttons', 'multi-select']
         expander_types = ['expander_table']
+        declaration = ['declaration']
         select_types = ['select', 'multi-select']
         section_count = 0
 
@@ -659,6 +670,10 @@ class LicenceSchemaUtility(LicenceUtility):
                         for c in q.special_conditions.all():
                             child[c.label] = c.value
 
+            elif q.question.answer_type in declaration:
+
+                child['type'] = 'checkbox'
+
             elif q.question.answer_type in expander_types:
 
                 child['label'] = ''
@@ -684,7 +699,7 @@ class LicenceSchemaUtility(LicenceUtility):
                     opts = [
                         {
                             'label': o.label,
-                            'value': o.label.replace(" ", "").upper(),
+                            'value': o.label.replace(" ", "").lower(),
                             'conditions': ''
                         } for o in q.question.get_options()
                     ]
@@ -918,6 +933,7 @@ class LicenceSchemaUtility(LicenceUtility):
         schema = []
         special_types = ['checkbox', ]
         select_types = ['select', 'multi-select']
+        declaration = ['declaration']
 
         # 'isRequired' tag for following types is added to first option dict
         # instead of question.
@@ -957,15 +973,20 @@ class LicenceSchemaUtility(LicenceUtility):
 
                         sq_group_children = self.get_group_children2(
                             sq, section, sq_name)
+                        group_label = sq.section_group.group_label
 
                         sc['children'] = sq_group_children
                         sc['type'] = sq.section_group.TYPE_GROUP2
-                        sc['label'] = '',
+                        sc['label'] = group_label
 
                         if sq.section_group.repeatable:
                             sq.tag = ['isRepeatable']
 
                         groupings.append(sq.section_group)
+
+                    elif sq.question.answer_type in declaration:
+
+                        sc['type'] = 'checkbox'
 
                     elif sq.question.answer_type in special_types:
 
@@ -984,7 +1005,7 @@ class LicenceSchemaUtility(LicenceUtility):
                             opts = [
                                 {
                                     'label': o.label,
-                                    'value': o.label.replace(" ", "").upper(),
+                                    'value': o.label.replace(" ", "").lower(),
                                     'conditions': ''
                                 } for o in sq.question.get_options()
                             ]

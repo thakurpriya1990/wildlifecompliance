@@ -189,7 +189,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Order</label>
+                            <label class="control-label pull-left" >Index</label>
                         </div>
                         <div class="col-md-3">
                             <input type="text" class="form-control" v-model="sectionQuestion.order"/>
@@ -248,7 +248,7 @@ export default {
             filterQuestionSection: 'All',
             filterQuestionPurpose: 'All',
             filterTableGroup: 'All',
-            dtHeadersSchemaQuestion: ["ID", "SectionID", "OptionID", "Licence Purpose", "Section", "Group", "Question", "Order", "Action"],
+            dtHeadersSchemaQuestion: ["ID", "SectionID", "OptionID", "Licence Purpose", "Section", "Group", "Question", "Index", "Action"],
             dtOptionsSchemaQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -262,8 +262,9 @@ export default {
                     "url": vm.schema_question_url,
                     "dataSrc": 'data',
                     "data": function (d) {
-                        d.licence_purpose_id = vm.filterLicencePurpose;
-                        d.section_id = vm.filterSection;
+                        d.licence_purpose_id = vm.filterTablePurpose;
+                        d.section_id = vm.filterTableSection;
+                        d.group_id = vm.filterTableGroup;
                     }
                 },
                 columnDefs: [
@@ -284,7 +285,7 @@ export default {
                     },
                     { 
                         data: "licence_purpose",
-                        searchable: true,
+                        searchable: false,
                     },
                     { 
                         data: "section",
@@ -295,7 +296,7 @@ export default {
                     },
                     { 
                         data: "section_group",
-                        searchable: true,
+                        searchable: false,
                         mRender:function (data,type,full) {
                             let label = data ? data.group_label : ''
                             return label
@@ -328,7 +329,6 @@ export default {
                             }
 
                             return result
-                            // return data ? data.substring(0, 40) + '...[MORE]' : ''
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                     },
@@ -413,6 +413,7 @@ export default {
                 params: { licence_purpose_id: this.filterQuestionPurpose },
             }).then((res)=>{
                 this.schemaGroups = res.body.question_groups; 
+                this.schemaSections = res.body.question_sections;
             },err=>{
 
             });
@@ -465,6 +466,10 @@ export default {
             if (master) {
                 this.sectionQuestion.parent_question = q_id;
                 this.answerList = master.options;
+                let parent = this.parentList.find( q => q.value == q_id)
+                if (parent) {
+                    this.sectionQuestion.section_group = parent.group
+                }
             } else {
                 this.sectionQuestion.parent_question = '';
             }
@@ -567,9 +572,17 @@ export default {
             this.sectionQuestion.section = '';
             this.sectionQuestion.question = '';
             this.sectionQuestion.section_group = '';
+            this.sectionQuestion.order = 0;
+            this.sectionQuestion.parent_question = null;
+            this.sectionQuestion.parent_answer = null;
+            this.sectionQuestion.tag = [];
 
             this.filterQuestionSection = 'All';
             this.filterQuestionPurpose = 'All';
+
+            this.checkedTag = [];
+            $(this.$refs.select_parent).val(this.sectionQuestion.parent_question).trigger('change');
+            this.sectionQuestion.tag.filter( t => { this.getCheckedTag(t, true); return });
 
             this.isModalOpen = true;
         },
@@ -587,8 +600,9 @@ export default {
                 self.filterQuestionPurpose = self.$refs.schema_question_table.row_of_data.data().section.licence_purpose;
                 // self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
                 self.sectionQuestion.question = self.$refs.schema_question_table.row_of_data.data().question_id;
+                self.sectionQuestion.order = self.$refs.schema_question_table.row_of_data.data().order;
 
-                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group ? self.$refs.schema_question_table.row_of_data.data().section_group.id : null;
+                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group ? self.$refs.schema_question_table.row_of_data.data().section_group.id : '';
                 // self.filterQuestionGroup = self.sectionQuestion.section_group
                 // $(self.$refs.select_group).val(self.sectionQuestion.section_group).trigger('change');
 
@@ -602,12 +616,9 @@ export default {
                     }
                 }
 
-                self.sectionQuestion.tag = self.$refs.schema_question_table.row_of_data.data().tag
-                self.checkedTag = []
-                self.sectionQuestion.tag.filter( t => {
-                    self.getCheckedTag(t, true);
-                    return
-                })
+                self.checkedTag = [];
+                self.sectionQuestion.tag = self.$refs.schema_question_table.row_of_data.data().tag;
+                self.sectionQuestion.tag.filter( t => { self.getCheckedTag(t, true); return });
 
                 self.addedOptions = Object.assign(self.$refs.schema_question_table.row_of_data.data().options);
                 $(self.$refs.select_question).val(self.sectionQuestion.question).trigger('change');

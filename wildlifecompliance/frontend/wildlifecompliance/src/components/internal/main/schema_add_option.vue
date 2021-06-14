@@ -17,10 +17,10 @@
                             <label v-if="aidx===0" class="control-label pull-left" >Add Options</label>
                         </div>
                         <div class="col-md-3" v-if="canAddMore">
-                            <input type="text" class="form-control" v-model="a.label"/>
+                            <textarea class="form-control" v-model="a.label"></textarea>
                         </div>
                         <div class="col-md-3" v-else>
-                            <label class="form-control">{{ a.label }} </label>
+                            <label>{{a.label}}</label>
                         </div>
                         <div class="col-md-6" v-if="canAddMore">
                             <button v-if="canAddMore && aidx===0" class="btn btn-link pull-right" :name="`select_option_link_1`" @click.prevent="addOption()">[ Add Another ]</button>

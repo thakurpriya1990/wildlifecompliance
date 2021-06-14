@@ -142,6 +142,10 @@ export default {
                 processing: true,
                 ajax: {
                     "url": vm.schema_purpose_url, 
+                    "dataSrc": 'data',
+                    "data": function (d) {
+                        d.licence_purpose_id = vm.filterTablePurpose;
+                    }
                 },
                 columnDefs: [
                     { visible: false, targets: [ 0 ] } 
@@ -150,10 +154,12 @@ export default {
                     { 
                         data: "id",
                         width: "10%",
+                        searchable: false,
                     },
                     { 
                         data: "licence_purpose",
                         width: "20%",
+                        searchable: false,
                         mRender:function (data,type,full) {
                             return data.name
                         }
@@ -161,14 +167,17 @@ export default {
                     { 
                         data: "section_label",
                         width: "50%",
+                        searchable: false,
                     },
                     { 
                         data: "index",
                         width: "10%",
+                        searchable: false,
                     },
                     { 
                         data: "id",
                         width: "10%",
+                        searchable: false,
                         mRender:function (data,type,full) {
                             var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
                             column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
