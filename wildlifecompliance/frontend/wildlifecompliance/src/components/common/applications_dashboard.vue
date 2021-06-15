@@ -31,11 +31,11 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <!-- <label for="">Submitter</label>
-                                <select class="form-control" v-model="filterApplicationSubmitter">
+                                <label for="">Licence Activity</label>
+                                <select class="form-control" v-model="filterApplicationActivity">
                                     <option value="All">All</option>
-                                    <option v-for="s in application_submitters" :value="s.email" v-bind:key="`submitter_${s.email}`">{{s.search_term}}</option>
-                                </select> -->
+                                    <option v-for="a in application_activities" :value="a.value" v-bind:key="`activity_${a.value}`">{{a.label}}</option>
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -322,6 +322,7 @@ export default {
             filterApplicationLodgedFrom: '',
             filterApplicationLodgedTo: '',
             filterApplicationSubmitter: 'All',
+            filterApplicationActivity: 'All',
             dateFormat: 'DD/MM/YYYY',
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
@@ -376,6 +377,7 @@ export default {
                         d.submitter = vm.filterApplicationSubmitter;
                         d.date_from = vm.filterApplicationLodgedFrom != '' && vm.filterApplicationLodgedFrom != null ? moment(vm.filterApplicationLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterApplicationLodgedTo != '' && vm.filterApplicationLodgedTo != null ? moment(vm.filterApplicationLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.activity_purpose = vm.filterApplicationActivity;
                     }
                 },
                 columns: external_columns,
@@ -449,6 +451,7 @@ export default {
                         d.submitter = vm.filterApplicationSubmitter;
                         d.date_from = vm.filterApplicationLodgedFrom != '' && vm.filterApplicationLodgedFrom != null ? moment(vm.filterApplicationLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterApplicationLodgedTo != '' && vm.filterApplicationLodgedTo != null ? moment(vm.filterApplicationLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.activity_purpose = vm.filterApplicationActivity;
                     }
                 },
                 columns: internal_columns,
@@ -517,6 +520,9 @@ export default {
             this.visibleDatatable.vmDataTable.draw();
         },
         filterApplicationLicenceType: function(){
+            this.visibleDatatable.vmDataTable.draw();
+        },
+        filterApplicationActivity: function(){
             this.visibleDatatable.vmDataTable.draw();
         },
     },
@@ -808,6 +814,7 @@ export default {
 
                     this.application_status = res.body.all_status
                     this.application_licence_types = res.body.all_category
+                    this.application_activities = res.body.all_activity
                 },err=>{
 
                     swal(

@@ -28,6 +28,7 @@ from wildlifecompliance.components.licences.models import (
     LicenceActivity,
     PurposeSpecies,
     LicenceCategory,
+    LicencePurpose,
 )
 from wildlifecompliance.components.main.serializers import (
     CommunicationLogEntrySerializer
@@ -72,12 +73,14 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
     '''
     all_category = serializers.SerializerMethodField(read_only=True)
     all_status = serializers.SerializerMethodField(read_only=True)
+    all_activity = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
         fields = (
             'all_category',
             'all_status',
+            'all_activity',
         )
 
     def get_all_category(self, obj):
@@ -125,6 +128,18 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
             ],
 
         return data[0]
+
+    def get_all_activity(self, obj):
+        '''
+        Returns all licence activities available for applications.
+        '''
+        activities = LicencePurpose.objects.all()
+
+        all_activity = [
+            { 'label': a.short_name, 'value': a.id } for a in activities
+        ]
+
+        return all_activity
 
 
 class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):

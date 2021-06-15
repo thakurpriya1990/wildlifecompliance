@@ -221,6 +221,7 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
         customer_status = request.GET.get('customer_status')
         status_filter = request.GET.get('status')
         submitter = request.GET.get('submitter')
+        activity_purpose = request.GET.get('activity_purpose')
         search_text = request.GET.get('search[value]')
 
         if queryset.model is Application:
@@ -244,6 +245,15 @@ class ApplicationFilterBackend(DatatablesFilterBackend):
                 ).distinct() | super_queryset
 
             # apply user selected filters
+            activity_purpose = \
+                activity_purpose.lower() if activity_purpose else 'all'
+            if activity_purpose != 'all':
+                activity_purpose_app_ids = \
+                ApplicationSelectedActivityPurpose.objects.filter(
+                    purpose_id=int(activity_purpose)
+                ).values('selected_activity__application_id')
+                queryset = queryset.filter(id__in=activity_purpose_app_ids)
+
             category_name = category_name.lower() if category_name else 'all'
             if category_name != 'all':
                 # category_name_app_ids = []
