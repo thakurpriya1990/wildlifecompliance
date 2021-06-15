@@ -1288,7 +1288,7 @@ class ReturnData(object):
                     table_info, data)
                 if self.requires_species():
                     table_info = self._species
-                    table_rows = None       # Don't save - already done.
+                    # table_rows = None
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)

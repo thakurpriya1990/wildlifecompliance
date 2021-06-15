@@ -334,7 +334,6 @@ export default {
     }
   },
   mounted: function() {
-    console.log('mounted')
       // 
   },
 }
