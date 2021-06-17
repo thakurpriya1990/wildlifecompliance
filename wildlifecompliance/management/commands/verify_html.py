@@ -25,14 +25,6 @@ class Command(BaseCommand):
                 logger.error('ApplicationStandardCondition (text): {}'.format(e))
                 errors_text.append(sc.id)
 
-            
-        for sc in ApplicationStandardCondition.objects.all():
-            try:
-                html_to_rl(sc.additional_information, styles)
-            except Exception as e:
-                logger.error('ApplicationStandardCondition (additional_info): {}'.format(e))
-                errors_info.append(sc.id)
-
         for ps in PurposeSpecies.objects.all():
             try:
                 html_to_rl(ps.details, styles)

@@ -1410,23 +1410,6 @@ class WildlifeLicence(models.Model):
 
         logger.debug('Licence.apply_action_to_purpose() - end')
 
-    def has_additional_information_for(self, selected_activity):
-        """
-        Check for additional information exist for selected activity on this
-        licence.
-        """
-        has_info = False
-        activity_conditions = selected_activity.application.conditions.filter(
-            licence_activity_id=selected_activity.licence_activity_id,
-            licence_purpose_id=selected_activity.issued_purposes[0].id)
-
-        for condition in activity_conditions:
-            if condition.standard_condition:
-                has_info = condition.standard_condition.additional_information
-                return has_info
-
-        return has_info
-
     def get_next_purpose_sequence(self):
         '''
         Returns the next sequence number for selected licence purposes.

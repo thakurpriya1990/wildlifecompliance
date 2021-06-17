@@ -6938,9 +6938,6 @@ class ApplicationStandardCondition(RevisionedMixin):
     obsolete = models.BooleanField(default=False)
     return_type = models.ForeignKey(
         'wildlifecompliance.ReturnType', null=True, blank=True)
-    #additional_information = models.TextField(max_length=1024, null=True, blank=True)
-    additional_information = RichTextField(config_name='pdf_config', null=True, blank=True)
-        
 
     def __str__(self):
         return self.code
