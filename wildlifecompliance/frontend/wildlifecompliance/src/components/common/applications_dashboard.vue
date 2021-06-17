@@ -501,6 +501,7 @@ export default {
                 }
             },
             activities : [],
+            application_activities: [],
         }
     },
     components:{
