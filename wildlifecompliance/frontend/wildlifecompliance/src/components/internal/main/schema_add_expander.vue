@@ -57,7 +57,11 @@ export default {
     },
     methods: {
         addExpander: function() {
-            this.addedExpanders.push(Object.assign(this.addedExpander))
+            const newExpander = Object()
+            newExpander.label = '';
+            newExpander.value = '';
+            newExpander.conditions = null;
+            this.addedExpanders.push(newExpander)
         },
     },
 }

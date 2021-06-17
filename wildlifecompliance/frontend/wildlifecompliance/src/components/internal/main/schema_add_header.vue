@@ -56,7 +56,10 @@ export default {
     },
     methods: {
         addHeader: function() {
-            this.addedHeaders.push(Object.assign(this.addedHeader))
+            const newHeader = Object();
+            newHeader.label = '';
+            newHeader.value = '';
+            this.addedHeaders.push(newHeader)
         },
     },
 }
