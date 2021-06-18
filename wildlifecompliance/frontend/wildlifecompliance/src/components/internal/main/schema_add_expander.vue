@@ -25,7 +25,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <a class="delete-icon fa fa-trash-o" style="cursor: pointer; color:red;" title="Delete row" @click.prevent="removeExpander(eidx)"></a>
+                            <a v-if="eidx!==0" class="delete-icon fa fa-trash-o" style="cursor: pointer; color:red;" title="Delete row" @click.prevent="removeExpander(eidx)"></a>
                             <button v-if="eidx===0" class="btn btn-link pull-right" :name="`add_expander_link_1`" @click.prevent="addExpander()">[ Add Another ]</button>
                         </div>
                     </div>
