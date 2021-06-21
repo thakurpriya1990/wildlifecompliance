@@ -7,8 +7,8 @@ import logging
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.contrib.postgres.fields.jsonb import JSONField
-from django.db.models import Max
-from django.db.models import Q
+from django.db.models import Max, Q
+from django.db.models.query import QuerySet
 from django.forms.models import model_to_dict
 
 from multiselectfield import MultiSelectField
@@ -21,6 +21,7 @@ from ledger.licence.models import LicenceType
 
 from wildlifecompliance.components.inspection.models import Inspection
 
+from wildlifecompliance.components.main.utils import ListEncoder
 from wildlifecompliance.components.main.models import (
     CommunicationsLogEntry,
     UserAction,
@@ -1642,51 +1643,79 @@ class QuestionOption(models.Model):
         return self.label
 
 
-class QuestionOptionCondition(models.Model):
-    '''
-    Model representation of a special Condition associated with an Option.
-    '''
-    option = models.ForeignKey(
-        QuestionOption, related_name='question_options',
-    )
-    label = models.CharField(max_length=100)
-    value = models.CharField(max_length=100, blank=True, default='')
+# class QuestionOptionCondition(models.Model):
+#     '''
+#     Model representation of a special Condition associated with an Option.
+#     '''
+#     option = models.ForeignKey(
+#         QuestionOption, related_name='question_options',
+#     )
+#     label = models.CharField(max_length=100)
+#     value = models.CharField(max_length=100, blank=True, default='')
 
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'Schema Question Condition'
+#     class Meta:
+#         app_label = 'wildlifecompliance'
+#         verbose_name = 'Schema Question Condition'
 
-    def __str__(self):
-        return '{} - {}'.format(
-            self.option,
-            self.id
-        )
+#     def __str__(self):
+#         return '{} - {}'.format(
+#             self.option,
+#             self.id
+#         )
 
 
 class MasterlistQuestion(models.Model):
     '''
     Model representation of Schema Question/Type available for construction.
     '''
+    ANSWER_TYPE_CHECKBOX = 'checkbox'
+    ANSWER_TYPE_SELECT = 'select'
+    ANSWER_TYPE_MULTI = 'multi-select'
+    ANSWER_TYPE_RADIO = 'radiobuttons'
+
+    ANSWER_TYPE_TABLE = 'expander_table'
+
     ANSWER_TYPE_CHOICES = (
         ('text', 'Text'),
-        ('radiobuttons', 'Radio button'),
-        ('checkbox', 'Checkbox'),
+        (ANSWER_TYPE_RADIO, 'Radio button'),
+        (ANSWER_TYPE_CHECKBOX, 'Checkbox'),
         ('number', 'Number'),
         ('email', 'Email'),
-        # ('select', 'Select'),
-        # ('multi-select', 'Multi-select'),
+        (ANSWER_TYPE_SELECT, 'Select'),
+        (ANSWER_TYPE_MULTI, 'Multi-select'),
         ('text_area', 'Text area'),
         ('label', 'Label'),
-        # ('declaration', 'Declaration'),
+        ('declaration', 'Declaration'),
         ('file', 'File'),
         ('date', 'Date'),
-        ('group', 'Group'),
-        ('group2', 'Group2'),
-        ('expander_table', 'Expander Table'),
+        ('group2', 'Group'),
+        # ('group2', 'Group2'),
+        (ANSWER_TYPE_TABLE, 'Table'),
         ('species-all', 'Species List'),
-        ('header', 'Expander Table Header'),
-        ('expander', 'Expander Table Expander'),
+        # ('header', 'Expander Table Header'),
+        # ('expander', 'Expander Table Expander'),
     )
+
+    ANSWER_TYPE_OPTIONS = [
+        ANSWER_TYPE_CHECKBOX,
+        # ANSWER_TYPE_SELECT,
+        # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
+    ANSWER_TYPE_HEADERS = [
+        ANSWER_TYPE_TABLE,
+    ]
+    ANSWER_TYPE_EXPANDERS = [
+        ANSWER_TYPE_TABLE,
+    ]
+
+    ANSWER_TYPE_CONDITIONS = [
+        {'label': 'IncreaseLicenceFee', 'value': ''},
+        {'label': 'IncreaseRenewalFee', 'value': ''},
+        {'label': 'IncreaseApplicationFee', 'value': ''},
+        {'label': 'StandardCondition', 'value': ''},
+        {'label': 'RequestInspection', 'value': False},
+    ]
 
     name = models.CharField(max_length=100)
     question = models.TextField()
@@ -1697,6 +1726,7 @@ class MasterlistQuestion(models.Model):
         choices=ANSWER_TYPE_CHOICES,
         default=ANSWER_TYPE_CHOICES[0][0],
     )
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1731,6 +1761,203 @@ class MasterlistQuestion(models.Model):
         except Exception:
             return {}
 
+    def get_options(self):
+        '''
+        Property field for Question Options.
+        '''
+        option_list = []
+        options = self.get_property_cache_options()
+        for o in options:
+            qo = QuestionOption(label=o['label'], value=o['value'])
+            option_list.append(qo)
+        return option_list
+
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class MasterlistOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        MasterlistOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = MasterlistOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
+
+    def get_headers(self):
+        '''
+        Property field for Question Table Headers.
+        '''
+        header_list = []
+        headers = self.get_property_cache_headers()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return headers
+
+    def get_property_cache_headers(self):
+        '''
+        Getter for headers on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return headers_list of QuestionOption values.
+        '''
+        headers = []
+        try:
+
+            headers = self.property_cache['headers']
+
+        except KeyError:
+            pass
+
+        return headers
+
+    def set_property_cache_headers(self, headers):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of MasterlistQuestion or List of ids.
+        '''
+        class TableHeaderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    headers = []
+                    for h in obj:
+                        header = {
+                            'label': h['label'],
+                            'value': h['value'],
+                        }
+                        headers.append(header)
+                    return headers
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableHeaderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(headers, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_headers() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableHeaderEncoder().encode_list(headers)
+            self.property_cache['headers'] = data
+
+    def get_expanders(self):
+        '''
+        Property field for Question Table Expanders.
+        '''
+        expander_list = []
+        expanders = self.get_property_cache_expanders()
+        # for h in headers:
+        #     qh = QuestionOption(label=h, value='')
+        #     header_list.append(qo)
+        return expanders
+
+    def get_property_cache_expanders(self):
+        '''
+        Getter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        expanders = []
+        try:
+
+            expanders = self.property_cache['expanders']
+
+        except KeyError:
+            pass
+
+        return expanders
+
+    def set_property_cache_expanders(self, expanders):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class TableExpanderEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    expanders = []
+                    for e in obj:
+                        expander = {
+                            'label': e['label'],
+                            'value': e['value'],
+                        }
+                        expanders.append(expander)
+                    return expanders
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        TableExpanderEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(expanders, list) and self.id:
+            logger.warn('{0} - MasterlistQuestion: {1}'.format(
+                'set_property_cache_expanders() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = TableExpanderEncoder().encode_list(expanders)
+            self.property_cache['expanders'] = data
+
 
 class LicencePurposeSection(models.Model):
     '''
@@ -1751,6 +1978,66 @@ class LicencePurposeSection(models.Model):
         return '{} - {}'.format(self.section_label, self.licence_purpose)
 
 
+class SectionGroup(models.Model):
+    '''
+    Model representation of Section Group.
+    '''
+    TYPE_GROUP2 = 'group2'
+
+    group_name = models.CharField(max_length=100)
+    group_label = models.CharField(max_length=100)
+    section = models.ForeignKey(
+        LicencePurposeSection,
+        related_name='section_groups',
+        on_delete=models.PROTECT
+    )
+    property_cache = JSONField(null=True, blank=True, default={})
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'Schema Section Group'
+
+    def __str__(self):
+        return str(self.id)
+
+    @property
+    def repeatable(self) -> bool:
+        '''
+        Property to indicate the Group is repeatable.
+        '''
+        return self.get_property_cache_repeatable()
+
+    def get_property_cache_repeatable(self) -> bool:
+        '''
+        Getter for Repeatable on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        '''
+        repeatable = False
+        try:
+
+            repeatable = True if self.property_cache[
+                'repeatable'] == 'True' else False
+
+        except KeyError:
+            pass
+
+        return repeatable
+
+    def set_property_cache_repeatable(self, repeatable):
+        '''
+        Setter for repeatable on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param boolean: repeatable.
+        '''
+        if self.id:
+            data = 'True' if repeatable else 'False'
+            self.property_cache['repeatable'] = data
+
+
 class SectionQuestion(models.Model):
     '''
     Model representation of Section available with questions.
@@ -1758,12 +2045,19 @@ class SectionQuestion(models.Model):
     TAG_CHOICES = (
         ('isRepeatable', 'isRepeatable'),
         ('isRequired', 'isRequired'),
-        ('PromptInspection', 'isRequired - Inspection'),
+        # ('PromptInspection', 'isRequired - Inspection'),
     )
     section = models.ForeignKey(
         LicencePurposeSection,
         related_name='section_questions',
         on_delete=models.PROTECT
+    )
+    section_group = models.ForeignKey(
+        SectionGroup,
+        related_name='group_questions',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     question = models.ForeignKey(
         MasterlistQuestion,
@@ -1798,8 +2092,8 @@ class SectionQuestion(models.Model):
     apply_special_conditions = models.BooleanField(
         default=False,
         help_text='If ticked, select the Save and Continue Editing button.')
-
     order = models.PositiveIntegerField(default=1)
+    property_cache = JSONField(null=True, blank=True, default={})
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -1825,35 +2119,103 @@ class SectionQuestion(models.Model):
             if self.question == self.parent_question:
                 raise ValidationError('Question cannot be linked to itself.')
 
-    def set_conditions(self) -> bool:
+    # def set_conditions(self) -> bool:
+    #     '''
+    #     Set default special conditions for this Section Question.
+    #     '''
+    #     conditions = []
+    #     options = QuestionOptionCondition.objects.filter(
+    #         option=self.parent_answer
+    #     )
+
+    #     for o in options:
+    #         conditions.append(
+    #             SectionQuestionCondition(
+    #                 section_question=self,
+    #                 label=o.label,
+    #                 value=o.value,
+    #             )
+    #         )
+
+    #     if conditions:
+    #         SectionQuestionCondition.objects.bulk_create(
+    #             conditions
+    #         )
+
+    #     return True if conditions else False
+
+    def get_options(self):
         '''
-        Set default special conditions for this Section Question.
         '''
-        conditions = []
-        options = QuestionOptionCondition.objects.filter(
-            option=self.parent_answer
-        )
+        options = self.get_property_cache_options()
 
-        for o in options:
-            conditions.append(
-                SectionQuestionCondition(
-                    section_question=self,
-                    label=o.label,
-                    value=o.value,
-                )
-            )
+        return options
 
-        if conditions:
-            SectionQuestionCondition.objects.bulk_create(
-                conditions
-            )
+    def get_property_cache_options(self):
+        '''
+        Getter for options on the property cache.
 
-        return True if conditions else False
+        NOTE: only used for presentation purposes.
+
+        :return options_list of QuestionOption values.
+        '''
+        options = []
+        try:
+
+            options = self.property_cache['options']
+
+        except KeyError:
+            pass
+
+        return options
+
+    def set_property_cache_options(self, options):
+        '''
+        Setter for options on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  options is QuerySet of QuestionOption or List of option value
+                string.
+        '''
+        class QuestionOptionEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    options = []
+                    for o in obj:
+                        o_conditions = [
+                            {
+                                'label': c['label'], 'value': c['value']
+                            } for c in o['conditions']
+                        ]
+                        option = {
+                            'label': o['label'],
+                            'value': o['value'],
+                            'conditions': o_conditions,
+                        }
+                        options.append(option)
+                    return options
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        QuestionOptionEncoder, self).encode_list(obj, iter)
+
+        if not isinstance(options, list) and self.id:
+            logger.warn('{0} - SectionQuestion: {1}'.format(
+                'set_property_cache_options() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = QuestionOptionEncoder().encode_list(options)
+            self.property_cache['options'] = data
 
 
 class SectionQuestionCondition(models.Model):
     '''
-    Model representation of a Condition associated with a Section Question.
+    Model representation of a Question Condition required for Question Option.
     '''
     section_question = models.ForeignKey(
         SectionQuestion,
@@ -1995,12 +2357,12 @@ reversion.register(
     ]
 )
 reversion.register(QuestionOption)
-reversion.register(
-    QuestionOptionCondition,
-    follow=[
-        'question_options',
-    ]    
-)
+# reversion.register(
+#     QuestionOptionCondition,
+#     follow=[
+#         'question_options',
+#     ]    
+# )
 reversion.register(MasterlistQuestion)
 reversion.register(LicencePurposeSection)
 reversion.register(LicenceSpecies)

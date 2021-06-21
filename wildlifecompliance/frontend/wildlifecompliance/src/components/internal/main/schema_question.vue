@@ -1,0 +1,773 @@
+<template lang="html">
+  <div id="schema-question">
+
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Schema Section Question
+                        <a :href="'#'+pQuestionBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="pQuestionBody">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                        </a>
+                    </h3>
+                </div>
+                <div class="panel-body collapse in" :id="pQuestionBody">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="">Licence Purpose</label>
+                                <select class="form-control" v-model="filterTablePurpose" >
+                                    <option value="All">All</option>
+                                    <option v-for="(p, pid) in schemaPurposes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add_purpose">New Question</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="">Section</label>
+                                <select class="form-control" v-model="filterTableSection" >
+                                    <option value="All">All</option>
+                                    <option v-for="(s, sid) in schemaSections" :value="s.value" v-bind:key="`section_${sid}`">{{s.label}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="">Group</label>
+                                <select class="form-control" v-model="filterTableGroup" >
+                                    <option value="All">All</option>
+                                    <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`group_${gid}`">{{g.label}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row"><br/></div> 
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+
+                                <datatable ref="schema_question_table"
+                                    :id="schema_question_id" 
+                                    :dtOptions="dtOptionsSchemaQuestion"
+                                    :dtHeaders="dtHeadersSchemaQuestion" 
+                                />
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <modal transition="modal fade" @ok="ok()" title="Schema Section Question" large>
+        <div class="container-fluid">
+            <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
+                <b>Please answer the following mandatory question(s):</b>
+                <ul>
+                    <li v-for="error in missing_fields">
+                        {{ error.label }}
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <form class="form-horizontal" name="schema_question">
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Licence Purpose</label>
+                        </div>
+                        <div class="col-md-6" v-if="isNewEntry">
+                            <select class="form-control" ref="select_purpose" name="select-purpose" v-model="filterQuestionPurpose" >
+                                <option value="All">All</option>
+                                <option v-for="(p, pid) in schemaPurposes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
+                            </select>                               
+                        </div>
+                        <div class="col-md-6" v-else >
+                            <select disabled class="form-control" ref="select_purpose" name="select-purpose" v-model="filterQuestionPurpose" >
+                                <option v-for="(p, pid) in schemaPurposes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
+                            </select>                         
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Section</label>
+                        </div>
+                        <div class="col-md-6" v-if="isNewEntry">
+                            <select class="form-control" ref="select_section" name="select-section" v-model="filterQuestionSection" >
+                                <option value="All">All</option>
+                                <option v-for="(s, sid) in schemaSections" :value="s.value" v-bind:key="`section_${sid}`">{{s.label}}</option>
+                            </select>                          
+                        </div>
+                        <div class="col-md-6" v-else >
+                            <select disabled class="form-control" ref="select_section" name="select-section" v-model="filterQuestionSection" >
+                                <option v-for="(s, sid) in schemaSections" :value="s.value" v-bind:key="`section_${sid}`">{{s.label}}</option>
+                            </select>                      
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Question</label>
+                        </div>
+                        <div class="col-md-9" v-if="isNewEntry">
+                            <select class="form-control" ref="select_question" name="select-question" v-model="sectionQuestion.question" >
+                                <option v-for="(m, mid) in masterlist" :value="m.id" v-bind:key="`question_${mid}`">{{m.question}}</option>
+                            </select>                         
+                        </div>
+                        <div class="col-md-9" v-else >
+                            <select disabled class="form-control" ref="select_question" name="select-question" v-model="sectionQuestion.question" >
+                                <option v-for="(m, mid) in masterlist" :value="m.id" v-bind:key="`question_${mid}`">{{m.question}}</option>
+                            </select>                          
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
+                    </div>
+                    <div class="row" v-if="showOptions">
+
+                        <SchemaOption ref="schema_option" :addedOptions="addedOptions" :canAddMore="false" />
+
+                    </div>
+                    <!-- <div class="row">
+                        <div class="col-md-6">
+                        <div v-for="(c, cid) in ['isRepeatable', 'isRequired']" v-bind:key="`check_${cid}`" >
+                            <input type="checkbox" :value="true" v-model="getCheckedTag(c).isChecked" >&nbsp;&nbsp;<label>{{c.label}}</label></input><label>{{ c }}</label>
+                        </div>
+                        </div>
+                    </div> -->
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRepeatable').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRepeatable</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRequired').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRequired</label></input>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Parent Question</label>
+                        </div>
+                        <div class="col-md-9">
+                            <select class="form-control" ref="select_parent" name="select-parent" v-if="filterQuestionParent(sectionQuestion.parent_question)" v-model="sectionQuestion.parent_question" >
+                                <option value="0"></option>
+                                <option v-for="(qp, qpid) in parentList" :value="qp.value" v-bind:key="`qparent_${qpid}`" >{{qp.label}}</option>
+                            </select>                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Parent Answer</label>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-control" ref="select_answer" name="select-answer" v-model="sectionQuestion.parent_answer" >
+                                <option value="0"></option>
+                                <option v-for="(an,anid) in answerList" :value="an.value" v-bind:key="`an_${anid}`">{{an.label}}</option>
+                            </select>                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Group</label>
+                        </div>
+                        <div class="col-md-6" >
+                            <select class="form-control" ref="select_groupp" name="select-groupp" v-if="filterQuestionGroup(sectionQuestion.section_group)" v-model="sectionQuestion.section_group">
+                                <option value="0"></option>
+                                <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`g_${gid}`" >{{g.label}}</option>
+                            </select>                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Index</label>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" v-model="sectionQuestion.order"/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div slot="footer">
+            <button type="button" class="btn btn-primary" @click="saveQuestion">Save</button>
+        </div>
+    </modal>
+
+  </div>
+</template>
+
+<script>
+import datatable from '@/utils/vue/datatable.vue'
+import modal from '@vue-utils/bootstrap-modal.vue'
+import alert from '@vue-utils/alert.vue'
+import SchemaOption from './schema_add_option.vue'
+import {
+  api_endpoints,
+  helpers
+}
+from '@/utils/hooks'
+
+var select2 = require('select2');
+require("select2/dist/css/select2.min.css");
+require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
+
+export default {
+    name:'schema-question',
+    components: {
+        modal,
+        alert,
+        datatable,
+        SchemaOption,
+    },
+    props:{
+    },
+    data:function () {
+        let vm = this;
+        vm.schema_question_url = helpers.add_endpoint_join(api_endpoints.schema_question_paginated, 'schema_question_datatable_list/?format=datatables');
+
+        return {
+            schema_question_id: 'schema-question-datatable-'+vm._uid,
+            pOptionsBody: 'pOptionsBody' + vm._uid,
+            pQuestionBody: 'pQuestionBody' + vm._uid,
+            isModalOpen: false,
+            isNewEntry: false,
+            missing_fields: [],
+            filterTablePurpose: 'All',
+            filterParentQuestion: 'All',
+            filterTableSection: 'All',
+            filterQuestionSection: 'All',
+            filterQuestionPurpose: 'All',
+            filterTableGroup: 'All',
+            dtHeadersSchemaQuestion: ["ID", "SectionID", "OptionID", "Licence Purpose", "Section", "Group", "Question", "Index", "Action"],
+            dtOptionsSchemaQuestion:{
+                language: {
+                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+                },
+                responsive: true,
+                serverSide: true,
+                autowidth: false,
+                processing: true,
+                searchDelay: 1000,
+                ajax: {
+                    "url": vm.schema_question_url,
+                    "dataSrc": 'data',
+                    "data": function (d) {
+                        d.licence_purpose_id = vm.filterTablePurpose;
+                        d.section_id = vm.filterTableSection;
+                        d.group_id = vm.filterTableGroup;
+                    }
+                },
+                columnDefs: [
+                    { visible: false, targets: [ 0, 1, 2, ] } 
+                ],
+                columns: [
+                    { 
+                        data: "id",
+                        searchable: false,
+                    },
+                    { 
+                        data: "section",
+                        searchable: false,
+                    },
+                    { 
+                        data: "options",
+                        searchable: false,
+                    },
+                    { 
+                        data: "licence_purpose",
+                        searchable: false,
+                    },
+                    { 
+                        data: "section",
+                        searchable: false,
+                        mRender:function (data,type,full) {
+                            return data.section_label;
+                        }
+                    },
+                    { 
+                        data: "section_group",
+                        searchable: false,
+                        mRender:function (data,type,full) {
+                            let label = data ? data.group_label : ''
+                            return label
+                        }
+                    },
+                    { 
+                        data: "question",
+                        width: "80%",
+                        searchable: false,
+                        mRender:function (data,type,full) {
+                            var ellipsis = '...',
+                                truncated = _.truncate(data, {
+                                    length: 40,
+                                    omission: ellipsis,
+                                    separator: ' '
+                                }),
+                                result = '<span>' + truncated + '</span>',
+                                popTemplate = _.template('<a href="#" ' +
+                                    'role="button" ' +
+                                    'data-toggle="popover" ' +
+                                    'data-trigger="click" ' +
+                                    'data-placement="top auto"' +
+                                    'data-html="true" ' +
+                                    'data-content="<%= text %>" ' +
+                                    '>more</a>');
+                            if (_.endsWith(truncated, ellipsis)) {
+                                result += popTemplate({
+                                    text: data
+                                });
+                            }
+
+                            return result
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
+                    },
+                    { 
+                        data: "order",
+                        searchable: false,
+                    },
+                    { 
+                        data: "id",
+                        searchable: false,
+                        mRender:function (data,type,full) {
+                            var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
+                            column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            return column.replace(/__ROWID__/g, full.id);
+                        }
+                    },
+                ],
+                rowId: function(_data) {
+                    return _data.id
+                },
+                initComplete: function () {
+                    var $searchInput = $('div.dataTables_filter input');
+                    $searchInput.unbind('keyup search input');
+                    $searchInput.bind('keypress', (vm.delay(function(e) {
+                        if (e.which == 13) {
+                            vm.$refs.schema_question_table.vmDataTable.search( this.value ).draw();
+                        }
+                    }, 0)));
+                }
+            },
+            sectionQuestion: {
+                id: '',
+                section: '',
+                question: '',
+                section_group: '',
+                order: '0',
+                conditions: '',
+                purpose_id: '',
+                parent_question: null,
+                parent_answer: null,
+                tag: []
+            },
+            masterlist: null,
+            checked: false,
+            selectedType: '',
+            showOptions: false,
+            optionList: [],
+            addedOptions: [],
+            addedOption: {
+                label: '',
+                value: '',
+                conditions: '',
+            },
+            defaultOptions: [],
+            schemaPurposes: [],
+            schemaSections: [],
+            schemaGroups: [],
+            parentList: [],
+            answerList: [],
+            checkedTag: [{
+                tag: null,
+                isChecked: false,
+            }],
+        }
+
+    },
+    watch:{
+        filterTablePurpose: function() {
+            this.$refs.schema_question_table.vmDataTable.draw();
+        },
+        filterTableSection: function(){
+            this.$refs.schema_question_table.vmDataTable.draw();
+        },
+        filterTableGroup: function(){
+            this.$refs.schema_question_table.vmDataTable.draw();
+        },
+        filterQuestionPurpose: function(){
+            if (this.filterQuestionPurpose==='All') {
+                return true
+            }
+            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_sections'),{
+                params: { licence_purpose_id: this.filterQuestionPurpose },
+            }).then((res)=>{
+                this.schemaGroups = res.body.question_groups; 
+                this.schemaSections = res.body.question_sections;
+            },err=>{
+
+            });
+        },
+        filterQuestionSection: function(){
+            if (this.filterQuestionSection==='All') {
+                return true
+            }
+            this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_parents'),{
+                params: { section_id: this.filterQuestionSection },
+            }).then((res)=>{
+                this.sectionQuestion.section = this.filterQuestionSection;
+                this.parentList = res.body.question_parents;
+            },err=>{
+
+            });
+        },
+    },
+    computed: {    
+    },
+    methods: {
+        delay(callback, ms) {
+            var timer = 0;
+            return function () {
+                var context = this, args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(function () {
+                    callback.apply(context, args);
+                }, ms || 0);
+            };
+        },
+        filterQuestionGroup: function(g_id){
+            if (!this.isModalOpen || g_id == '' || g_id == null) {
+                return true
+            }
+            // this.$http.get(helpers.add_endpoint_json(api_endpoints.schema_question,'1/get_question_order'),{
+            //     params: { group_id: g_id },
+            // }).then((res)=>{
+            //     this.sectionQuestion.order = res.body.question_order;
+            // },err=>{
+
+            // });
+            return true;
+        },
+        filterQuestionParent: function(q_id){
+            if (q_id == '' || q_id == null || !this.masterlist) {
+                return true
+            }
+            let master = this.masterlist.find( m => m.id == q_id)
+            if (master) {
+                this.sectionQuestion.parent_question = q_id;
+                this.answerList = master.options;
+                let parent = this.parentList.find( q => q.value == q_id)
+                if (parent) {
+                    this.sectionQuestion.section_group = parent.group
+                }
+            } else {
+                this.sectionQuestion.parent_question = '';
+            }
+            return true;
+        },
+        getCheckedTag: function(atag, set_checked=false){
+            let checked = this.checkedTag.find(ch => {return ch.tag===atag})
+
+            if (!checked) {
+                checked = {
+                    tag: atag,
+                    isChecked: set_checked,
+                }
+                if (['isRepeatable','isRequired'].includes(atag)){
+                    this.checkedTag.push(checked)
+                }
+            }
+            return checked;
+        },
+        close: function() {
+            const self = this;
+
+            if (!self.errors) {
+                $(this.$refs.select_question).val(null).trigger('change');
+                $('.has-error').removeClass('has-error');
+                self.addedOptions = [];
+                self.showOptions = false;
+                self.isModalOpen = false;
+            }
+        },
+        setShowOptions: function(selected_id) {
+            let show = this.masterlist.filter( m => {
+                return m.id == selected_id && ['checkbox','radiobuttons'].includes(m.answer_type)
+            })[0]
+            if (show && this.isNewEntry){
+                let newOption = Object.assign(show)
+                this.addedOptions.push(newOption);
+                this.addedOptions = show.options;
+            }
+
+            this.showOptions = show ? true : false
+        },
+        saveQuestion: async function() {
+            const self = this;
+            const data = self.sectionQuestion
+            data.options = self.addedOptions;
+    
+            if (self.checkedTag.length>0){
+                data.tag = []
+                self.checkedTag.filter( t => {
+                    if (t.isChecked) {
+                        data.tag.push(t.tag)
+                    }
+                    return
+                })
+            }
+
+            if (data.id === '') {
+
+                await self.$http.post(api_endpoints.schema_question, JSON.stringify(data),{
+                    emulateJSON:true
+
+                }).then((response) => {
+
+                    self.$refs.schema_question_table.vmDataTable.ajax.reload();
+                    self.close();
+
+                }, (error) => {
+
+                    swal(
+                        'Save Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                });
+
+            } else {
+
+                await self.$http.post(helpers.add_endpoint_json(api_endpoints.schema_question,data.id+'/save_question'),JSON.stringify(data),{
+                        emulateJSON:true,
+
+                    }).then((response)=>{
+
+                        self.$refs.schema_question_table.vmDataTable.ajax.reload();
+                        self.close();
+
+                    },(error)=>{
+                        'Save Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    });
+
+            }
+            this.isNewEntry = false;
+
+        },
+        addTableEntry: function() {
+            this.isNewEntry = true
+            this.sectionQuestion.id = '';
+            this.sectionQuestion.section = '';
+            this.sectionQuestion.question = '';
+            this.sectionQuestion.section_group = '';
+            this.sectionQuestion.order = 0;
+            this.sectionQuestion.parent_question = null;
+            this.sectionQuestion.parent_answer = null;
+            this.sectionQuestion.tag = [];
+
+            this.filterQuestionSection = 'All';
+            this.filterQuestionPurpose = 'All';
+
+            this.checkedTag = [];
+            $(this.$refs.select_parent).val(this.sectionQuestion.parent_question).trigger('change');
+            this.sectionQuestion.tag.filter( t => { this.getCheckedTag(t, true); return });
+
+            this.isModalOpen = true;
+        },
+        initEventListeners: function(){
+            const self = this;
+
+            self.$refs.schema_question_table.vmDataTable.on('click','.edit-row', function(e) {
+                e.preventDefault();
+                self.isNewEntry = false;
+                self.$refs.schema_question_table.row_of_data = self.$refs.schema_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+
+                self.sectionQuestion.id = self.$refs.schema_question_table.row_of_data.data().id;
+                self.sectionQuestion.section = self.$refs.schema_question_table.row_of_data.data().section.id;
+                self.filterQuestionSection = self.$refs.schema_question_table.row_of_data.data().section.id;
+                self.filterQuestionPurpose = self.$refs.schema_question_table.row_of_data.data().section.licence_purpose;
+                // self.sectionQuestion.question_id = self.$refs.schema_question_table.row_of_data.data().question_id;
+                self.sectionQuestion.question = self.$refs.schema_question_table.row_of_data.data().question_id;
+                self.sectionQuestion.order = self.$refs.schema_question_table.row_of_data.data().order;
+
+                self.sectionQuestion.section_group = self.$refs.schema_question_table.row_of_data.data().section_group ? self.$refs.schema_question_table.row_of_data.data().section_group.id : '';
+                // self.filterQuestionGroup = self.sectionQuestion.section_group
+                // $(self.$refs.select_group).val(self.sectionQuestion.section_group).trigger('change');
+
+                self.sectionQuestion.parent_question = self.$refs.schema_question_table.row_of_data.data().parent_question;
+                self.sectionQuestion.parent_answer = self.$refs.schema_question_table.row_of_data.data().parent_answer;
+                $(self.$refs.select_parent).val(self.sectionQuestion.parent_question).trigger('change');
+                if (self.masterlist) {
+                    let master = self.masterlist.find( m => m.id == self.sectionQuestion.parent_question)
+                    if (master) {
+                        self.answerList = master.options
+                    }
+                }
+
+                self.checkedTag = [];
+                self.sectionQuestion.tag = self.$refs.schema_question_table.row_of_data.data().tag;
+                self.sectionQuestion.tag.filter( t => { self.getCheckedTag(t, true); return });
+
+                self.addedOptions = Object.assign(self.$refs.schema_question_table.row_of_data.data().options);
+                $(self.$refs.select_question).val(self.sectionQuestion.question).trigger('change');
+                self.setShowOptions(self.sectionQuestion.question)
+
+                self.isModalOpen = true;
+            });
+
+            self.$refs.schema_question_table.vmDataTable.on('click','.delete-row', function(e) {
+                e.preventDefault();
+                self.$refs.schema_question_table.row_of_data = self.$refs.schema_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+                self.sectionQuestion.id = self.$refs.schema_question_table.row_of_data.data().id;
+
+                swal({
+                    title: "Delete Section Question",
+                    text: "Are you sure you want to delete?",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Accept'
+
+                }).then(async (result) => {
+
+                    if (result.value) {
+
+                        await self.$http.delete(helpers.add_endpoint_json(api_endpoints.schema_question,(self.sectionQuestion.id+'/delete_question')))
+    
+                        .then((response) => {
+
+                            self.$refs.schema_question_table.vmDataTable.ajax.reload();
+
+                        }, (error) => {
+
+                        });
+    
+                    }
+
+                },(error) => {
+
+                });                
+            });
+
+        },
+        initQuestionSelector: function () {
+                const self = this;
+                $(self.$refs.select_question).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    minimumInputLength: 2,
+                    placeholder:"Select Question..."
+                }).
+                on("select2:selecting",function (e) {
+                    let selected = $(e.currentTarget);
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.question=selected.val()
+                    self.setShowOptions(selected.val())
+                }).
+                on("select2:unselect",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.question=selected.val()
+                });
+        },
+        initParentSelector: function () {
+                const self = this;
+                $(self.$refs.select_parent).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    minimumInputLength: 2,
+                    placeholder:"Select Parent Question..."
+                }).
+                on("select2:selecting",function (e) {
+                    let selected = $(e.currentTarget);
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.parent_question=selected.val()
+                }).
+                on("select2:unselect",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.parent_question=selected.val()
+                });
+        },
+        // initAnswerSelector: function () {
+        //         const self = this;
+        //         $(self.$refs.select_answer).select2({
+        //             "theme": "bootstrap",
+        //             allowClear: true,
+        //             minimumInputLength: 2,
+        //             placeholder:"Select Parent Answer..."
+        //         }).
+        //         on("select2:selecting",function (e) {
+        //             let selected = $(e.currentTarget);
+        //         }).
+        //         on("select2:select",function (e) {
+        //             let selected = $(e.currentTarget);
+        //         }).
+        //         on("select2:unselect",function (e) {
+        //             let selected = $(e.currentTarget);
+        //         });
+        // },
+        initGroupSelector: function () {
+                const self = this;
+                $(self.$refs.select_group).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    minimumInputLength: 2,
+                    placeholder:"Select Section Group..."
+                }).
+                on("select2:selecting",function (e) {
+                    let selected = $(e.currentTarget);
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.section_group=selected.val()
+                }).
+                on("select2:unselect",function (e) {
+                    let selected = $(e.currentTarget);
+                    self.sectionQuestion.section_group=selected.val()
+                });
+        },
+        initSelects: async function() {
+
+            await this.$http.get(helpers.add_endpoint_join(api_endpoints.schema_question,'1/get_question_selects')).then(res=>{
+
+                    this.masterlist = res.body.all_masterlist;
+                    this.schemaPurposes = res.body.all_purpose;
+                    this.schemaSections = res.body.all_section;
+                    this.schemaGroups = res.body.all_group
+
+            },err=>{
+                swal(
+                    'Get Application Selects Error',
+                    helpers.apiVueResourceError(err),
+                    'error'
+                )
+            });
+            this.initQuestionSelector();
+            this.initParentSelector();
+            // this.initAnswerSelector();
+            this.initGroupSelector();
+        },
+    },
+    mounted: function() {
+        this.form = document.forms.schema_question;
+        this.$nextTick(() => {
+            this.initEventListeners();
+            this.initSelects();
+        });
+    }
+}
+</script>

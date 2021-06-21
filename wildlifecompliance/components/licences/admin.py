@@ -219,9 +219,9 @@ class QuestionOptionAdmin(admin.ModelAdmin):
     fields = ('label', )
 
 
-@admin.register(models.QuestionOptionCondition)
-class QuestionOptionConditionAdmin(admin.ModelAdmin):
-    list_display = ['option', 'label']
+# @admin.register(models.QuestionOptionCondition)
+# class QuestionOptionConditionAdmin(admin.ModelAdmin):
+#     list_display = ['option', 'label']
 
 
 @admin.register(models.MasterlistQuestion)
