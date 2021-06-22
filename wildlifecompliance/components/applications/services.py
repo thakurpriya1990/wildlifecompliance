@@ -95,9 +95,9 @@ class ApplicationService(object):
             delete_session_application(request.session)
 
             application.submit_type = Application.SUBMIT_TYPE_PAPER
-            application.save()
+            # application.save()
             do_update_dynamic_attributes(application)
-
+            application.save()
             set_session_other_pay_method(
                 request.session, InvoiceClearable.TYPE_CASH
             )
@@ -131,7 +131,7 @@ class ApplicationService(object):
             application.application_fee = 0
             has_fee_exemption = True
             do_update_dynamic_attributes(application, has_fee_exemption)
-
+            application.save()
             logger.info(
                 'Zero amount payment submission for {0}'.format(
                     application.id))
@@ -283,6 +283,7 @@ class ApplicationService(object):
         """
         try:
             do_update_dynamic_attributes(application)
+            application.save()
 
         except BaseException as e:
             logger.error('ERR update_dynamic_attributes for {0} : {1}'.format(
@@ -1153,12 +1154,16 @@ class PromptInspectionFieldElement(SpecialFieldElement):
         """
         Reset previous options settings on the licence purpose by removing.
         """
+        logger.debug(
+            'PromptInspectionFieldElement.reset_licence_purpose()')
         if self.is_refreshing:
             # No user update with a page refesh.
             return
 
         if licence_activity.is_inspection_required:
             licence_activity.is_inspection_required = False
+            logger.debug(
+                'PromptInspectionFieldElement.reset_licence_purpose() - save')
             licence_activity.save()
 
     def parse_component(
@@ -1176,7 +1181,9 @@ class PromptInspectionFieldElement(SpecialFieldElement):
         activity.is_inspection_required = False
         if set([self._NAME]).issubset(component):
             activity.is_inspection_required = True
-        activity.save()
+            logger.debug(
+                'PromptInspectionFieldElement.parse_component() - save')
+            activity.save()
 
     def __str__(self):
         return 'Field Element: {0}'.format(self._NAME)
@@ -1255,6 +1262,8 @@ class StandardConditionFieldElement(SpecialFieldElement):
                         id=activity.licence_activity_id)
                 ac.licence_purpose = purpose
                 ac.return_type = condition.return_type
+                logger.debug(
+                    'StandardConditionFieldElement.parse_component() - save')
                 ac.save()
 
     def __str__(self):
@@ -1736,6 +1745,7 @@ def do_process_form(
         form_data.items())
     required_fields = application.required_fields
     missing_fields = []
+    all_form_fields = []
 
     bulk_mgr = BulkCreateManager(
         ApplicationFormDataRecord(application_id=application.id)
@@ -1824,8 +1834,10 @@ def do_process_form(
         #         form_data_record.deficiency = deficiency
 
         bulk_mgr.add(form_data_record)
+        all_form_fields.append(form_data_record)
 
     bulk_mgr.done()
+    application.set_property_cache_data(all_form_fields)
     if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
 
         for existing_field in ApplicationFormDataRecord.objects.filter(
@@ -1893,7 +1905,7 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
     fees = dynamic_attributes['fees']
     application.application_fee = fees['application']
     application.set_property_cache_licence_fee(fees['licence'])
-    application.save()
+    # application.save()
     logger.debug('service.do_update_dynamic_attributes() - end')
 
 

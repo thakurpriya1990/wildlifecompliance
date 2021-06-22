@@ -1833,13 +1833,28 @@ export default {
             this.isofficerfinalisation = false;
 
             this.condition_spinner = true;
+            this.spinner = true;
             let is_saved = false;
             
-            if (this.canRequestAmendment) {
+            // if (this.canRequestAmendment) {
 
-                is_saved = await this.save_wo();
+            //     is_saved = await this.save_wo();
 
-            } else {
+            // } else {
+
+            //     let authorised = this.canAssignOfficerFor(this.selectedActivity.licence_activity);
+            //     let workflow = ['with_officer'].includes(this.selectedActivity.processing_status.id)
+            //     if (authorised && workflow) {
+            //         this.setLicenceTypeData({'licence_activity_id' : this.selectedActivity.licence_activity, 'workflow': 'assess'})
+            //     } 
+            //     this.condition_spinner = false;
+            //     $('#tabs-main li').removeClass('active');
+            //     this.isSendingToAssessor = !this.isSendingToAssessor;
+            //     this.showingApplication = false;
+            // }
+
+
+            if (!this.canRequestAmendment) {
 
                 let authorised = this.canAssignOfficerFor(this.selectedActivity.licence_activity);
                 let workflow = ['with_officer'].includes(this.selectedActivity.processing_status.id)
@@ -1850,11 +1865,11 @@ export default {
                 $('#tabs-main li').removeClass('active');
                 this.isSendingToAssessor = !this.isSendingToAssessor;
                 this.showingApplication = false;
-            }           
+            } else {    
 
-            if (is_saved) {
+            // if (is_saved) {
 
-                await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data.json` }).then( async response => {
+                await this.assessmentData({ url: `/api/application/${this.application.id}/assessment_data_and_save.json` }).then( async response => {
                     this.condition_spinner = false;
                     this.spinner = false;   
                     // $('#tabs-main li').removeClass('active');

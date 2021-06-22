@@ -1598,6 +1598,97 @@ class ApplicationViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
+    def assessment_data_and_save(self, request, *args, **kwargs):
+        '''
+        Process assessment data for officer management by setting the workflow
+        status to Officer with Conditions.
+
+        NOTE: there is no check whether user has correct privileges.
+
+        :param __assess is a boolean indicating whether assessing or viewing.
+        :param __licence_activity is Licence Activity identifier.
+
+        :return updated instance.licence_type_data property.
+        '''
+        logger.debug('assessment_data_and_save()')
+        STAT = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
+        correct_status = [
+            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER,
+        ]
+        try:
+            instance = self.get_object()
+            assess = request.data.pop('__assess', False)
+            licence_activity_id = request.data.pop('__licence_activity', None)
+            is_submit = self.request.data.pop('__submit', False)
+
+            if is_submit:
+                action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT
+            else:
+                action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE
+
+            with transaction.atomic():
+
+                ApplicationService.process_form(
+                    request,
+                    instance,
+                    request.data,
+                    action=action
+                )
+
+                is_initial_assess = instance.get_property_cache_assess()
+                if assess or is_initial_assess:
+
+                    checkbox = CheckboxAndRadioButtonVisitor(
+                        instance, request.data
+                    )
+                    # Set StandardCondition Fields.
+                    for_condition_fields = StandardConditionFieldElement()
+                    for_condition_fields.accept(checkbox)
+
+                    # Set PromptInspection Fields.
+                    for_inspection_fields = PromptInspectionFieldElement()
+                    for_inspection_fields.accept(checkbox)
+
+                    if is_initial_assess:
+                        instance.set_property_cache_assess(False)
+
+                selected_activity = instance.get_selected_activity(
+                    licence_activity_id
+                )
+                if selected_activity.processing_status in correct_status:
+                    instance.set_activity_processing_status(
+                        licence_activity_id,
+                        STAT,
+                    )
+
+                instance.save()
+                instance.log_user_action(
+                    ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
+                        instance.lodgement_number
+                    ), request)
+
+            logger.debug('assessment_data_and_save() - response success')
+
+            serializer = InternalApplicationSerializer(
+                instance,
+                context={'request': request}
+            )
+            response = Response(serializer.data)
+            return response
+
+        except MissingFieldsException as e:
+            return Response({
+                'missing': e.error_list},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+        raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
     def assessment_data(self, request, *args, **kwargs):
         '''
         Process assessment data for officer management by setting the workflow
@@ -1775,6 +1866,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     request.data,
                     action=ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT
                 )
+                instance.save()
 
             return Response({'success': True})
         except Exception as e:
@@ -1801,7 +1893,7 @@ class ApplicationViewSet(viewsets.ModelViewSet):
                     request.data,
                     action=action
                 )
-
+                instance.save()
                 instance.log_user_action(
                     ApplicationUserAction.ACTION_SAVE_APPLICATION.format(
                         instance.lodgement_number
