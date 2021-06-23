@@ -121,7 +121,7 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
                 {'id': Application.PROCESSING_STATUS_DRAFT, 'name': N1},
                 {'id': Application.PROCESSING_STATUS_UNDER_REVIEW, 'name': N2},
                 {'id': Application.PROCESSING_STATUS_AWAITING_PAYMENT, 'name': N3},
-                {'id': Application.PROCESSING_STATUS_APPROVED, 'name': N4},
+                {'id': Application.CUSTOMER_STATUS_ACCEPTED, 'name': N4},
                 {'id': Application.PROCESSING_STATUS_PARTIALLY_APPROVED, 'name': N5},
                 {'id': Application.PROCESSING_STATUS_DECLINED, 'name': N6},
                 {'id': Application.PROCESSING_STATUS_DISCARDED, 'name': N7},
