@@ -3511,7 +3511,8 @@ class Application(RevisionedMixin):
                         # for issuing.
                         P_LOG = ApplicationUserAction.ACTION_ISSUE_LICENCE_
                         if purpose.purpose_id in issue_ids:
-                            today = timezone.now()
+                            # today = timezone.now()
+                            today = timezone.localtime(timezone.now())
                             purpose.processing_status = ISSUE
                             purpose.issue_date = today
                             purpose.original_issue_date = today \
