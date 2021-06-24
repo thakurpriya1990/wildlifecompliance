@@ -336,7 +336,16 @@ class ReturnService(object):
         verified = []
         today_plus_7 = date.today() + timedelta(days=DUE_DAYS)
         today = date.today()
-        due_returns = Return.objects.filter(
+
+        all_returns = Return.objects.filter(
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE,
+            ]
+        )
+
+        due_returns = all_returns.filter(
             due_date__range=[today, today_plus_7],
             processing_status__in=[
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
@@ -362,16 +371,33 @@ class ReturnService(object):
             a_return.set_processing_status(status)
             verified.append(a_return)
 
-        overdue_returns = Return.objects.filter(
+        overdue_returns = all_returns.filter(
             due_date__lt=today,
             processing_status__in=[
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
                 Return.RETURN_PROCESSING_STATUS_FUTURE,
                 Return.RETURN_PROCESSING_STATUS_DUE
             ]
+        ).exclude(
+            return_type__data_format=ReturnType.FORMAT_SHEET
         )
         status = Return.RETURN_PROCESSING_STATUS_OVERDUE
         for a_return in overdue_returns:
+            if not for_all and not a_return.id == id:
+                continue
+            a_return.set_processing_status(status)
+
+        expired_returns = all_returns.filter(
+            due_date__lt=today,
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE
+            ],
+            return_type__data_format=ReturnType.FORMAT_SHEET
+        )
+        status = Return.RETURN_PROCESSING_STATUS_EXPIRED
+        for a_return in expired_returns:
             if not for_all and not a_return.id == id:
                 continue
             a_return.set_processing_status(status)
