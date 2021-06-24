@@ -1466,6 +1466,8 @@ class ReturnData(object):
         :param post_data:
         :return:
         """
+        from django.utils.datastructures import MultiValueDictKeyError
+
         table_namespace = table_name + '::'
         by_column = dict([(key.replace(table_namespace, ''), post_data.getlist(
             key)) for key in post_data.keys() if key.startswith(
@@ -1488,7 +1490,11 @@ class ReturnData(object):
                     break
             if not is_empty:
                 deficiency_data = post_data['table_name'] + '-deficiency-field'
-                row_data[deficiency_data] = post_data[deficiency_data]
+                try:
+                    # test if deficiency exists and include in row_data.
+                    row_data[deficiency_data] = post_data[deficiency_data]
+                except MultiValueDictKeyError:
+                    pass
                 rows.append(row_data)
         return rows
 
