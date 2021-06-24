@@ -19,6 +19,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 
+from django.utils import timezone
 from django.core.files import File
 from django.conf import settings
 
@@ -337,8 +338,11 @@ def _create_licence(licence_buffer, licence, application):
                 'Date of Issue', styles['BoldLeft']), Paragraph(
                 'Date Valid From', styles['BoldLeft']), Paragraph(
                 'Date of Expiry', styles['BoldLeft'])]
+
+        ltz = timezone.get_current_timezone()
+        issue_date = ltz.normalize(issued_purpose.issue_date.astimezone(ltz))
         date_values = [
-            Paragraph(issued_purpose.issue_date.strftime('%d/%m/%Y'),
+            Paragraph(issue_date.strftime('%d/%m/%Y'),
                       styles['Left']),
             Paragraph(issued_purpose.start_date.strftime('%d/%m/%Y'),
                       styles['Left']),
