@@ -342,6 +342,7 @@ class ReturnService(object):
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
                 Return.RETURN_PROCESSING_STATUS_FUTURE,
                 Return.RETURN_PROCESSING_STATUS_DUE,
+                Return.RETURN_PROCESSING_STATUS_OVERDUE,
             ]
         )
 
@@ -392,7 +393,8 @@ class ReturnService(object):
             processing_status__in=[
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
                 Return.RETURN_PROCESSING_STATUS_FUTURE,
-                Return.RETURN_PROCESSING_STATUS_DUE
+                Return.RETURN_PROCESSING_STATUS_DUE,
+                Return.RETURN_PROCESSING_STATUS_OVERDUE,
             ],
             return_type__data_format=ReturnType.FORMAT_SHEET
         )
