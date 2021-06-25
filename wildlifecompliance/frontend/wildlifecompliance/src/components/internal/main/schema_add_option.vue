@@ -23,7 +23,8 @@
                             <label>{{a.label}}</label>
                         </div>
                         <div class="col-md-6" v-if="canAddMore">
-                            <button v-if="canAddMore && aidx===0" class="btn btn-link pull-right" :name="`select_option_link_1`" @click.prevent="addOption()">[ Add Another ]</button>
+                            <a v-if="aidx!==0" class="delete-icon fa fa-trash-o" style="cursor: pointer; color:red;" title="Delete row" @click.prevent="removeOption(aidx)"></a>
+                            <button v-if="aidx===0" class="btn btn-link pull-right" :name="`select_option_link_1`" @click.prevent="addOption()">[ Add Another ]</button>
                         </div>
                         <div class="col-md-6" v-else>
                             <div v-for="(c, cid) in a.conditions" v-bind:key="`condition_${cid}`" >
@@ -94,6 +95,9 @@ export default {
                 this.checkedConditions.push(checked)
             }
             return checked;
+        },
+        removeOption: function(id=0) {
+            this.addedOptions.splice(id, 1)
         },
     },
 }

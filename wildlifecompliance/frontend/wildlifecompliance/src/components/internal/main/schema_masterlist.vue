@@ -242,6 +242,7 @@ export default {
                 label: '',
                 value: '',
             },
+            isNewEntry: false,
         }
 
     },
@@ -268,7 +269,7 @@ export default {
             this.showOptions = q_type && option.includes(q_type.value) ? true : false
             this.showTables = q_type && table.includes(q_type.value) ? true : false
 
-            if (this.showOptions) {
+            if (this.showOptions && this.isNewEntry) {
                 this.addedOption.id = ''
                 this.addedOption.label = ''
                 this.addedOption.value = ''
@@ -276,7 +277,7 @@ export default {
                 this.addedOptions.push(newOption);          
             }
 
-            if (this.showTables) {
+            if (this.showTables && this.isNewEntry) {
                 let newHeader = Object.assign(this.addedHeader)
                 this.addedHeaders.push(newHeader);
                 let newExpander = Object.assign(this.addedExpander)
@@ -347,8 +348,10 @@ export default {
                 });
 
             }
+            this.isNewEntry = false;
         },
         addTableEntry: function() {
+            this.isNewEntry = true;
             this.masterlist.answer_type = '';
             this.masterlist.question = '';
             this.masterlist.id = '';
@@ -364,6 +367,7 @@ export default {
 
             self.$refs.schema_masterlist_table.vmDataTable.on('click','.edit-row', function(e) {
                 e.preventDefault();
+                self.isNewEntry = false;
                 self.$refs.schema_masterlist_table.row_of_data = self.$refs.schema_masterlist_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
 
                 self.masterlist.id = self.$refs.schema_masterlist_table.row_of_data.data().id;

@@ -160,7 +160,7 @@
                         </div>
                         <div class="col-md-9">
                             <select class="form-control" ref="select_parent" name="select-parent" v-if="filterQuestionParent(sectionQuestion.parent_question)" v-model="sectionQuestion.parent_question" >
-                                <option value="0"></option>
+                                <option value=""></option>
                                 <option v-for="(qp, qpid) in parentList" :value="qp.value" v-bind:key="`qparent_${qpid}`" >{{qp.label}}</option>
                             </select>                            
                         </div>
@@ -171,7 +171,7 @@
                         </div>
                         <div class="col-md-3">
                             <select class="form-control" ref="select_answer" name="select-answer" v-model="sectionQuestion.parent_answer" >
-                                <option value="0"></option>
+                                <option value=""></option>
                                 <option v-for="(an,anid) in answerList" :value="an.value" v-bind:key="`an_${anid}`">{{an.label}}</option>
                             </select>                            
                         </div>
@@ -182,7 +182,7 @@
                         </div>
                         <div class="col-md-6" >
                             <select class="form-control" ref="select_groupp" name="select-groupp" v-if="filterQuestionGroup(sectionQuestion.section_group)" v-model="sectionQuestion.section_group">
-                                <option value="0"></option>
+                                <option value=""></option>
                                 <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`g_${gid}`" >{{g.label}}</option>
                             </select>                            
                         </div>

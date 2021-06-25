@@ -270,7 +270,8 @@ class LicenceSchemaUtility(LicenceUtility):
                     }
 
                     # check for Section Groupings.
-                    if q.section_group and q.section_group not in option_groupings:
+                    if q.section_group \
+                            and q.section_group not in option_groupings:
 
                         q_group_children = self.get_group_children2(
                             q, section, question_name)
@@ -938,6 +939,7 @@ class LicenceSchemaUtility(LicenceUtility):
         schema = []
         special_types = ['checkbox', ]
         select_types = ['select', 'multi-select']
+        expander_types = ['expander_table']
         declaration = ['declaration']
 
         # 'isRequired' tag for following types is added to first option dict
@@ -993,16 +995,32 @@ class LicenceSchemaUtility(LicenceUtility):
 
                         groupings.append(sq.section_group)
 
+                    elif sq.question.answer_type in expander_types:
+
+                        sc['label'] = ''
+
+                        q_header_children = self.get_header_children2(
+                            sq, sq.question, section, sq_name
+                        )
+                        sc['header'] = q_header_children
+
+                        q_expander_children = self.get_expander_children2(
+                            sq, sq.question, section, sq_name
+                        )
+
+                        if q_expander_children:
+                            sc['expander'] = q_expander_children
+
                     elif sq.question.answer_type in declaration:
 
                         sc['type'] = 'checkbox'
 
                     elif sq.question.answer_type in special_types:
 
-                        sq_option_children = self.get_checkbox_option_children2(
+                        sq_opt_children = self.get_checkbox_option_children2(
                             sq, sq.question, section, sq_name)
 
-                        sc['children'] = sq_option_children
+                        sc['children'] = sq_opt_children
                         sc['type'] = 'group'
 
                     elif sq.question.answer_type in select_types:
