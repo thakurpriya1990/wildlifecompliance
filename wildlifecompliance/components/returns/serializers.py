@@ -301,10 +301,11 @@ class ReturnSerializer(serializers.ModelSerializer):
         :param _return: Return instance.
         :return: list of ReturnRequest.
         '''
-        requests = None
-        requests = ReturnRequest.objects.filter(
+        requests = []
+        request = ReturnRequest.objects.filter(
             application_id=_return.application_id
-        )
+        ).order_by('-id').first()
+        requests.append(request)
 
         return ReturnRequestSerializer(requests, many=True).data
 

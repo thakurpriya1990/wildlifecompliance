@@ -133,7 +133,14 @@ export default {
     if (this.returns.format != 'sheet') { // Return Running Sheet checks 'internal' for read-only.
       var headers = this.returns.table[0]['headers']
       for(let i = 0; i<headers.length; i++) {
-        headers[i]['readonly'] = !this.is_external || !['Draft', 'Due', 'Overdue'].includes(this.returns.processing_status)
+        if (this.is_external) {
+
+          headers[i]['readonly'] = !['Draft', 'Due', 'Overdue'].includes(this.returns.processing_status)
+
+        } else {
+
+          headers[i]['readonly'] = !['With Curator'].includes(this.returns.processing_status)
+        }
       }
       this.setReturns(this.returns);
     }

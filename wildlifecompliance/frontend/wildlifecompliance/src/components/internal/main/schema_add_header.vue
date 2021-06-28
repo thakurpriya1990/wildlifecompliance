@@ -25,6 +25,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
+                            <a v-if="hidx!==0" class="delete-icon fa fa-trash-o" style="cursor: pointer; color:red;" title="Delete row" @click.prevent="removeHeader(hidx)"></a>
                             <button v-if="hidx===0" class="btn btn-link pull-right" :name="`add_header_link_1`" @click.prevent="addHeader()">[ Add Another ]</button>
                         </div>
                     </div>
@@ -56,7 +57,13 @@ export default {
     },
     methods: {
         addHeader: function() {
-            this.addedHeaders.push(Object.assign(this.addedHeader))
+            const newHeader = Object();
+            newHeader.label = '';
+            newHeader.value = '';
+            this.addedHeaders.push(newHeader)
+        },
+        removeHeader: function(id=0) {
+            this.addedHeaders.splice(id, 1)
         },
     },
 }

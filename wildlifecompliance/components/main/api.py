@@ -303,8 +303,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
 
                 options = request.data.get('options', None)
-                option_labels = [o['label'] for o in options]
-                instance.set_property_cache_options(option_labels)
+                instance.set_property_cache_options(options)
 
                 headers = request.data.get('headers', None)
                 instance.set_property_cache_headers(headers)
