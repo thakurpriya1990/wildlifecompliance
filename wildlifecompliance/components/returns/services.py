@@ -402,6 +402,19 @@ class ReturnService(object):
         for a_return in expired_returns:
             if not for_all and not a_return.id == id:
                 continue
+            # Expired Running Sheets have a 14 day grace period before the
+            # status changes to Expired. Allows for final updates when not
+            # renewing.
+            # NOTE: At renewal the stock totals are aggregated for the newly
+            # generated return. The old one is then discarded.
+            expired_date = a_return.due_date + timedelta(days=14)
+            expired_plus_14 = [
+                a_return.due_date + datetime.timedelta(n)
+                for n in range(int((expired_date - a_return.due_date).days))
+            ]
+            if today in expired_plus_14:
+                continue
+
             a_return.set_processing_status(status)
 
         return verified
