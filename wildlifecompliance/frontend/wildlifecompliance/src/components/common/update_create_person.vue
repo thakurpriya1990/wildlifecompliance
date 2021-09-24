@@ -92,7 +92,7 @@
                         <div class="col-sm-4">
                             <div v-if="email_user"><div>
                                 <select :disabled="!isEditable" class="form-control" name="country" v-model="email_user.residential_address.country" v-bind:key="email_user.residential_address.id">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                 </select>
                             </div></div>
                         </div>
