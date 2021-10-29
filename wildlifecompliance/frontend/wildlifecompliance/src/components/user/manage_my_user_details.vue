@@ -143,7 +143,7 @@
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
                                 <select class="form-control" name="country" v-model="current_user.residential_address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="c.alpha2Code">{{ c.name }}</option>
+                                    <option v-for="c in countries" :value="c.code" v-bind:key="c.code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>

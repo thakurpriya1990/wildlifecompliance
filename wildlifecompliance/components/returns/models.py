@@ -201,6 +201,7 @@ class Return(models.Model):
     RETURN_PROCESSING_STATUS_ACCEPTED = 'accepted'
     RETURN_PROCESSING_STATUS_PAYMENT = 'payment'
     RETURN_PROCESSING_STATUS_DISCARDED = 'discarded'
+    RETURN_PROCESSING_STATUS_EXPIRED = 'expired'
     PROCESSING_STATUS_CHOICES = (
         (RETURN_PROCESSING_STATUS_DUE, 'Due'),
         (RETURN_PROCESSING_STATUS_OVERDUE, 'Overdue'),
@@ -210,6 +211,7 @@ class Return(models.Model):
         (RETURN_PROCESSING_STATUS_ACCEPTED, 'Accepted'),
         (RETURN_PROCESSING_STATUS_PAYMENT, 'Awaiting Payment'),
         (RETURN_PROCESSING_STATUS_DISCARDED, 'Discarded'),
+        (RETURN_PROCESSING_STATUS_EXPIRED, 'Expired'),
     )
 
     RETURN_CUSTOMER_STATUS_DUE = 'due'
@@ -220,6 +222,7 @@ class Return(models.Model):
     RETURN_CUSTOMER_STATUS_ACCEPTED = 'accepted'
     RETURN_CUSTOMER_STATUS_DISCARDED = 'discarded'
     RETURN_CUSTOMER_STATUS_PAYMENT = 'payment'
+    RETURN_CUSTOMER_STATUS_EXPIRED = 'expired'
 
     # Displayable choices for customer status.
     CUSTOMER_DISPLAYABLE_STATE = {
@@ -231,6 +234,7 @@ class Return(models.Model):
         RETURN_CUSTOMER_STATUS_ACCEPTED: 'Accepted',
         RETURN_CUSTOMER_STATUS_DISCARDED: 'Discarded',
         RETURN_CUSTOMER_STATUS_PAYMENT: 'Awaiting Payment',
+        RETURN_CUSTOMER_STATUS_EXPIRED: 'Expired',
     }
 
     # status that allow a customer to edit a Return.
@@ -243,7 +247,8 @@ class Return(models.Model):
     # (read-only)
     CUSTOMER_VIEWABLE_STATE = [
         RETURN_PROCESSING_STATUS_WITH_CURATOR,
-        RETURN_PROCESSING_STATUS_ACCEPTED
+        RETURN_PROCESSING_STATUS_ACCEPTED,
+        RETURN_PROCESSING_STATUS_EXPIRED,
     ]
 
     lodgement_number = models.CharField(
@@ -412,6 +417,7 @@ class Return(models.Model):
         UNDER_REVIEW = self.RETURN_CUSTOMER_STATUS_UNDER_REVIEW
         ACCEPTED = self.RETURN_CUSTOMER_STATUS_ACCEPTED
         DISCARDED = self.RETURN_CUSTOMER_STATUS_DISCARDED
+        EXPIRED = self.RETURN_CUSTOMER_STATUS_EXPIRED
 
         workflow_mapper = {
             self.RETURN_PROCESSING_STATUS_DUE: DUE,
@@ -422,6 +428,7 @@ class Return(models.Model):
             self.RETURN_PROCESSING_STATUS_ACCEPTED: ACCEPTED,
             self.RETURN_PROCESSING_STATUS_PAYMENT: UNDER_REVIEW,
             self.RETURN_PROCESSING_STATUS_DISCARDED: DISCARDED,
+            self.RETURN_PROCESSING_STATUS_EXPIRED: EXPIRED,
         }
 
         return workflow_mapper.get(self.processing_status, FUTURE)

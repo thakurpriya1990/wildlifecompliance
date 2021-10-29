@@ -2522,6 +2522,71 @@ class Application(RevisionedMixin):
         logger.debug('Application.data()')
         return self.form_data_records.all()
 
+    def get_property_cache_data(self):
+        '''
+        Getter for form_data_records on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        form_data_records = []
+        try:
+
+            form_data_records = self.property_cache['form_data_records']
+
+        except KeyError:
+            pass
+
+        return form_data_records
+
+    def set_property_cache_data(self, form_data_records):
+        '''
+        Setter for form_data_records on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        '''
+        class FormDataRecordEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, list):
+                    form_data_records = []
+                    for o in obj:
+                        record = {
+                            'field_name': o.field_name,
+                            'value': o.value,
+                            'officer_comment': o.officer_comment,
+                            'assessor_comment': o.assessor_comment,
+                            'deficiency': o.deficiency,
+                        }
+                        form_data_records.append(record)
+                    return form_data_records
+
+            def encode_list(self, obj, iter=None):
+                if isinstance(obj, (list)):
+                    return self.default(obj)
+                else:
+                    return super(
+                        FormDataRecordEncoder, self).encode_list(obj, iter)
+
+        if self.id and isinstance(form_data_records, QuerySet):
+            form_data_records = [
+                { 
+                    'field_name': r.field_name,
+                    'value': r.value,
+                    'officer_comment': r.officer_comment,
+                    'assessor_comment': r.assessor_comment,
+                    'deficiency': r.deficiency,
+                } for r in form_data_records
+            ]
+
+        if not isinstance(form_data_records, list) and self.id:
+            logger.warn('{0} - Application: {1}'.format(
+                'set_property_cache_form_data_records() NOT LIST', self.id))
+            return
+
+        if self.id:
+            data = FormDataRecordEncoder().encode_list(form_data_records)
+            self.property_cache['form_data_records'] = data
+
     @property
     def activities(self):
         '''
@@ -3446,7 +3511,8 @@ class Application(RevisionedMixin):
                         # for issuing.
                         P_LOG = ApplicationUserAction.ACTION_ISSUE_LICENCE_
                         if purpose.purpose_id in issue_ids:
-                            today = timezone.now()
+                            # today = timezone.now()
+                            today = timezone.localtime(timezone.now())
                             purpose.processing_status = ISSUE
                             purpose.issue_date = today
                             purpose.original_issue_date = today \
@@ -6219,6 +6285,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         Property indicating the payment status for the last invoice to be paid
         on the selected activity.
         '''
+        logger.debug('AppSelectedActivityPurpose.payment_status() - start')
         def check_payment_status_for_licence(_status):
             '''
             Check licence and application fee has been paid with the latest
@@ -6306,6 +6373,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
         if status not in paid_status:
             return status
 
+        logger.debug('AppSelectedActivityPurpose.payment_status() - end')
         return status
 
     @property
@@ -6938,9 +7006,6 @@ class ApplicationStandardCondition(RevisionedMixin):
     obsolete = models.BooleanField(default=False)
     return_type = models.ForeignKey(
         'wildlifecompliance.ReturnType', null=True, blank=True)
-    #additional_information = models.TextField(max_length=1024, null=True, blank=True)
-    additional_information = RichTextField(config_name='pdf_config', null=True, blank=True)
-        
 
     def __str__(self):
         return self.code
@@ -7182,8 +7247,8 @@ reversion.register(
     follow=[
         'selected_activities',
         'invoices',
-        'form_data_records',
-        'conditions',
+        # 'form_data_records',
+        # 'conditions',
         'previous_application',
         'licence_document',
         'licence',

@@ -10,6 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser, Address, Profile, EmailIdentity, EmailUserAction
 from django.contrib.auth.models import Permission, ContentType
 from datetime import datetime
+from django_countries import countries
 from wildlifecompliance.components.applications.models import Application
 from wildlifecompliance.components.applications.email import send_id_updated_notification
 from wildlifecompliance.components.call_email.serializers import SaveEmailUserSerializer, SaveUserAddressSerializer
@@ -70,6 +71,15 @@ def generate_dummy_email(first_name, last_name):
     email_address = re.sub(r'\.+', '.', email_address)
     email_address = re.sub(r'\s+', '_', email_address)
     return email_address
+
+
+class GetCountries(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        country_list = []
+        for country in list(countries):
+            country_list.append({"name": country.name, "code": country.code})
+        return Response(country_list)
 
 
 class DepartmentUserList(views.APIView):

@@ -336,7 +336,17 @@ class ReturnService(object):
         verified = []
         today_plus_7 = date.today() + timedelta(days=DUE_DAYS)
         today = date.today()
-        due_returns = Return.objects.filter(
+
+        all_returns = Return.objects.filter(
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE,
+                Return.RETURN_PROCESSING_STATUS_OVERDUE,
+            ]
+        )
+
+        due_returns = all_returns.filter(
             due_date__range=[today, today_plus_7],
             processing_status__in=[
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
@@ -362,18 +372,49 @@ class ReturnService(object):
             a_return.set_processing_status(status)
             verified.append(a_return)
 
-        overdue_returns = Return.objects.filter(
+        overdue_returns = all_returns.filter(
             due_date__lt=today,
             processing_status__in=[
                 Return.RETURN_PROCESSING_STATUS_DRAFT,
                 Return.RETURN_PROCESSING_STATUS_FUTURE,
                 Return.RETURN_PROCESSING_STATUS_DUE
             ]
+        ).exclude(
+            return_type__data_format=ReturnType.FORMAT_SHEET
         )
         status = Return.RETURN_PROCESSING_STATUS_OVERDUE
         for a_return in overdue_returns:
             if not for_all and not a_return.id == id:
                 continue
+            a_return.set_processing_status(status)
+
+        expired_returns = all_returns.filter(
+            due_date__lt=today,
+            processing_status__in=[
+                Return.RETURN_PROCESSING_STATUS_DRAFT,
+                Return.RETURN_PROCESSING_STATUS_FUTURE,
+                Return.RETURN_PROCESSING_STATUS_DUE,
+                Return.RETURN_PROCESSING_STATUS_OVERDUE,
+            ],
+            return_type__data_format=ReturnType.FORMAT_SHEET
+        )
+        status = Return.RETURN_PROCESSING_STATUS_EXPIRED
+        for a_return in expired_returns:
+            if not for_all and not a_return.id == id:
+                continue
+            # Expired Running Sheets have a 14 day grace period before the
+            # status changes to Expired. Allows for final updates when not
+            # renewing.
+            # NOTE: At renewal the stock totals are aggregated for the newly
+            # generated return. The old one is then discarded.
+            expired_date = a_return.due_date + timedelta(days=14)
+            expired_plus_14 = [
+                a_return.due_date + datetime.timedelta(n)
+                for n in range(int((expired_date - a_return.due_date).days))
+            ]
+            if today in expired_plus_14:
+                continue
+
             a_return.set_processing_status(status)
 
         return verified
@@ -1288,7 +1329,7 @@ class ReturnData(object):
                     table_info, data)
                 if self.requires_species():
                     table_info = self._species
-                    table_rows = None       # Don't save - already done.
+                    # table_rows = None
                 if table_rows:
                     self._return.save_return_table(
                         table_info, table_rows, request)
@@ -1466,6 +1507,8 @@ class ReturnData(object):
         :param post_data:
         :return:
         """
+        from django.utils.datastructures import MultiValueDictKeyError
+
         table_namespace = table_name + '::'
         by_column = dict([(key.replace(table_namespace, ''), post_data.getlist(
             key)) for key in post_data.keys() if key.startswith(
@@ -1488,7 +1531,11 @@ class ReturnData(object):
                     break
             if not is_empty:
                 deficiency_data = post_data['table_name'] + '-deficiency-field'
-                row_data[deficiency_data] = post_data[deficiency_data]
+                try:
+                    # test if deficiency exists and include in row_data.
+                    row_data[deficiency_data] = post_data[deficiency_data]
+                except MultiValueDictKeyError:
+                    pass
                 rows.append(row_data)
         return rows
 
