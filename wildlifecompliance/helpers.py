@@ -161,12 +161,14 @@ def is_officer(request):
         request.user, licence_officer_groups) or request.user.is_superuser)
 
 def prefer_compliance_management(request):
+    ret_value = False
+
     if request.user.is_authenticated():
         preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
         if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
-            return True
-    else:
-        return False
+            ret_value = True
+
+    return ret_value
 
 def is_compliance_internal_user(request):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
@@ -182,7 +184,7 @@ def is_compliance_internal_user(request):
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group) or request.user.is_superuser)
+    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(

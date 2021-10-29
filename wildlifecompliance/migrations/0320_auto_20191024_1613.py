@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
             name='PenaltyAmount',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.DecimalField(decimal_places=2, default=b'0.00', max_digits=8)),
+                ('amount', models.DecimalField(decimal_places=2, default=str(b'0.00', 'utf-8'), max_digits=8)),
                 ('date_of_enforcement', models.DateField(blank=True, null=True)),
                 ('time_of_enforcement', models.DateField(blank=True, null=True)),
                 ('section_regulation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='penalty_amounts', to='wildlifecompliance.SectionRegulation')),
@@ -31,6 +31,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='sanctionoutcome',
             name='penalty_amount',
-            field=models.DecimalField(decimal_places=2, default=b'0.00', max_digits=8),
+            field=models.DecimalField(decimal_places=2, default=str(b'0.00', 'utf-8'), max_digits=8),
         ),
     ]

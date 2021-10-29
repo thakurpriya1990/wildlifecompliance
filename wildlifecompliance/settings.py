@@ -272,6 +272,20 @@ TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
 TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '02:05')
 
+if env('CONSOLE_EMAIL_BACKEND', False):
+   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # if DEBUG:
 #     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #
+
+SO_TYPE_INFRINGEMENT_NOTICE = 'infringement_notice'
+SO_TYPE_CAUTION_NOTICE = 'caution_notice'
+SO_TYPE_LETTER_OF_ADVICE = 'letter_of_advice'
+SO_TYPE_REMEDIATION_NOTICE = 'remediation_notice'
+
+SO_TYPE_CHOICES = (
+    (SO_TYPE_INFRINGEMENT_NOTICE, 'Infringement Notice'),
+    (SO_TYPE_CAUTION_NOTICE, 'Caution Notice'),
+    (SO_TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
+    (SO_TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
+)

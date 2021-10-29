@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Remediation Action Accepted blah-blah-blah...:
+        Remediation Action Accepted
 
         Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
 

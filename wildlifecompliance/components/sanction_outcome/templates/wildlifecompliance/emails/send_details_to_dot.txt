@@ -1,7 +1,7 @@
 {%  extends 'wildlifecompliance/emails/base_email.txt' %}
 
 {%  block content %}
-        Infringement Notice blah-blah-blah...:
+        Infringement Notice
 
         Sanction Outcome : <a href="{{url}}">{{ sanction_outcome.lodgement_number }}</a>
 
