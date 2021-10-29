@@ -187,6 +187,20 @@ LOGGING['loggers']['application_checkout'] = {
     'handlers': ['application_checkout'],
     'level': 'INFO'
 }
+# Additional logging for securebase manager.
+LOGGING['handlers']['securebase_manager'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(
+        BASE_DIR,
+        'logs',
+        'securebase_manager.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880}
+LOGGING['loggers']['securebase_manager'] = {
+    'handlers': ['securebase_manager'],
+    'level': 'INFO'
+}
 # # Additional logging for compliancemanagement
 # LOGGING['handlers']['compliancemanagement'] = {
 #     'level': 'INFO',
@@ -242,8 +256,9 @@ DEP_NAME = env(
 DEPT_DOMAINS = env('DEPT_DOMAINS', ['dpaw.wa.gov.au', 'dbca.wa.gov.au'])
 SITE_PREFIX = env('SITE_PREFIX')
 SITE_DOMAIN = env('SITE_DOMAIN')
-GROUP_PREFIX = env('GROUP_PREFIX', 'Wildlife Compliance')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
+SITE_URL_WLC = env('SITE_URL_WLC')
+GROUP_PREFIX = env('GROUP_PREFIX', 'Wildlife Compliance')
 EXT_USER_API_ROOT_URL = env('EXT_USER_API_ROOT_URL', None)
 EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
@@ -257,6 +272,20 @@ TSC_URL = env('TSC_URL', 'https://tsc.dbca.wa.gov.au')
 TSC_AUTH = env('TSC_AUTH', 'NO_AUTH')
 CRON_RUN_AT_TIMES = env('CRON_RUN_AT_TIMES', '02:05')
 
+if env('CONSOLE_EMAIL_BACKEND', False):
+   EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # if DEBUG:
 #     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 #
+
+SO_TYPE_INFRINGEMENT_NOTICE = 'infringement_notice'
+SO_TYPE_CAUTION_NOTICE = 'caution_notice'
+SO_TYPE_LETTER_OF_ADVICE = 'letter_of_advice'
+SO_TYPE_REMEDIATION_NOTICE = 'remediation_notice'
+
+SO_TYPE_CHOICES = (
+    (SO_TYPE_INFRINGEMENT_NOTICE, 'Infringement Notice'),
+    (SO_TYPE_CAUTION_NOTICE, 'Caution Notice'),
+    (SO_TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
+    (SO_TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
+)

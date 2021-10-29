@@ -18,6 +18,29 @@ BASIC_AUTH = env('BASIC_AUTH', False)
 logger = logging.getLogger(__name__)
 # logger = logging
 
+def is_new_to_wildlifelicensing(request=None):
+    '''
+    Verify request user holds minimum details to use Wildlife Licensing.
+    '''
+    from wildlifecompliance.management.securebase_manager import (
+        SecureBaseUtils
+    )
+
+    has_user_details = True if request.user.first_name \
+        and request.user.last_name \
+        and request.user.dob \
+        and request.user.residential_address \
+        and (request.user.phone_number or request.user.mobile_number) \
+        and request.user.identification else False
+
+    if not SecureBaseUtils.is_wildlifelicensing_request(request):
+         has_user_details = True
+
+    if is_internal(request):
+        has_user_details = True
+
+    return not has_user_details
+
 def belongs_to(user, group_name):
     """
     Check if the user belongs to the given group.
@@ -138,12 +161,14 @@ def is_officer(request):
         request.user, licence_officer_groups) or request.user.is_superuser)
 
 def prefer_compliance_management(request):
+    ret_value = False
+
     if request.user.is_authenticated():
         preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
         if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
-            return True
-    else:
-        return False
+            ret_value = True
+
+    return ret_value
 
 def is_compliance_internal_user(request):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
@@ -159,7 +184,7 @@ def is_compliance_internal_user(request):
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group) or request.user.is_superuser)
+    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(

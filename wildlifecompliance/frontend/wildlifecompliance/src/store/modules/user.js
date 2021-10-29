@@ -7,7 +7,9 @@ from '@/utils/hooks';
 import {
     UPDATE_SELECTED_TAB_ID,
     UPDATE_SELECTED_TAB_NAME,
+    UPDATE_SELECTED_TAB_WORKFLOW_STATE,
     UPDATE_CURRENT_USER,
+    UPDATE_CURRENT_USER_ID,
     UPDATE_SELECTED_APPLY_ORG_ID,
     UPDATE_SELECTED_APPLY_PROXY_ID,
     UPDATE_SELECTED_APPLY_LICENCE_SELECT,
@@ -19,19 +21,23 @@ export const userStore = {
     state: {
         selected_activity_tab_id: 0,
         selected_activity_tab_name: '',
+        selected_activity_tab_workflow_state: [],
         selected_apply_org_id: null,
         selected_apply_proxy_id: null,
         selected_apply_licence_select: null,
         application_workflow_state: false,
         current_user: {},
         reception_method_id: null,
+        current_user_id: true,
         
     },
     getters: {
         current_user: state => state.current_user,
+        current_user_id: state => state.current_user_id,
         compliance_allocated_group: state => state.compliance_allocated_group,
         selected_activity_tab_id: state => state.selected_activity_tab_id,
         selected_activity_tab_name: state => state.selected_activity_tab_name,
+        selected_activity_tab_workflow_state: state => state.selected_activity_tab_workflow_state,
         selected_apply_org_id: state => state.selected_apply_org_id,
         selected_apply_proxy_id: state => state.selected_apply_proxy_id,
         selected_apply_licence_select: state => state.selected_apply_licence_select,
@@ -165,6 +171,12 @@ export const userStore = {
                     });
             });                    
         },
+        isIdentifiedUser: (state, getters) => {
+            return getters.current_user_id;
+        },
+        hasCurrentLicence: (state, getters, rootState, rootGetters) => {
+            return rootGetters.application.on_active_licence;
+        },
     },
     mutations: {
         [UPDATE_SELECTED_TAB_ID] (state, tab_id) {
@@ -173,8 +185,14 @@ export const userStore = {
         [UPDATE_SELECTED_TAB_NAME] (state, tab_name) {
             state.selected_activity_tab_name = tab_name;
         },
+        [UPDATE_SELECTED_TAB_WORKFLOW_STATE] (state, { key, value }) {
+            Vue.set(state.selected_activity_tab_workflow_state, key, value);
+        },
         [UPDATE_CURRENT_USER] (state, user) {
             Vue.set(state, 'current_user', {...user});
+        },
+        [UPDATE_CURRENT_USER_ID] (state, bool) {
+            state.current_user_id = bool;
         },
         [UPDATE_SELECTED_APPLY_ORG_ID] (state, org_id) {
             state.selected_apply_org_id = org_id;
@@ -197,6 +215,9 @@ export const userStore = {
             commit(UPDATE_SELECTED_TAB_ID, id);
             commit(UPDATE_SELECTED_TAB_NAME, name);
         },
+        setActivityTabWorkflowState({ commit }, {tab_id, bool}) {
+            commit(UPDATE_SELECTED_TAB_WORKFLOW_STATE, {key: tab_id, value: bool});
+        },
         setApplyOrgId({ commit }, { id }) {
             commit(UPDATE_SELECTED_APPLY_ORG_ID, id);
         },
@@ -216,6 +237,7 @@ export const userStore = {
             return new Promise((resolve, reject) => {
                 Vue.http.get(url).then(res => {
                     dispatch('setCurrentUser', res.body);
+                    dispatch('setCurrentUserId', res.body.identification ? true : res.body.is_internal ? true : false);
                     resolve();
                 },
                 err => {
@@ -224,7 +246,9 @@ export const userStore = {
                 });
             })
         },
-        
+        setCurrentUserId({ dispatch, commit }, bool) {
+            commit(UPDATE_CURRENT_USER_ID, bool);
+        },        
         setCurrentUser({ dispatch, commit }, user) {
             commit(UPDATE_CURRENT_USER, user);
         },

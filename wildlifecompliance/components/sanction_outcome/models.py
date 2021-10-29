@@ -9,6 +9,8 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.signals import post_save
 from ledger.accounts.models import EmailUser, RevisionedMixin
+from rest_framework import serializers
+
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
@@ -18,7 +20,8 @@ from wildlifecompliance.components.section_regulation.models import SectionRegul
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
-
+from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_INFRINGEMENT_NOTICE, SO_TYPE_CAUTION_NOTICE, \
+    SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_REMEDIATION_NOTICE
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,7 @@ class SanctionOutcome(models.Model):
     WORKFLOW_ESCALATE_FOR_WITHDRAWAL = 'escalate_for_withdrawal'  # INC: infringement notice coordinator
     WORKFLOW_RETURN_TO_OFFICER = 'return_to_officer'
     WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR = 'return_to_infringement_notice_coordinator'
+    WORKFLOW_MARK_DOCUMENT_POSTED = 'mark_document_posted'
     WORKFLOW_CLOSE = 'close'
 
     PAYMENT_STATUS_PARTIALLY_PAID = 'partially_paid'
@@ -70,6 +74,7 @@ class SanctionOutcome(models.Model):
     STATUS_DRAFT = 'draft'
     STATUS_AWAITING_ENDORSEMENT = 'awaiting_endorsement'
     STATUS_AWAITING_PAYMENT = 'awaiting_payment'
+    STATUS_AWAITING_PRINT_AND_POST = 'awaiting_print_and_post'
     STATUS_AWAITING_REVIEW = 'awaiting_review'
     STATUS_AWAITING_REMEDIATION_ACTIONS = 'awaiting_remediation_actions'
     STATUS_ESCALATED_FOR_WITHDRAWAL = 'escalated_for_withdrawal'
@@ -98,6 +103,7 @@ class SanctionOutcome(models.Model):
         (STATUS_AWAITING_ENDORSEMENT, 'Awaiting Endorsement'),
         (STATUS_AWAITING_PAYMENT, 'Awaiting Payment'),  # TODO: implement pending closuer of SanctionOutcome with type RemediationActions
                                                         # This is pending closure status
+        (STATUS_AWAITING_PRINT_AND_POST, 'Awaiting Print and Post'),
         (STATUS_WITH_DOT, 'With Dep. of Transport'),
         (STATUS_AWAITING_ISSUANCE, 'Awaiting Issuance'),
         (STATUS_AWAITING_REVIEW, 'Awaiting Review'),
@@ -112,21 +118,9 @@ class SanctionOutcome(models.Model):
         (STATUS_CLOSED, 'Closed'),
     )
 
-    TYPE_INFRINGEMENT_NOTICE = 'infringement_notice'
-    TYPE_CAUTION_NOTICE = 'caution_notice'
-    TYPE_LETTER_OF_ADVICE = 'letter_of_advice'
-    TYPE_REMEDIATION_NOTICE = 'remediation_notice'
-
-    TYPE_CHOICES = (
-        (TYPE_INFRINGEMENT_NOTICE, 'Infringement Notice'),
-        (TYPE_CAUTION_NOTICE, 'Caution Notice'),
-        (TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
-        (TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
-    )
-
     __original_status = STATUS_DRAFT
 
-    type = models.CharField(max_length=30, choices=TYPE_CHOICES, blank=True,)
+    type = models.CharField(max_length=30, choices=SO_TYPE_CHOICES, blank=True,)
     status = models.CharField(max_length=40, choices=STATUS_CHOICES, default=__original_status,)
     payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
                                                                                                    # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
@@ -217,7 +211,7 @@ class SanctionOutcome(models.Model):
     def is_parking_offence(self):
         is_parking_offence = False
 
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             qs_allegedCommittedOffences = AllegedCommittedOffence.objects.filter(sanction_outcome=self)
             for aco in qs_allegedCommittedOffences:
                 if aco.included and aco.alleged_offence.section_regulation.is_parking_offence:
@@ -306,13 +300,13 @@ class SanctionOutcome(models.Model):
     @property
     def prefix_lodgement_nubmer(self):
         prefix_lodgement = ''
-        if self.type == self.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             prefix_lodgement = 'IF'
-        elif self.type == self.TYPE_LETTER_OF_ADVICE:
+        elif self.type == SO_TYPE_LETTER_OF_ADVICE:
             prefix_lodgement = 'LA'
-        elif self.type == self.TYPE_CAUTION_NOTICE:
+        elif self.type == SO_TYPE_CAUTION_NOTICE:
             prefix_lodgement = 'CN'
-        elif self.type == self.TYPE_REMEDIATION_NOTICE:
+        elif self.type == SO_TYPE_REMEDIATION_NOTICE:
             prefix_lodgement = 'RN'
 
         return prefix_lodgement
@@ -369,6 +363,10 @@ class SanctionOutcome(models.Model):
     def regionDistrictId(self):
         return self.district.id if self.district else self.region.id
 
+    @property
+    def regionDistrictName(self):
+        return self.district.display_name if self.district else self.region.display_name
+
     @staticmethod
     def get_compliance_permission_group(regionDistrictId, workflow_type):
         region_district = RegionDistrict.objects.filter(id=regionDistrictId)
@@ -385,6 +383,9 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
             codename = 'infringement_notice_coordinator'
             per_district = False
+        elif workflow_type == SanctionOutcome.WORKFLOW_MARK_DOCUMENT_POSTED:
+            codename = 'officer'
+            per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
             codename = 'officer'
             per_district = True
@@ -471,21 +472,21 @@ class SanctionOutcome(models.Model):
     def is_issuable(self, raise_exception=False):
         date_window = self.issue_due_date_window
         if not date_window:
-            raise ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
+            raise serializers.ValidationError('Issue-due-date-window for the Section/Regulation must be set.')
         issue_due_date = self.offence_occurrence_date + relativedelta(days=date_window)
 
         today = datetime.date.today()
 
         if today > issue_due_date:
             if raise_exception:
-                raise ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
+                raise serializers.ValidationError('Infringement notice must be issued before %s' % issue_due_date.strftime("%d-%m-%Y"))
             else:
                 return False
         else:
             return True
 
     def send_to_inc(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             # if self.is_issuable(raise_exception=True):
             self.status = SanctionOutcome.STATUS_WITH_DOT
             new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
@@ -496,7 +497,7 @@ class SanctionOutcome(models.Model):
             pass
 
     def endorse_parking_infringement(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             if not self.issued_on_paper and self.is_issuable(raise_exception=True):
                 self.confirm_date_time_issue(raise_exception=True)
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
@@ -508,32 +509,63 @@ class SanctionOutcome(models.Model):
         self.allocated_group = new_group
         self.save()
 
-    def endorse(self, request):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+    def mark_document_posted(self, request):
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
+            self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+            self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+            self.set_penalty_amounts()
+            self.create_due_dates()
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            self.allocated_group = new_group
+        elif self.type == SO_TYPE_CAUTION_NOTICE:
+            self.status = SanctionOutcome.STATUS_CLOSED
+        elif self.type == SO_TYPE_LETTER_OF_ADVICE:
+            self.status = SanctionOutcome.STATUS_CLOSED
+        elif self.type == SO_TYPE_REMEDIATION_NOTICE:
+            self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            # new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
+            self.allocated_group = new_group
+
+        self.save()
+
+    def endorse(self):
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             if self.issued_on_paper:
                 self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
                 self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
                 self.set_penalty_amounts()
                 self.create_due_dates()
+                new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId,
+                                                                            SanctionOutcome.WORKFLOW_ENDORSE)
             else:
                 if self.is_issuable(raise_exception=True):
                     self.confirm_date_time_issue(raise_exception=True)
-                    self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
-                    self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
-                    self.set_penalty_amounts()
-                    self.create_due_dates()
-            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_ENDORSE)
+                    # self.status = SanctionOutcome.STATUS_AWAITING_PAYMENT
+                    self.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
+                    # self.payment_status = SanctionOutcome.PAYMENT_STATUS_UNPAID
+                    # self.set_penalty_amounts()
+                    # self.create_due_dates()
+                    new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId,
+                                                                                SanctionOutcome.WORKFLOW_MARK_DOCUMENT_POSTED)
             self.allocated_group = new_group
 
-        elif self.type in (SanctionOutcome.TYPE_CAUTION_NOTICE, SanctionOutcome.TYPE_LETTER_OF_ADVICE):
-            # print('In SanctionOutcome.endorse(): Should not reach here...')
-            # self.close(request)
+        elif self.type in SO_TYPE_CAUTION_NOTICE:
             self.confirm_date_time_issue(raise_exception=True)
 
-        elif self.type == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
-            self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
-            new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
-            self.allocated_group = new_group
+        elif self.type in SO_TYPE_LETTER_OF_ADVICE:
+            self.confirm_date_time_issue(raise_exception=True)
+
+        elif self.type == SO_TYPE_REMEDIATION_NOTICE:
+            if self.issued_on_paper:
+                pass
+                # TODO: paper issued and endorsed
+                self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+            else:
+                # self.status = SanctionOutcome.STATUS_AWAITING_REMEDIATION_ACTIONS
+                self.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
+                new_group = SanctionOutcome.get_compliance_permission_group(self.regionDistrictId, SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER)
+                self.allocated_group = new_group
 
             id_suffix = 1
             for remediation_action in self.remediation_actions.all():
@@ -627,15 +659,24 @@ class SanctionOutcome(models.Model):
     @property
     def coming_due_date(self):
         try:
-            if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+            if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
                 today = datetime.date.today()
-                if today <= self.last_due_date_1st:
-                    return self.last_due_date_1st
-                if today <= self.last_due_date_2nd:
-                    return self.last_due_date_2nd
-                else:
+                due_dates = self.due_dates.all()
+                last_due_date = due_dates.order_by('id').last()
+                if last_due_date.due_date_term_currently_applied == '1st':
+                    return last_due_date.due_date_1st
+                elif last_due_date.due_date_term_currently_applied == '2nd':
+                    return last_due_date.due_date_2nd
+                elif last_due_date.due_date_term_currently_applied == 'overdue':
                     # Overdue
-                    return self.last_due_date_2nd
+                    return last_due_date.due_date_2nd
+                # if today <= self.last_due_date_1st:
+                #     return self.last_due_date_1st
+                # if today <= self.last_due_date_2nd:
+                #     return self.last_due_date_2nd
+                # else:
+                #     # Overdue
+                #     return self.last_due_date_2nd
             else:
                 return None
         except Exception as e:
@@ -643,7 +684,7 @@ class SanctionOutcome(models.Model):
 
     @property
     def last_due_date(self):
-        if self.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+        if self.type == SO_TYPE_INFRINGEMENT_NOTICE:
             due_dates = self.due_dates.order_by('-created_at')
             if self.date_of_issue and not due_dates:
                 raise ValidationError('Issued but not due dates are set.')
@@ -886,6 +927,7 @@ class SanctionOutcomeUserAction(models.Model):
     ACTION_UPDATE = "Update Sanction Outcome {}"
     ACTION_ENDORSE_AND_ISSUE = "Endorse and Issue Sanction Outcome {}"
     ACTION_ENDORSE = "Endorse Sanction Outcome {}"
+    ACTION_MARK_AS_POSTED = "Mark Document(s) posted for the Sanction Outcome {}"
     ACTION_SEND_TO_DOT = "Send details of Sanction Outcome {} to Dep. of Transport"
     ACTION_DECLINE = "Decline Sanction Outcome {}"
     ACTION_RETURN_TO_OFFICER = "Request amendment for Sanction Outcome {}"

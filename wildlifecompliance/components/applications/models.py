@@ -64,7 +64,11 @@ from wildlifecompliance.components.applications.email import (
     send_activity_propose_issue_notification,
     send_activity_refund_issue_notification,
 )
-from wildlifecompliance.components.main.utils import get_choice_value
+from wildlifecompliance.components.main.utils import (
+    get_choice_value,
+    ListEncoder,
+    DecimalEncoder,
+)
 from wildlifecompliance.ordered_model import OrderedModel
 from wildlifecompliance.components.licences.models import (
     LicenceCategory,
@@ -228,6 +232,7 @@ class Application(RevisionedMixin):
         CUSTOMER_STATUS_DRAFT,
         CUSTOMER_STATUS_AWAITING_PAYMENT,
         CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+        # CUSTOMER_STATUS_PARTIALLY_APPROVED,
     ]
 
     # List of statuses from above that allow a customer to view an application
@@ -650,7 +655,7 @@ class Application(RevisionedMixin):
             # when application is migrated from paper version.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
-        if self.application_fee == 0 and self.invoices.count() == 0:
+        if int(self.application_fee) == 0 and self.invoices.count() == 0:
             # when no application fee and no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
 
@@ -661,7 +666,12 @@ class Application(RevisionedMixin):
         elif self.requires_refund:
             return ApplicationInvoice.PAYMENT_STATUS_OVERPAID
 
+        elif int(self.application_fee) < 0 and self.invoices.count() == 0:
+            # when after refund check and no invoices (application amendments).
+            return ApplicationInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
         elif self.invoices.count() == 0:
+            # when no invoices.
             return ApplicationInvoice.PAYMENT_STATUS_UNPAID
 
         else:
@@ -691,6 +701,59 @@ class Application(RevisionedMixin):
                 return None
 
         return latest_invoice
+
+    def refund_invoice(self):
+        '''
+        Property defining refund invoice/s on this Application. This will be
+        invoice references from the previous application. 
+        
+        :return refund_invoice_list of reference strings.
+        '''
+        logger.debug('Application.previous_invoice()')
+        refund_invoice_list = self.get_property_cache_refund_invoice()
+
+        return refund_invoice_list
+
+    def get_property_cache_refund_invoice(self):
+        '''
+        Getter for refund_invoice on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :return refund_invoice_list of ApplicationInvoice reference string.
+        '''
+        refund_invoice_list = []
+        try:
+
+            refund_invoice_list = self.property_cache['refund_invoice']
+            refund_invoice_list = refund_invoice_list.split()
+
+        except KeyError:
+            pass
+
+        return refund_invoice_list
+
+    def set_property_cache_refund_invoice(self, refund_invoice):
+        '''
+        Setter for refund_invoice on the property cache.
+
+        NOTE: only used for presentation purposes.
+
+        :param  refund_invoice is QuerySet of ApplicationInvoice or List of
+                invoice reference string.
+        '''
+        if self.id and isinstance(refund_invoice, QuerySet):
+            refund_invoice = [o.invoice_reference for o in refund_invoice]
+
+        if not isinstance(refund_invoice, list) and self.id:
+            logger.warn('{0} - AppID: {1}'.format(
+                'set_property_cache_refund_invoice() NOT LIST', self.id))
+            return
+        
+        if self.id:
+            # data = json.dumps({'refund_invoice': refund_invoice})
+            data = ListEncoder().encode_list(refund_invoice)
+            self.property_cache['refund_invoice'] = data
 
     @property
     def total_paid_amount(self):
@@ -742,15 +805,6 @@ class Application(RevisionedMixin):
 
         NOTE: only used for presentation purposes.
         '''
-        import json
-        from decimal import Decimal as D
-
-        class DecimalEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, D):
-                    return float(obj)
-                return json.JSONEncoder.default(self, obj)
-
         if self.id:
             data = DecimalEncoder().encode(total_paid)
             self.property_cache['total_paid_amount'] = data
@@ -864,9 +918,25 @@ class Application(RevisionedMixin):
 
     @property
     def licence_purpose_names(self):
+        '''
+        Comma delimited list of Licence Purpose short names associated with 
+        this Applicaton.
+
+        NOTE: Unique names only where multiple versions exist for Activity.
+        '''
         logger.debug('Application.licence_purpose_names()')
-        return ', '.join([purpose.short_name
-                          for purpose in self.licence_purposes.all().order_by('licence_activity','short_name')])
+
+        all_purposes = [
+            p['short_name'] for p in self.licence_purposes.values(
+                'licence_activity',
+                'short_name',
+            ).all().distinct().order_by('licence_activity','short_name')
+        ]
+
+        # return ', '.join([purpose.short_name
+        #                   for purpose in self.licence_purposes.all().order_by('licence_activity','short_name')])
+
+        return ', '.join([short_name for short_name in all_purposes])
 
     @property
     def licence_type_name(self):
@@ -903,6 +973,44 @@ class Application(RevisionedMixin):
             return self.licence_purposes.first().licence_category.display_name
         except AttributeError:
             return ''
+
+    def on_nonactive_licence(self):
+        '''
+        Method to verify that this application is for a cancelled, expired or 
+        surrendered licence.
+
+        :return boolean
+        '''
+        on_nonactive = self.get_property_nonactive_licence()
+
+        return on_nonactive
+
+    def set_property_nonactive_licence(self, is_nonactive=False):
+        '''
+        Setter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        if self.id:
+            data = 'True' if is_nonactive else 'False'
+            self.property_cache['nonactive_licence'] = data
+
+    def get_property_nonactive_licence(self):
+        '''
+        Getter for nonactive_licence on the property cache.
+
+        NOTE: only used for presentation purposes.
+        '''
+        is_nonactive = False
+        try:
+
+            is_nonactive = True if self.property_cache[
+                'nonactive_licence'] == 'True' else False
+
+        except KeyError:
+            pass
+
+        return is_nonactive
 
     def set_property_cache_assess(self, assess):
         '''
@@ -973,6 +1081,12 @@ class Application(RevisionedMixin):
         return status
 
     def set_activity_processing_status(self, activity_id, processing_status):
+        '''
+        Sets the processing status for this application Selected Activity.
+
+        :param activity_id is the Licence Activity for the Selected Activity.
+        :param processing_status is from ASA.PROCESSING_STATUS_CHOICES.
+        '''
         if not activity_id:
             logger.error("Application: %s cannot update processing status (%s) for an empty activity_id!" %
                          (self.id, processing_status))
@@ -982,6 +1096,7 @@ class Application(RevisionedMixin):
                          (self.id, processing_status))
             return
         selected_activity = self.get_selected_activity(activity_id)
+
         selected_activity.processing_status = processing_status
         selected_activity.save()
         logger.info("Application: %s Activity ID: %s changed processing status to: %s" % (self.id, activity_id, processing_status))
@@ -1117,11 +1232,18 @@ class Application(RevisionedMixin):
             NOTE: System Generated Applications cannot be processed by staff
             and so processing status for activity needs to be accepted.
 
-            SYSTEM GENERATED can occur with renewal of licence purposes where
+            SYSTEM GENERATED occurs with renewal of licence purposes where
             current licenses still exist. A copy of this application with the
             renewed purpose is created with the current licence activities and
             purposes, and set to accepted. This will the latest application for
             the licence.
+
+            SYSTEM GENERATED occurs with reissue of a licence purpose where
+            current licenses still exist. A copy of this application with the
+            issued purpose is created with the current licence activities and
+            purposes, and set to accepted. This will the latest application for
+            the licence.
+            
             '''
             new_app = Application.objects.get(id=original_app_id)
             new_app.id = None
@@ -1178,6 +1300,8 @@ class Application(RevisionedMixin):
         Copies the Selected Activity Purposes from the selected to the target.
         To ensure effective dates are carried over to new (target) activity.
 
+        :param new is the target Selected Activity to be updated with self.
+        :param p_id is the identifier for LicencePurpose to be copied.
         '''
         # update Application Selected Activity Purposes
         REPLACE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REPLACED
@@ -1217,6 +1341,8 @@ class Application(RevisionedMixin):
         Copies the licence condition identifier associated with this
         application to another application (renewal, admendment, reissue).
         '''
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
+
         if not target_application:
             raise ValidationError('Target application must be specified')
 
@@ -1228,6 +1354,10 @@ class Application(RevisionedMixin):
         for condition in conditions:
             condition.id = None
             condition.application_id = target_application.id
+
+            if target_application.application_type == RENEWAL:
+                condition.due_date = None
+
             condition.save()
 
     def copy_application_purpose_to_target_application(
@@ -1278,6 +1408,55 @@ class Application(RevisionedMixin):
             data_row.save()
 
         logger.debug('Application.copy_app_purpose_to_target_app() - end')
+
+    def update_application_purpose_version(self, selected_purpose):
+        '''
+        Method to update the licence purpose version for all Selected Activity
+        purposes on the Application with the latest version of selected_purpose.
+
+        :param: selected_purpose is the ApplicationSelectedActivityPurpose.
+        :return: Boolean for a successful update.
+        '''
+        log_action = ApplicationUserAction.ACTION_SUSPEND_LICENCE_
+
+        if not selected_purpose.purpose.replaced_by:
+            return False
+
+        latest_licence_purpose = selected_purpose.purpose.get_latest_version()
+
+        '''
+        Update Selected Activity Purpose.
+        '''
+        selected_activities = self.activities.filter(
+            licence_activity_id=selected_purpose.purpose.licence_activity_id
+        )
+
+        for activity in selected_activities:
+            purposes = activity.proposed_purposes.filter(
+                purpose_id=selected_purpose.purpose_id
+            )
+            purposes.update(purpose_id=latest_licence_purpose.id)
+
+        '''
+        Update Default Application Conditions.
+        '''
+        selected_conditions = self.conditions.filter(
+            licence_activity_id=selected_purpose.purpose.licence_activity_id,
+            licence_purpose_id=selected_purpose.purpose_id,                       
+        )
+        selected_conditions.update(licence_purpose_id=latest_licence_purpose.id)
+
+        '''
+        Update Form Data for the Licence Purpose.
+        '''
+        form_data_rows = ApplicationFormDataRecord.objects.filter(
+            application_id=self.id,
+            licence_activity_id=selected_purpose.purpose.licence_activity_id,
+            licence_purpose_id=selected_purpose.purpose_id
+        )
+        form_data_rows.update(licence_purpose_id=latest_licence_purpose.id)
+
+        return True
 
     def submit(self, request):
         from wildlifecompliance.components.licences.models import LicenceActivity
@@ -1373,11 +1552,15 @@ class Application(RevisionedMixin):
 
                         '''
                         Process Selected Activity Purposes for the selected
-                        Activity for amended licences. Set proposed dates to
+                        Activity for applicable licences. Set proposed dates to
                         the previous date period.
                         '''
-                        AMEND_LICENCE = self.APPLICATION_TYPE_AMENDMENT
-                        if self.application_type == AMEND_LICENCE:
+                        APPLICABLE_TYPES = [
+                            self.APPLICATION_TYPE_AMENDMENT,
+                            self.APPLICATION_TYPE_RENEWAL,
+                        ]
+                        if self.application_type in APPLICABLE_TYPES:
+
                             for p in selected_activity.proposed_purposes.all():
                                 prev = p.get_purpose_from_previous()
                                 p.proposed_start_date = prev.start_date
@@ -1960,6 +2143,28 @@ class Application(RevisionedMixin):
             except BaseException:
                 raise
 
+    def is_amendment(self):
+        '''
+        Verification that this is an Application Amendment.
+
+        :return boolean indicating an amendment.
+        '''
+        is_amend = False
+        if self.application_type == self.APPLICATION_TYPE_AMENDMENT:
+            is_amend = True
+
+        return is_amend
+
+    def is_renewal(self):
+        '''
+        Verification that this is an Application Renewal.
+        '''
+        is_renewal = False
+        if self.application_type == self.APPLICATION_TYPE_RENEWAL:
+            is_renewal = True
+
+        return is_renewal
+
     @property
     def amendment_requests(self):
         logger.debug('Application.amendment_requests()')
@@ -2007,7 +2212,7 @@ class Application(RevisionedMixin):
         for activity in self.activities:
             for p in activity.proposed_purposes.all():
                 if p.is_payable:
-                    fees += p.get_payable_application_fee
+                    fees += p.get_payable_application_fee()
 
         logger.debug('Application.has_payable_fees() - end')       
         return fees
@@ -2073,10 +2278,25 @@ class Application(RevisionedMixin):
     def get_owe_amount(self):
         '''
         Get owing amount for this application where the last invoice has a
-        balance amount exceeding the payment amount.
+        balance amount exceeding the payment amount. Balance amount will exceed
+        payment only with cash payments (ie non online application submission).
+
+        NOTE: Cash payments have pre-paid invoices.
         '''
+        under_paid = 0
+
+        if self.submit_type == Application.SUBMIT_TYPE_ONLINE:
+            # Under paid amount will not exist for online card payments.
+            return under_paid
+
         under_paid = \
             self.latest_invoice.amount - self.latest_invoice.payment_amount
+
+        if self.submit_type == self.SUBMIT_TYPE_PAPER \
+        and self.processing_status == self.PROCESSING_STATUS_APPROVED:
+            # When officer enters and approves a paper based application 
+            # allow for under_paid amounts be paid from ledger refund.
+            under_paid = 0
 
         return under_paid if under_paid > 0 else 0
 
@@ -2086,14 +2306,17 @@ class Application(RevisionedMixin):
         Check on the previously paid invoice amount against application fee.
         Refund is required when application fee is more than what has been
         paid. Application fee amount can be adjusted more or less than base.
+
+        NOTE: expensive function call. Look at caching 'outstanding' amount.
         """
-        logger.debug('Application.requires_refund()')
+        logger.debug('Application.requires_refund() - start')
         approved = [
             # Application.PROCESSING_STATUS_DRAFT,    # applicant submit check.
             # Application.PROCESSING_STATUS_UNDER_REVIEW,  # first time only.
             Application.PROCESSING_STATUS_APPROVED,
             Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
             Application.PROCESSING_STATUS_AWAITING_PAYMENT,
+            Application.PROCESSING_STATUS_DECLINED,
         ]
 
         if self.processing_status not in approved:
@@ -2103,7 +2326,29 @@ class Application(RevisionedMixin):
         # at invoicing.
         # outstanding = self.additional_fees - self.get_refund_amount()
         outstanding = self.get_refund_amount()
-        return True if outstanding < 0 else False
+
+        # Check against previous fees on previous application for Amendment
+        # where outstanding is negative (ie overpaid).
+        # TODO: amendment check not required already done at purpose level.
+        if outstanding > 0 and self.requires_refund_amendment():
+            app_fee = 0
+            lic_fee = 0
+            for activity in self.activities:
+                for purpose in activity.proposed_purposes.all():
+                    prev = purpose.get_purpose_from_previous()
+                    app_fee += prev.total_paid_adjusted_application_fee
+                    lic_fee += prev.total_paid_adjusted_licence_fee
+
+            outstanding = outstanding + (app_fee + lic_fee)
+
+        # Check if refund amount can be taken from additional fees.
+        requires_refund = self.has_additional_fees and (outstanding > 0)
+        if requires_refund:
+            new_refund = self.additional_fees - outstanding
+            outstanding = 0 if new_refund > 0 else new_refund * -1
+
+        logger.debug('Application.requires_refund() - end')
+        return True if outstanding > 0 else False
 
     def requires_refund_at_submit(self):
         """
@@ -2130,51 +2375,60 @@ class Application(RevisionedMixin):
         # at invoicing.
         # outstanding = self.additional_fees - self.get_refund_amount()
         outstanding = self.get_refund_amount()
-        return True if outstanding < 0 else False
+        return True if outstanding > 0 else False
 
-    # def has_declined_refund(self):
-    #     '''
-    #     Check whether any licence purposes have been decline with required fee
-    #     refund.
-    #     '''
-    #     declined = [a for a in self.activities if a.is_issued_with_refund]
-    #     for activity in declined:
-    #         for p in activity.proposed_purposes.all():
-    #             refund = p.get_refund_amount()
-    #         if over_paid > 0:
-    #             return True
+    def requires_refund_amendment(self):
+        '''
+        Check on the state of this amendment application to determine whether
+        a refund is required.
 
-    #         over_paid = activity.get_refund_amount()
-    #         if over_paid > 0:
-    #             return True
+        :return boolean indicating whether refund is required.
+        '''
+        requires_refund = False
 
-    #     return False
+        pay_status = self.get_property_cache_payment_status()
+
+        if self.customer_status == self.CUSTOMER_STATUS_ACCEPTED \
+        and self.application_type == self.APPLICATION_TYPE_AMENDMENT \
+        and pay_status == ApplicationInvoice.PAYMENT_STATUS_OVERPAID:
+            requires_refund = True
+
+        return requires_refund
 
     def get_refund_amount(self):
         '''
         Get refund amount for this application.
         '''
+        logger.debug('Application.get_refund_amount() - start')
         logger.debug('get_refund_amount appID {}'.format(self.id))
         IGNORE = [
-            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
+            # ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED,
             ApplicationSelectedActivity.PROCESSING_STATUS_DISCARDED,
         ]
         refund = 0
+
+        if self.refund_invoice():       # check whether already refunded.
+            return refund
+
         for activity in self.activities:
             if activity.processing_status in IGNORE:
                 continue
-            for p in activity.proposed_purposes.all():
-                refund += p.get_refund_amount()
+            # for p in activity.proposed_purposes.all():
+            #     refund += p.get_refund_amount()
+
+            #     prev = activity.previous_paid_amount
+            refund += activity.get_refund_amount()
 
         logger.debug('get_refund_amount refund {}'.format(refund))
+        logger.debug('Application.get_refund_amount() - end')
         return refund
 
     def alert_for_refund(self, request):
         """
         Send notification if refund exists after an amendment.
         """
-        if not self.requires_refund:
-            return False
+        # if not self.requires_refund:
+        #     return False
 
         UNDER_REVIEW = self.PROCESSING_STATUS_UNDER_REVIEW
         officer_groups = ActivityPermissionGroup.objects.filter(
@@ -2191,7 +2445,7 @@ class Application(RevisionedMixin):
             )
         else:
             send_activity_refund_issue_notification(
-                request, self, self.get_refund_amount)
+                request, self, self.get_refund_amount())    # Application Level
 
     @property
     def previous_paid_amount(self):
@@ -2372,7 +2626,10 @@ class Application(RevisionedMixin):
         for self_p in self_activity[0].purposes:
             for a in a_chain:
                 issued_p = [
-                    p for p in a.proposed_purposes.all() if p.purpose == self_p
+                    p for p in a.proposed_purposes.all()
+                    if p.purpose == self_p or p.purpose.get_latest_version(
+                    # NOTE: check latest version of licence purpose.
+                    ) == self_p
                 ]
 
                 if len(issued_p) > 0:
@@ -2404,6 +2661,18 @@ class Application(RevisionedMixin):
     def get_schema_for_purposes(self, purpose_id_list):
         from wildlifecompliance.components.applications.utils \
             import ActivitySchemaUtil
+
+        purposes = []
+        for activity in self.selected_activities.all():
+            purposes += activity.purposes.all()
+
+        if purposes:
+            purpose_id_list = [p.id for p in purposes]
+        else:
+            purpose_id_list = [
+                p.get_latest_version().id for p in self.licence_purposes.all()
+            ]
+
         util = ActivitySchemaUtil(self)
         return util.get_activity_schema(purpose_id_list)
 
@@ -2469,6 +2738,13 @@ class Application(RevisionedMixin):
             }) for record in self.form_data_records.all()]
 
         for field_name, item in form_data_records:
+            try:
+                item['instance_name']
+
+            except KeyError:
+                item['instance_name'] = item['value'][0]
+                item['schema_name'] = schema_name
+
             instance = item['instance_name']
             schema_name = item['schema_name']
 
@@ -2511,6 +2787,40 @@ class Application(RevisionedMixin):
             except BaseException:
                 raise
 
+    def get_proposed_purposes(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        on this application.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
+
+        # activities for this licence in current or suspended.
+        activity_status = [
+                ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+        ]
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
+        ]
+
+        activity_ids = [
+            a.id for a in self.get_current_activity_chain(
+                activity_status__in=activity_status
+            )
+        ]
+
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity__application_id=self.id,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
+
+        return purposes
+
     def proposed_licence(self, request, details):
         '''
         Propose licence purposes for issuing by Approver.
@@ -2542,77 +2852,6 @@ class Application(RevisionedMixin):
                     raise ValidationError(
                         'You cannot propose for licence if it is not with officer for conditions')
 
-                # if self.application_type == Application.APPLICATION_TYPE_AMENDMENT:
-                #     '''
-                #     Pre-populate proposed issue dates with dates from the
-                #     currently active licence.
-                #     NOTE: Previously declined purposes can be selected for a
-                #     licence amendment. They may not have a date specified.
-                #     '''
-                #     for activity_id in activity_list:
-                #         latest_activity = self.get_latest_current_activity(activity_id)
-                #         if not latest_activity:
-                #             raise Exception("Active licence not found for activity ID: %s" % activity_id)
-
-                #         activity = self.activities.get(
-                #             licence_activity_id=activity_id
-                #         )
-                #         activity.updated_by = request.user
-                #         activity.proposed_action = ApplicationSelectedActivity.PROPOSED_ACTION_ISSUE
-                #         activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
-                #         activity.reason = details.get('reason')
-                #         activity.cc_email = details.get('cc_email', None)
-
-                #         for p in purpose_list:
-                #             # update Application Selected Activity Purposes
-                #             lp = LicencePurpose.objects.get(id=p['id'])
-                #             # set status to propose for the selected.
-                #             status = propose if p['isProposed'] else select
-
-                #             purpose = activity.proposed_purposes.filter(
-                #                 purpose=lp
-                #             ).first()
-                #             issued = purpose.get_purpose_from_previous()
-                #             purpose.processing_status = status
-
-                #             purpose.start_date = issued.start_date
-                #             if not issued.start_date:
-                #                 purpose.start_date = issued.proposed_start_date
-
-                #             purpose.expiry_date = issued.expiry_date
-                #             if not issued.expiry_date:
-                #                 purpose.expiry_date = issued.proposed_end_date
-
-                #             purpose.original_issue_date = \
-                #                 issued.original_issue_date
-                #             if not issued.original_issue_date:
-                #                 purpose.original_issue_date = issued.issue_date
-
-                #             purpose.issue_date = issued.issue_date
-                #             purpose.proposed_start_date = \
-                #                 issued.proposed_start_date
-                #             purpose.proposed_end_date = \
-                #                 issued.proposed_end_date
-
-                #             purpose.save()
-
-                #         # update Additional fees for selected proposed
-                #         # activities.
-                #         proposed_activities = request.data.get('activities')
-                #         proposed = [a for a in proposed_activities if a[
-                #             'id'] == activity.id]
-
-                #         if proposed[0]:
-                #             activity.additional_fee=proposed[0][
-                #                 'additional_fee'] if proposed[0][
-                #                     'additional_fee'] else 0
-                #             activity.additional_fee_text=proposed[0][
-                #                 'additional_fee_text'] if proposed[0][
-                #                     'additional_fee'] > 0 else None
-
-                #         activity.save()
-
-                # else:
                 ApplicationSelectedActivity.objects.filter(
                     application_id=self.id,
                     licence_activity_id__in=activity_list
@@ -2741,6 +2980,12 @@ class Application(RevisionedMixin):
                 raise
 
     def get_parent_licence(self, auto_create=True):
+        '''
+        Function to get a licence for this application.
+        When no licence (ie new application) one is created.
+
+        :return: WildlifeLicence.
+        '''
         from wildlifecompliance.components.licences.models import WildlifeLicence
         current_date = timezone.now().date()
         try:
@@ -2759,12 +3004,14 @@ class Application(RevisionedMixin):
                 # Only load licence if any associated activities are still current or suspended.
                 # TODO: get current activities in chain.
                 # get_current_activity_chain()
-                if not existing_licence.current_application.get_current_activity_chain(
-                    activity_status__in=[
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-                        ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
-                    ]
-                ).first():
+                # if not existing_licence.current_application.get_current_activity_chain(
+                #     activity_status__in=[
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+                #         ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
+                #     ]
+                # ).first():
+                if not existing_licence.has_proposed_purposes_in_current():
+                    # the existing licence is not current.
                     raise WildlifeLicence.DoesNotExist
             else:
                 raise WildlifeLicence.DoesNotExist
@@ -2844,7 +3091,27 @@ class Application(RevisionedMixin):
                 print(Exception)
                 raise
 
-    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False):
+    def issue_activity(self, request, selected_activity, parent_licence=None, generate_licence=False, preview=False, with_officer_finalisation=False):
+        '''
+        Issues the Selected Activity with or without full licence generation.
+
+        NOTE: Allows temporary issuing with preview indicator (no persistance).
+
+        :param request from the client api. (support for LicenceFeeSuccessView)
+        :param selected_activity is the Application Selected Activty for issue.
+        :param parent_licence is the Wildlife Licence for Licence Activity.
+        :param generate_licence is boolean indicating licence generation.
+        :param preview is boolean indicating previewing licence only. 
+        '''
+        from wildlifecompliance.components.returns.services import (
+            ReturnService,
+        )
+
+        logger.debug('Application.issue_activity() - start')
+
+        REPLACED = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
+        ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+        CURRENT = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
 
         if not preview and not selected_activity.is_licence_fee_paid():
             raise Exception("Cannot issue activity: licence fee has not been paid!")
@@ -2856,16 +3123,16 @@ class Application(RevisionedMixin):
             raise Exception("Cannot issue activity: licence not found!")
 
         latest_application_in_function = self
-        application_selected_purpose_ids = self.licence_purposes.all().values_list('id', flat=True)
-        # FIXME: need to all for multiple activities of same licence purpose
-        # when issuing licence amendments. Causing all to be replaced.
-        # licence_latest_activities_for_licence_activity_id = \
-        #     parent_licence.latest_activities.filter(
-        #         licence_activity_id=selected_activity.licence_activity_id
-        #     )
+        # all_purpose_ids = self.licence_purposes.all(
+        #     # All licence purpose ids on this application.
+        # ).values_list('id', flat=True)
+
+        # All active license purposes on this application.
+        all_purpose = self.get_proposed_purposes()
+        all_purpose_ids = [p.purpose_id for p in all_purpose]
 
         # Set previous activity if selected_activity is replacing. Required
-        # when issuing activity for licence amendments.
+        # when issuing activity for licence amendments and renewals.
         licence_latest_activities_for_licence_activity_id = []
         replace_activity = selected_activity.get_activity_to_replace()
         if replace_activity:
@@ -2873,120 +3140,199 @@ class Application(RevisionedMixin):
                 replace_activity
             ]
 
-        with transaction.atomic():
-            try:
-                for existing_activity in licence_latest_activities_for_licence_activity_id:
-                    # compare each activity's purposes and find the difference from
-                    # the selected_purposes of the new application
-                    issued_activity_purposes = application_selected_purpose_ids.filter(
-                        licence_activity_id=selected_activity.licence_activity_id)
-                    existing_activity_purposes = existing_activity.purposes.values_list('id', flat=True)
-                    common_purpose_ids = list(set(existing_activity_purposes) & set(issued_activity_purposes))
-                    remaining_purpose_ids_list = list(set(existing_activity_purposes) - set(issued_activity_purposes))
+        # with transaction.atomic():
+        # try:
+        for existing_activity in licence_latest_activities_for_licence_activity_id:
 
-                    # Ignore common purposes to allow addition of multiple
-                    # purposes when the application type is a new activity or
-                    # licence.
-                    if self.application_type in [
-                        Application.APPLICATION_TYPE_NEW_LICENCE,
-                        Application.APPLICATION_TYPE_ACTIVITY,
-                    ]:
-                        common_purpose_ids = None
+            # compare each activity's purposes and find the difference 
+            # from the selected_purposes of the new application.
 
-                    # No relevant purposes were selected for action for this
-                    # existing activity, do nothing
-                    if not common_purpose_ids:
-                        pass
+            # selected_lic_id = selected_activity.licence_activity_id
+            # issued_purposes = all_purpose_ids.filter(
+            #     licence_activity_id=selected_lic_id
+            # )
 
-                    # If there are no remaining purposes in the
-                    # existing_activity(i.e. this issued activity replaces them
-                    # all), mark activity and purposes as replaced.
-                    elif not remaining_purpose_ids_list:
-                        existing_activity.updated_by = request.user
-                        for p_id in common_purpose_ids:
+            # existing_purposes = \
+            #     existing_activity.purposes.values_list('id', flat=True)
 
-                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
-                                p_id
-                            )
+            # All active license purposes on the current Activity.
+            # NOTE: using latest version of licence purpose only.
+            existing_purposes = [
+                p.purpose.get_latest_version().id
+                for p in existing_activity.get_proposed_purposes()
+            ]
 
-                            selected_activity.set_selected_purpose_sequence(
-                                p_id, sequence_no
-                            )
+            # All purposes on both selected Activity and Licence.
+            common_purpose_ids = list(
+                set(existing_purposes) & set(all_purpose_ids)
+            )
 
-                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                        existing_activity.save()
+            # Purposes on the Licence and not on the selected Activity.
+            remaining_purpose_ids_list = list(
+                set(existing_purposes) - set(all_purpose_ids)
+            )
 
-                    # If only a subset of the existing_activity's purposes are
-                    # to be actioned, create new_activity for remaining
-                    # purposes. New system generated application is created.
-                    elif remaining_purpose_ids_list:
-                        existing_application = existing_activity.application
-                        existing_activity_status = existing_activity.activity_status
-                        new_copied_application = existing_application.copy_application_purposes_for_status(
-                                                remaining_purpose_ids_list, existing_activity_status)
+            # All purposes on the Licence which are currently opened.
+            # NOTE: using latest version of licence purpose only.
+            # opened_purposes = list(
+            #     self.licence.get_purposes_in_open_applications()
+            # )
+            objs_p = self.licence.get_purposes_in_open_applications(True)
+            opened_purposes = list(p.get_latest_version().id for p in objs_p)
 
-                        # for each new application created, set its previous_application to latest_application_in_function,
-                        # then update latest_application_in_function to the new_copied_application
-                        new_copied_application.previous_application = latest_application_in_function
-                        new_copied_application.save()
-                        latest_application_in_function = new_copied_application
+            # Remove any currently opened licence purposes from the
+            # remaining list to prevent replacing.
+            remaining_purpose_ids_list = list(
+                set(remaining_purpose_ids_list) - set(opened_purposes)
+            )    
 
-                        # Mark existing_activity as replaced
-                        existing_activity.updated_by = request.user
-                        for p_id in common_purpose_ids:
+            # Ignore common purposes to allow addition of multiple
+            # purposes when the application type is a new activity or
+            # licence.
+            if self.application_type in [
+                Application.APPLICATION_TYPE_NEW_LICENCE,
+                Application.APPLICATION_TYPE_ACTIVITY,
+            ]:
+                common_purpose_ids = None
 
-                            sequence_no = existing_activity.mark_selected_purpose_as_replaced(
-                                p_id
-                            )
+            # No relevant purposes were selected for action for this
+            # existing activity, do nothing
+            if not common_purpose_ids:
+                pass
 
-                            selected_activity.set_selected_purpose_sequence(
-                                p_id, sequence_no
-                            )
+            # If there are no remaining purposes in the
+            # existing_activity(i.e. this issued activity replaces them
+            # all), mark activity and purposes as replaced.
+            elif not remaining_purpose_ids_list:
+                existing_activity.updated_by = request.user
+                for p_id in common_purpose_ids:
 
-                        existing_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED
-                        existing_activity.save()
+                    # NOTE: using latest version of licence purpose only.
+                    existing_id = [
+                        p.purpose_id
+                        for p in existing_activity.get_proposed_purposes()
+                        if p.purpose.get_latest_version().id == p_id
+                    ][0]
 
-                selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
-                selected_activity.activity_status = ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT
+                    s_no = existing_activity.mark_selected_purpose_as_replaced(
+                        existing_id
+                    )   # will return the sequence no that was replaced.
 
-                if not selected_activity.get_expiry_date() == None:
-                    self.generate_returns(parent_licence, selected_activity, request)
-
-                # Logging action completed for each purpose in final_decision.
-
-                selected_activity.save()
-
-                # update the status of the application.
-                self.update_customer_approval_status()
-
-                parent_licence.current_application = latest_application_in_function
-                parent_licence.save()
-
-                if generate_licence:
-                    # Re-generate PDF document using all finalised activities
-                    parent_licence.generate_doc()
-                    send_application_issue_notification(
-                        activities=[selected_activity],
-                        application=self,
-                        request=request,
-                        licence=parent_licence
+                    selected_activity.set_selected_purpose_sequence(
+                        p_id, s_no
                     )
-                    # Attach the re-generated licence to latest application.
-                    latest_application_in_function.licence_document \
-                        = parent_licence.licence_document
-                    latest_application_in_function.save()
 
-            except Exception as e:
-                logger.error('issue_activity() ID {} - {}'.format(
-                    self.id, e))
-                raise
+                # If no other license purposes are opened then mark the
+                # existing activity as replaced.
+                if len(opened_purposes) < 2:
+                    existing_activity.activity_status = REPLACED
+
+                existing_activity.save()
+
+            # If only a subset of the existing_activity's purposes are
+            # to be actioned, create new_activity for remaining
+            # purposes. New system generated application is created.
+            elif remaining_purpose_ids_list:
+    
+                existing_app = existing_activity.application
+
+                existing_activity_status = \
+                    existing_activity.activity_status
+
+                new_copied_application = \
+                    existing_app.copy_application_purposes_for_status(
+                        remaining_purpose_ids_list, 
+                        existing_activity_status
+                    )
+
+                # for each new application created, set its previous
+                # application to latest_application_in_function,
+                # then update latest_application_in_function to the 
+                # new_copied_application.
+                new_copied_application.previous_application = \
+                    latest_application_in_function
+                new_copied_application.save()
+                latest_application_in_function = new_copied_application
+
+                # Mark existing_activity as replaced
+                existing_activity.updated_by = request.user
+                for p_id in common_purpose_ids:
+
+                    # NOTE: using latest version of licence purpose only.
+                    existing_id = [
+                        p.purpose_id
+                        for p in existing_activity.get_proposed_purposes()
+                        if p.purpose.get_latest_version().id == p_id
+                    ][0]
+
+                    s_no = existing_activity.mark_selected_purpose_as_replaced(
+                        existing_id
+                    )   # will return the sequence no that was replaced.
+
+                    selected_activity.set_selected_purpose_sequence(
+                        p_id, s_no
+                    )
+
+                existing_activity.activity_status = REPLACED
+                existing_activity.save()
+
+        selected_activity.processing_status = ACCEPTED
+        selected_activity.activity_status = CURRENT
+
+        if not selected_activity.get_expiry_date() == None:
+            ReturnService.generate_return_request(
+                request, parent_licence, selected_activity
+            )
+
+        # Logging action completed for each purpose in final_decision.
+
+        selected_activity.save()
+
+        # update the status of the application.
+        self.update_customer_approval_status()
+
+        parent_licence.current_application = latest_application_in_function
+        licence_status = parent_licence.LICENCE_STATUS_CURRENT
+        parent_licence.set_property_cache_status(licence_status)
+        parent_licence.save()
+
+        if generate_licence:
+            # When issued exists set application licence to parent
+            # before licence generation.
+            latest_application_in_function.licence = parent_licence
+
+            # Re-generate PDF document using all finalised activities
+            parent_licence.generate_doc()
+            send_application_issue_notification(
+                activities=[selected_activity],
+                application=self,
+                request=request,
+                licence=parent_licence
+            )
+            # Attach the re-generated licence to latest application.
+            latest_application_in_function.licence_document \
+                = parent_licence.licence_document
+
+        if not with_officer_finalisation:      
+            latest_application_in_function.save()
+
+        # except Exception as e:
+        #     logger.error('issue_activity() ID {} - {}'.format(
+        #         self.id, e))
+        #     raise
+
+        logger.debug('Application.issue_activity() - end')
 
 
     def preview_final_decision(self, request):
         """ Displays a preview of the Licence PDF """
+        logger.debug('Applications.preview_final_decision() - start')
+
         with transaction.atomic():
             preview_doc = self.final_decision(request, preview=True)
             transaction.set_rollback(True)
+
+        logger.debug('Applications.preview_final_decision() - end')
         return preview_doc
 
 
@@ -2997,6 +3343,7 @@ class Application(RevisionedMixin):
         from wildlifecompliance.components.applications.payments import (
             LicenceFeeClearingInvoice
         )
+        logger.debug('Applications.final_decision() - start')
 
         ISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED
         DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
@@ -3004,342 +3351,340 @@ class Application(RevisionedMixin):
         DEFAULT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_DEFAULT
         CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
         REFUND = ApplicationSelectedActivity.DECISION_ACTION_ISSUED_WITH_REFUND
+        FINAL = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
 
         failed_payment_activities = []
 
-        with transaction.atomic():
+        try:
+            parent_licence, created = self.get_parent_licence(auto_create=True)
+            issued_activities = []
+            declined_activities = []
+
+            purpose_sequence = parent_licence.get_next_purpose_sequence()
+
             try:
-                parent_licence, created = self.get_parent_licence(auto_create=True)
-                issued_activities = []
-                declined_activities = []
+                data = json.loads(
+                    request.POST.get('formData')
+                ) if 'formData' in request.POST else request.data
 
-                purpose_sequence = parent_licence.get_next_purpose_sequence()
+            except ValueError as e:
+                # Throw exception if html fields are not created correctly.
+                logger.error('Could not resolve table fields for licence.')
+                raise Exception(
+                    "Error resolving table fields for licence generation."
+                )
 
-                try:
-                    data = json.loads(
-                        request.POST.get('formData')
-                    ) if 'formData' in request.POST else request.data
+            # perform issue for each licence activity id in data.get('activity')
+            for item in data.get('activity'):
+                licence_activity_id = item['id']
+                # use .get here as it should not be possible to have more than one activity per licence_activity_id
+                # per application
+                selected_activity = self.activities.get(licence_activity__id=licence_activity_id)
+                if not selected_activity:
+                    raise Exception("Licence activity %s is missing from Application ID %s!" % (
+                        licence_activity_id, self.id))
 
-                except ValueError as e:
-                    # Throw exception if html fields are not created correctly.
-                    logger.error('Could not resolve table fields for licence.')
-                    raise Exception(
-                        "Error resolving table fields for licence generation."
-                    )
+                if selected_activity.processing_status not in [
+                    ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION,
+                    ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                ]:
+                    raise Exception("Activity \"%s\" has an invalid processing status: %s" % (
+                        selected_activity.licence_activity.name, selected_activity.processing_status))
 
-                # perform issue for each licence activity id in data.get('activity')
-                for item in data.get('activity'):
-                    licence_activity_id = item['id']
-                    # use .get here as it should not be possible to have more than one activity per licence_activity_id
-                    # per application
-                    selected_activity = self.activities.get(licence_activity__id=licence_activity_id)
-                    if not selected_activity:
-                        raise Exception("Licence activity %s is missing from Application ID %s!" % (
-                            licence_activity_id, self.id))
+                # skip over activities already issued and awaiting payment.
+                if selected_activity.processing_status in [
+                    ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                ]:
+                    continue
 
-                    if selected_activity.processing_status not in [
-                        ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION,
-                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
+                if item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_ISSUED:
+                    '''
+                    User Action applies Propose Issue for final decision.
+                    '''
+                    original_issue_date = start_date = item.get('start_date')
+                    expiry_date = item.get('end_date')
+
+                    if self.application_type in [
+                        Application.APPLICATION_TYPE_AMENDMENT,
+                        Application.APPLICATION_TYPE_REISSUE,
                     ]:
-                        raise Exception("Activity \"%s\" has an invalid processing status: %s" % (
-                            selected_activity.licence_activity.name, selected_activity.processing_status))
+                        latest_activity = self.get_latest_current_activity(licence_activity_id)
+                        if not latest_activity:
+                            raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
 
-                    # skip over activities already issued and awaiting payment.
-                    if selected_activity.processing_status in [
-                        ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT,
-                    ]:
-                        continue
+                    '''
+                    Set the details for the selected Activity purposes to
+                    ensure all dates have been provide for the activity.
+                    '''
+                    decline_ids = set([
+                        p['id'] for p in data.get(
+                            'selected_purpose_ids') if not p['isProposed']
+                    ])
+                    issue_ids = list(set([
+                        p['id'] for p in data.get(
+                            'selected_purpose_ids') if p['isProposed']
+                    ]) - decline_ids)
+                    decline_ids = list(decline_ids)
 
-                    if item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_ISSUED:
-                        '''
-                        User Action applies Propose Issue for final decision.
-                        '''
-                        original_issue_date = start_date = item.get('start_date')
-                        expiry_date = item.get('end_date')
+                    '''
+                    NOTE: issue_ids and declined_ids will include purposes
+                    from all activities on application. Filter proposed
+                    purposes for relevant selected activity to prevent
+                    declining different activity purpose.
+                    '''
+                    proposed_purposes = [
+                        p for p in data.get('purposes')
+                        if p['selected_activity'] == selected_activity.id
+                    ]
 
-                        if self.application_type in [
-                            Application.APPLICATION_TYPE_AMENDMENT,
-                            Application.APPLICATION_TYPE_REISSUE,
-                        ]:
-                            latest_activity = self.get_latest_current_activity(licence_activity_id)
-                            if not latest_activity:
-                                raise Exception("Active licence not found for activity ID: %s" % licence_activity_id)
+                    for proposed in proposed_purposes:
+                        purpose =\
+                            ApplicationSelectedActivityPurpose.objects.get(
+                                id=proposed['id']
+                            )
+                        # No need to check if purpose has been selected
+                        # for issuing.
+                        P_LOG = ApplicationUserAction.ACTION_ISSUE_LICENCE_
+                        if purpose.purpose_id in issue_ids:
+                            today = timezone.now()
+                            purpose.processing_status = ISSUE
+                            purpose.issue_date = today
+                            purpose.original_issue_date = today \
+                                if not purpose.original_issue_date else \
+                                    purpose.original_issue_date
+                            purpose.purpose_status = CURRENT
 
-                        '''
-                        Set the details for the selected Activity purposes to
-                        ensure all dates have been provide for the activity.
-                        '''
-                        decline_ids = set([
-                            p['id'] for p in data.get(
-                                'selected_purpose_ids') if not p['isProposed']
-                        ])
-                        issue_ids = list(set([
-                            p['id'] for p in data.get(
-                                'selected_purpose_ids') if p['isProposed']
-                        ]) - decline_ids)
-                        decline_ids = list(decline_ids)
+                            # initialise the purpose sequencing at issue.
+                            if purpose.purpose_sequence < 1:
+                                purpose.purpose_sequence = purpose_sequence
+                                purpose_sequence += 1
 
-                        '''
-                        NOTE: issue_ids and declined_ids will include purposes
-                        from all activities on application. Filter proposed
-                        purposes for relevant selected activity to prevent
-                        declining different activity purpose.
-                        '''
-                        proposed_purposes = [
-                            p for p in data.get('purposes')
-                            if p['selected_activity'] == selected_activity.id
-                        ]
-
-                        for proposed in proposed_purposes:
-                            purpose =\
-                                ApplicationSelectedActivityPurpose.objects.get(
-                                    id=proposed['id']
-                                )
-                            # No need to check if purpose has been selected
-                            # for issuing.
-                            P_LOG = ApplicationUserAction.ACTION_ISSUE_LICENCE_
-                            if purpose.purpose_id in issue_ids:
-                                today = timezone.now()
-                                purpose.processing_status = ISSUE
-                                purpose.issue_date = today
-                                purpose.original_issue_date = today \
-                                    if not purpose.original_issue_date else \
-                                        purpose.original_issue_date
-                                purpose.purpose_status = CURRENT
-
-                                # initialise the purpose sequencing at issue.
-                                if purpose.purpose_sequence < 1:
-                                    purpose.purpose_sequence = purpose_sequence
-                                    purpose_sequence += 1
-
-                                # 1. Set period dates.
-                                # proposed dates are not set when the purpose
-                                # was previously declined by proposal officer.
-                                if purpose.proposed_start_date == None:
-                                    purpose.proposed_start_date =\
-                                        proposed['proposed_start_date']
-                                    purpose.proposed_end_date =\
-                                        proposed['proposed_end_date']
-
-                                purpose.start_date =\
+                            # 1. Set period dates.
+                            # proposed dates are not set when the purpose
+                            # was previously declined by proposal officer.
+                            if purpose.proposed_start_date == None:
+                                purpose.proposed_start_date =\
                                     proposed['proposed_start_date']
-                                purpose.expiry_date =\
+                                purpose.proposed_end_date =\
                                     proposed['proposed_end_date']
 
-                                # 2. Set proposal additional fee.
-                                purpose.additional_fee =\
-                                    Decimal(str(proposed['additional_fee']))
-                                purpose.additional_fee_text =\
-                                    proposed['additional_fee_text']
+                            purpose.start_date =\
+                                proposed['proposed_start_date']
+                            purpose.expiry_date =\
+                                proposed['proposed_end_date']
 
-                                # 3. Set proposal species headers and text.
-                                purpose.purpose_species_json = \
-                                    proposed['purpose_species_json']
+                            # 2. Set proposal additional fee.
+                            purpose.additional_fee =\
+                                Decimal(str(proposed['additional_fee']))
+                            purpose.additional_fee_text =\
+                                proposed['additional_fee_text']
 
-                                selected_activity.decision_action =\
-                                    ApplicationSelectedActivity.DECISION_ACTION_ISSUED
+                            # 3. Set proposal species headers and text.
+                            purpose.purpose_species_json = \
+                                proposed['purpose_species_json']
 
-                            elif purpose.purpose_id in decline_ids:
-                                P_LOG = ApplicationUserAction.ACTION_DECLINE_LICENCE_
-                                purpose.processing_status = DECLINE
-                                purpose.status = DEFAULT
-                                # p_selected_activity = purpose.selected_activity
-                                selected_activity.decision_action = REFUND
+                            selected_activity.decision_action =\
+                                ApplicationSelectedActivity.DECISION_ACTION_ISSUED
 
-                                purpose.additional_fee = Decimal(0)
-                                purpose.additional_fee_text = ''
+                        elif purpose.purpose_id in decline_ids:
+                            P_LOG = ApplicationUserAction.ACTION_DECLINE_LICENCE_
+                            purpose.processing_status = DECLINE
+                            purpose.status = DEFAULT
+                            # p_selected_activity = purpose.selected_activity
+                            selected_activity.decision_action = REFUND
 
-                                if not len(issue_ids):
-                                    # if nothing to issue on activity.
-                                    selected_activity.processing_status = \
-                                        ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
+                            purpose.additional_fee = Decimal(0)
+                            purpose.additional_fee_text = ''
 
-                                self.log_user_action(
-                                    ApplicationUserAction.ACTION_REFUND_LICENCE_.format(
-                                    purpose.licence_fee,
-                                    purpose.purpose.name,
-                                ), request)
+                            # if not len(issue_ids):
+                            if selected_activity.processing_status == FINAL:
+                                # if nothing to issue on activity.
+                                selected_activity.processing_status = \
+                                    ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
 
-                            purpose.save()
-                            # TODO: check to ensure that purpose does not
-                            # exist in decline aswell for double logging.
                             self.log_user_action(
+                                ApplicationUserAction.ACTION_REFUND_LICENCE_.format(
+                                purpose.licence_fee,
+                                purpose.purpose.name,
+                            ), request)
+
+                        purpose.save()
+                        # TODO: check to ensure that purpose does not
+                        # exist in decline aswell for double logging.
+                        self.log_user_action(
+                            P_LOG.format(purpose.purpose.name),
+                            request
+                        )
+
+                        # Log entry for organisation
+                        if self.org_applicant:
+                            self.org_applicant.log_user_action(
                                 P_LOG.format(purpose.purpose.name),
                                 request
                             )
 
-                            # Log entry for organisation
-                            if self.org_applicant:
-                                self.org_applicant.log_user_action(
-                                    P_LOG.format(purpose.purpose.name),
-                                    request
-                                )
-
-                            elif self.proxy_applicant:
-                                self.proxy_applicant.log_user_action(
-                                    P_LOG.format(purpose.purpose.name),
-                                    request
-                                )
-
-                            else:
-                                self.submitter.log_user_action(
-                                    P_LOG.format(purpose.purpose.name),
-                                    request
-                                )
-
-                        if not selected_activity.processing_status == \
-                            ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
-
-                            # If there is an outstanding licence fee payment -
-                            # attempt to charge the stored card.
-                            payment_successful = \
-                                selected_activity.process_licence_fee_payment(
-                                    request, self
+                        elif self.proxy_applicant:
+                            self.proxy_applicant.log_user_action(
+                                P_LOG.format(purpose.purpose.name),
+                                request
                             )
-                            if not preview and not payment_successful:
-                                failed_payment_activities.append(
-                                    selected_activity
-                                )
-                            else:
-                                issued_activities.append(selected_activity)
-                                generate_licence = False
-                                self.issue_activity(
-                                    request, selected_activity,
-                                    parent_licence,
-                                    generate_licence,
-                                    preview,
-                                )
 
-                        else :
-                             declined_activities.append(selected_activity)
-                            #  if item['additional_fee']:
-                            #     selected_activity.additional_fee = 0
-                            #     selected_activity.additional_fee_text = ''
+                        else:
+                            self.submitter.log_user_action(
+                                P_LOG.format(purpose.purpose.name),
+                                request
+                            )
 
-                        # # If there is an outstanding licence fee payment -
-                        # # attempt to charge the stored card.
-                        # payment_successful = selected_activity.process_licence_fee_payment(request, self)
+                    if not selected_activity.processing_status == \
+                        ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:
 
-                        # if not payment_successful:
-                        #     failed_payment_activities.append(selected_activity)
-                        # else:
-                        #     issued_activities.append(selected_activity)
-                        #     self.issue_activity(
-                        #         request, selected_activity,
-                        #         parent_licence, generate_licence=False)
+                        # If there is an outstanding licence fee payment -
+                        # attempt to charge the stored card.
+                        payment_successful = \
+                            selected_activity.process_licence_fee_payment(
+                                request, self
+                        )
+                        if not preview and not payment_successful:
+                            failed_payment_activities.append(
+                                selected_activity
+                            )
+                        else:
+                            issued_activities.append(selected_activity)
+                            generate_licence = False
+                            with_officer_finalisation = True
+                            self.issue_activity(
+                                request, selected_activity,
+                                parent_licence,
+                                generate_licence,
+                                preview,
+                                with_officer_finalisation,
+                            )
+                            # Check Selected Activity for over payment. Can
+                            # refund later by officer with app dashboard link.
+                            if selected_activity.get_refund_amount() > 0:
+                                selected_activity.decision_action = REFUND
 
-                        # Populate fields below even if the token payment has
-                        # failed. They will be reused after a successful
-                        # payment by the applicant.
-                        selected_activity.assigned_approver = None
-                        selected_activity.updated_by = request.user
-                        selected_activity.cc_email = item['cc_email']
-                        selected_activity.reason = item['reason']
+                    else:
+                        declined_activities.append(selected_activity)
+                        #  if item['additional_fee']:
+                        #     selected_activity.additional_fee = 0
+                        #     selected_activity.additional_fee_text = ''
 
-                        selected_activity.save()
+                    # Populate fields below even if the token payment has
+                    # failed. They will be reused after a successful
+                    # payment by the applicant.
+                    selected_activity.assigned_approver = None
+                    selected_activity.updated_by = request.user
+                    selected_activity.cc_email = item['cc_email']
+                    selected_activity.reason = item['reason']
 
-                    elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
-                        '''
-                        User Action applies Propose Decline for final decision.
+                    selected_activity.save()
 
-                        NOTE: Licence Fee needs to be refunded.
-                        '''
-                        selected_activity.assigned_approver = None
-                        selected_activity.updated_by = request.user
-                        selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
-                        selected_activity.decision_action = REFUND
-                        # selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
-                        selected_activity.cc_email = item['cc_email']
-                        selected_activity.reason = item['reason']
+                elif item['final_status'] == ApplicationSelectedActivity.DECISION_ACTION_DECLINED:
+                    '''
+                    User Action applies Propose Decline for final decision.
 
-                        proposed_purposes = selected_activity.proposed_purposes.all()
-                        for p in proposed_purposes:
-                            p.status = DEFAULT
-                            p.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
-                            p.additional_fee = Decimal(0)
-                            p.additional_fee_text = ''
-                            p.save()
+                    NOTE: Licence Fee needs to be refunded.
+                    '''
+                    selected_activity.assigned_approver = None
+                    selected_activity.updated_by = request.user
+                    selected_activity.processing_status = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
+                    selected_activity.decision_action = REFUND
+                    # selected_activity.decision_action = ApplicationSelectedActivity.DECISION_ACTION_ISSUED
+                    selected_activity.cc_email = item['cc_email']
+                    selected_activity.reason = item['reason']
 
-                            # Log entry for application
-                            self.log_user_action(
+                    proposed_purposes = selected_activity.proposed_purposes.all()
+                    for p in proposed_purposes:
+                        p.status = DEFAULT
+                        p.processing_status = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+                        p.additional_fee = Decimal(0)
+                        p.additional_fee_text = ''
+                        p.save()
+
+                        # Log entry for application
+                        self.log_user_action(
+                            ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
+                                p.purpose.name), request)
+
+                        # Log entry for org_applicant
+                        if self.org_applicant:
+                            self.org_applicant.log_user_action(
                                 ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
                                     p.purpose.name), request)
 
-                            # Log entry for org_applicant
-                            if self.org_applicant:
-                                self.org_applicant.log_user_action(
-                                    ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
-                                        p.purpose.name), request)
+                        # Log entry for proxy_applicant
+                        elif self.proxy_applicant:
+                            self.proxy_applicant.log_user_action(
+                                ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
+                                    p.purpose.name), request)
 
-                            # Log entry for proxy_applicant
-                            elif self.proxy_applicant:
-                                self.proxy_applicant.log_user_action(
-                                    ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
-                                        p.purpose.name), request)
+                        # Log entry for submitter
+                        else:
+                            self.submitter.log_user_action(
+                                ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
+                                    p.purpose.name), request)
 
-                            # Log entry for submitter
-                            else:
-                                self.submitter.log_user_action(
-                                    ApplicationUserAction.ACTION_DECLINE_LICENCE_.format(
-                                        p.purpose.name), request)
+                    selected_activity.save()
+                    declined_activities.append(selected_activity)
 
-                        selected_activity.save()
-                        declined_activities.append(selected_activity)
+            if (issued_activities or failed_payment_activities) and not created:
+                parent_licence.licence_sequence += 1
+                parent_licence.save()
 
-                if (issued_activities or failed_payment_activities) and not created:
-                    parent_licence.licence_sequence += 1
-                    parent_licence.save()
+            if issued_activities:
+                # When issued exists set application licence to parent
+                # before licence generation.
+                self.licence = parent_licence
 
-                if issued_activities:
-                    # When issued exists set application licence to parent
-                    # before licence generation.
-                    self.licence = parent_licence
+                # Re-generate PDF document using all finalised activities
+                if preview:
+                    return parent_licence.generate_preview_doc()
 
-                    # Re-generate PDF document using all finalised activities
-                    if preview:
-                        return parent_licence.generate_preview_doc()
+                parent_licence.generate_doc()
+                send_application_issue_notification(
+                    activities=issued_activities,
+                    application=self,
+                    request=request,
+                    licence=parent_licence
+                )
+                self.licence_document = parent_licence.licence_document
+                # self.save()
 
-                    parent_licence.generate_doc()
-                    send_application_issue_notification(
-                        activities=issued_activities,
-                        application=self,
-                        request=request,
-                        licence=parent_licence
-                    )
-                    self.licence_document = parent_licence.licence_document
-                    self.save()
+                # outstanding payments for paper submission require cash
+                # payments and no email notifications. (refund checks)
+                if self.submit_type == Application.SUBMIT_TYPE_PAPER:
+                    # 1. issue activities and re-generate licence.
+                    # 2. generate invoice. (include refund ?)
+                    # 3. provide record/refund link.
+                    generate_invoice = False
+                    for activity in issued_activities:
+                        # if activity.additional_fee > 0 \
+                        refund = activity.get_refund_amount()
+                        if activity.has_payable_fees_at_issue() \
+                        and refund < 1:
+                            generate_invoice = True
+                            break
 
-                    # outstanding payments for paper submission require cash
-                    # payments and no email notifications. (refund checks)
-                    if self.submit_type == Application.SUBMIT_TYPE_PAPER:
-                        # 1. issue activities and re-generate licence.
-                        # 2. generate invoice. (include refund ?)
-                        # 3. provide record/refund link.
-                        generate_invoice = False
-                        for activity in issued_activities:
-                            # if activity.additional_fee > 0 \
-                            if activity.has_payable_fees_at_issue:
-                                generate_invoice = True
-                                break
+                    if generate_invoice:
+                        clear_inv = LicenceFeeClearingInvoice(self)
+                        an_inv = clear_inv.generate(request)
 
-                        if generate_invoice:
-                            clear_inv = LicenceFeeClearingInvoice(self)
-                            an_inv = clear_inv.generate(request)
+            # If there are no issued_activities in this application and the parent_licence was
+            # created as part of this application (i.e. it was not a pre-existing one), delete it
+            elif not issued_activities and created:
+                parent_licence.delete()
 
-                # If there are no issued_activities in this application and the parent_licence was
-                # created as part of this application (i.e. it was not a pre-existing one), delete it
-                elif not issued_activities and created:
-                    parent_licence.delete()
+            if declined_activities:
+                send_application_decline_notification(
+                    declined_activities, self, request)
 
-                if declined_activities:
-                    send_application_decline_notification(
-                        declined_activities, self, request)
-
-                # Send out any refund notifications.
+            # Send out any refund notifications.
+            if self.requires_refund:
                 self.alert_for_refund(request)
 
-            except Exception as e:
-                raise Exception("Final decision error: {}".format(e))
+        except Exception as e:
+            raise Exception("Final decision error: {}".format(e))
 
         if self.submit_type == Application.SUBMIT_TYPE_ONLINE \
           and failed_payment_activities:
@@ -3349,13 +3694,16 @@ class Application(RevisionedMixin):
                 # Notify customer of failed payment and set Application status for customer.
                 send_activity_invoice_issue_notification(self, activity, request)
             self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
-            self.save()
+            # self.save()
 
         self.update_customer_approval_status()
+        self.save()
+        logger.debug('Applications.final_decision() - end')
 
     def update_customer_approval_status(self):
         # Update application customer approval status depending on count of
         # approved/declined/unpaid activities.
+        logger.debug('Applications.update_customer_spproval_status() - start')
         PAY = ApplicationSelectedActivity.PROCESSING_STATUS_AWAITING_LICENCE_FEE_PAYMENT
         ACCEPTED = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         DECLINED = ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED
@@ -3389,88 +3737,8 @@ class Application(RevisionedMixin):
         if unpaid_activity_count > 0:
             self.customer_status = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
 
-        self.save()
-
-    def generate_returns(self, licence, selected_activity, request):
-        from wildlifecompliance.components.returns.utils import (
-            ReturnSpeciesUtility,
-        )
-        # TODO: Delete any previously existing returns with default status
-        # which may occur if this activity is being reissued or amended.
-        from wildlifecompliance.components.returns.models import Return
-        # licence_expiry = selected_activity.expiry_date
-        # Returns are generated at issuing; expiry_date may not be set yet.
-        licence_expiry = selected_activity.get_expiry_date()
-        licence_expiry = datetime.datetime.strptime(
-            licence_expiry, "%Y-%m-%d"
-        ).date() if isinstance(licence_expiry, six.string_types) else licence_expiry
-        today = timezone.now().date()
-        timedelta = datetime.timedelta
-        for condition in self.conditions.all():
-            try:
-                if condition.return_type and condition.due_date and condition.due_date >= today:
-                    current_date = condition.due_date
-                    # create a first Return
-                    try:
-                        first_return = Return.objects.get(
-                            condition=condition, due_date=current_date)
-                    except Return.DoesNotExist:
-                        first_return = Return.objects.create(
-                            application=self,
-                            due_date=current_date,
-                            processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
-                            licence=licence,
-                            condition=condition,
-                            return_type=condition.return_type,
-                            submitter=request.user
-                        )
-
-                    # Make first return editable (draft) for applicant but
-                    # cannot submit until due. Establish species list for first
-                    # return.
-                    DRAFT = Return.RETURN_PROCESSING_STATUS_DRAFT
-                    first_return.processing_status = DRAFT
-                    first_return.save()
-                    returns_utils = ReturnSpeciesUtility(first_return)
-                    # raw_specie_names is a list of names defined manually
-                    # by the licensing officer at the time of propose/issuance.
-                    raw_specie_names = returns_utils.get_raw_species_list_for(
-                        selected_activity
-                    )
-                    returns_utils.set_species_list(raw_specie_names)
-
-                    if condition.recurrence:
-                        while current_date < licence_expiry:
-                            for x in range(condition.recurrence_schedule):
-                                # Weekly
-                                if condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_WEEKLY:
-                                            current_date += timedelta(weeks=1)
-                            # Monthly
-                                elif condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_MONTHLY:
-                                            current_date += timedelta(weeks=4)
-                                            pass
-                            # Yearly
-                                elif condition.recurrence_pattern == ApplicationCondition\
-                                        .APPLICATION_CONDITION_RECURRENCE_YEARLY:
-                                            current_date += timedelta(days=365)
-                            # Create the Return
-                            if current_date <= licence_expiry:
-                                try:
-                                    Return.objects.get(
-                                        condition=condition, due_date=current_date)
-                                except Return.DoesNotExist:
-                                    Return.objects.create(
-                                        application=self,
-                                        due_date=current_date,
-                                        processing_status=Return.RETURN_PROCESSING_STATUS_FUTURE,
-                                        licence=licence,
-                                        condition=condition,
-                                        return_type=condition.return_type
-                                    )
-            except BaseException:
-                raise
+        # self.save()
+        logger.debug('Applications.update_customer_spproval_status() - end')
 
     @staticmethod
     def calculate_base_fees(selected_purpose_ids, application_type=None):
@@ -3565,7 +3833,7 @@ class Application(RevisionedMixin):
 
         A check whether requested_user has any current applications.
         '''
-        applications = Application.get_request_user_applications(
+        application = Application.get_request_user_applications(
             request
 
         ).filter(
@@ -3573,9 +3841,14 @@ class Application(RevisionedMixin):
                 ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
                 ApplicationSelectedActivity.ACTIVITY_STATUS_SUSPENDED,
             ],
-        ).first()
+        )
+        first_active = None
+        for a in application:
+            if a.licence.has_proposed_purposes_in_current():
+                first_active = a
+                break
 
-        return applications
+        return first_active
 
     @staticmethod
     def get_open_applications(request):
@@ -3919,7 +4192,7 @@ class Assessment(ApplicationRequest):
                     else:
                         self.application.set_activity_processing_status(
                             self.licence_activity_id,
-                            ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER
+                            ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_CONDITIONS
                         )
 
                 select_group = self.assessor_group.members.all()
@@ -4326,13 +4599,106 @@ class ApplicationSelectedActivity(models.Model):
         """
         All licence purposes which are available under the Application Selected
         Activity.
+
+        :return: LicencePurpose queryset for this Selected Activity.
         """
-        from wildlifecompliance.components.licences.models import LicencePurpose
-        logger.debug('ApplicationSelectedActivity.purposes()')
-        return LicencePurpose.objects.filter(
-            application__id=self.application_id,
-            licence_activity_id=self.licence_activity_id
-        ).distinct()
+        logger.debug('ApplicationSelectedActivity.purposes() - start')
+        # from wildlifecompliance.components.licences.models import LicencePurpose
+
+        # selected_purposes = LicencePurpose.objects.filter(
+        #     application__id=self.application_id,
+        #     licence_activity_id=self.licence_activity_id
+        # ).distinct()
+        licence_purposes = []
+        a = self.application
+        # Cache only selected licence purposes which have completed questions.
+        if a.application_type == a.APPLICATION_TYPE_NEW_LICENCE \
+        and a.customer_status == a.CUSTOMER_STATUS_DRAFT \
+        and a.is_discardable:
+            # When in DRAFT use available purposes on application instead of 
+            # caching as it can be discarded.
+            licence_purposes = a.licence_purposes.filter(
+                licence_activity_id=self.licence_activity_id
+            )
+        else:
+            cached_ids = self.get_property_cache_purposes()
+            if not cached_ids:
+                cached_ids = list(set([
+                    f.licence_purpose_id for f in a.form_data_records.filter(
+                        licence_activity_id=self.licence_activity_id,                
+                    )
+                ]))
+                # NOTE: When no questions entered need to get allowed purposes
+                # from application.
+                if not cached_ids:
+                    cached_ids = list(set([
+                        p.id for p in a.licence_purposes.filter(
+                            licence_activity_id=self.licence_activity_id
+                        )
+                    ]))
+                self.set_property_cache_purposes(cached_ids)
+
+            licence_purposes = a.licence_purposes.filter(id__in=cached_ids)
+
+        logger.debug('ApplicationSelectedActivity.purposes() - end')
+        return licence_purposes
+
+    def get_property_cache_purposes(self):
+        '''
+        Getter for purposes on the property cache for this Selected Activity.
+
+        NOTE: only used for presentation purposes.
+
+        :return purposes_list of LicencePurpose identifiers string.
+        '''
+        purposes_list = []
+        try:
+            purposes_list = self.property_cache['purposes']
+            purposes_list = [int(p) for p in purposes_list.split()]
+
+        except KeyError:
+            pass
+
+        return purposes_list
+
+    def set_property_cache_purposes(self, purposes):
+        '''
+        Setter for purposes on the property cache for this Selected Activity.
+
+        NOTE: only used for presentation purposes.
+
+        :param  purposes is QuerySet of LicencePurpose or List of licence
+                purpose identifiers string.
+        '''
+        if self.id and isinstance(purposes, QuerySet):
+            purposes = [o.id for o in purposes]
+
+        if not isinstance(purposes, list) and self.id:
+            logger.warn('{0} AppID: {1} ActID: {2}'.format(
+                'set_property_cache_purposes() NOT LIST',
+                self.application.id, self.id))
+            return False
+        
+        data = ListEncoder().encode_list(purposes)
+        self.property_cache['purposes'] = data
+
+    def get_schema_fields_for_purposes(self):
+        '''
+        Getter for all licence definition fields associated with this selected
+        Activity.
+
+        NOTE: retrieving fields for all purposes on the Application not just
+        for this selected activity. 
+        '''
+        purpose_id_list = [p.id for p in self.purposes.all()]
+
+        # FIXME: returning all fields not just the ones associated with this
+        # Selected Activity. Need to apply additional filtering.
+        all_fields = self.application.get_schema_fields_for_purposes(
+            purpose_id_list
+        )
+
+        return all_fields
 
     @property
     def issued_purposes(self):
@@ -4708,7 +5074,7 @@ class ApplicationSelectedActivity(models.Model):
 
         for p in self.proposed_purposes.all():
             if p.is_payable:
-                fees += p.get_payable_application_fee
+                fees += p.get_payable_application_fee()
 
         logger.debug('ApplicationSelectedActivity.has_payable_fees() - end')    
         return fees
@@ -4863,30 +5229,69 @@ class ApplicationSelectedActivity(models.Model):
     def get_refund_amount(self):
         '''
         Get refundable licence amount for this selected Licence Activity.
+
+        NOTE: expensive function call.
         '''
-        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
-        paid = self.total_paid_amount
-        fees_app_tot = 0
-        fees_lic_tot = 0
-        fees_app = 0
-        fees_adj = 0
-        fees_lic = 0
+        logger.debug('get_refund_amount SelectedActivityID {}'.format(self.id))
+        IGNORE = [
+            # self.PROCESSING_STATUS_DECLINED,
+            self.PROCESSING_STATUS_DISCARDED,
+        ]
+        DECISION = [
+            self.DECISION_ACTION_DEFAULT,
+            # self.DECISION_ACTION_DECLINED,
+            self.DECISION_ACTION_ISSUED,
+            # self.DECISION_ACTION_REISSUE,
+            self.DECISION_ACTION_ISSUED_WITH_REFUND,
+        ]
+        refund = 0
+        if self.processing_status in IGNORE:
+            return refund
+        # For each Activity check decision NON-issued only.
+        if not self.decision_action in DECISION:
+            return refund
+
         for p in self.proposed_purposes.all():
-            fees_adj += p.adjusted_fee if p.is_payable else 0
-            fees_app += p.application_fee if p.is_payable else 0
-            fees_lic += p.licence_fee if p.is_payable else 0
+            refund += p.get_refund_amount()
 
-            if p.processing_status == DECLINE:
-                fees_adj += p.adjusted_fee
-                fees_app += p.application_fee
+        refund = refund if refund == 0 else refund * -1 # force positive value.
 
-        fees_app = fees_app + fees_adj
-        fees_app_tot = fees_app
-        fees_lic_tot = fees_lic
+        # if Activity is issued-with-refund and refund is 0 then set decision
+        # for Activity to issued. nb check declined activities.
+        if self.is_issued_with_refund and refund < 1:
+            self.decision_action = self.DECISION_ACTION_ISSUED
+            self.save()
 
-        over_paid = paid - fees_app_tot - fees_lic_tot
+        logger.debug('get_refund_amount refund {}'.format(refund))
+        return refund
 
-        return over_paid if over_paid > 0 else 0
+    # def get_refund_amoun_OLD(self):
+    #     '''
+    #     Get refundable licence amount for this selected Licence Activity.
+    #     '''
+    #     DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+    #     paid = self.total_paid_amount
+    #     fees_app_tot = 0
+    #     fees_lic_tot = 0
+    #     fees_app = 0
+    #     fees_adj = 0
+    #     fees_lic = 0
+    #     for p in self.proposed_purposes.all():
+    #         fees_adj += p.adjusted_fee if p.is_payable else 0
+    #         fees_app += p.application_fee if p.is_payable else 0
+    #         fees_lic += p.licence_fee if p.is_payable else 0
+
+    #         if p.processing_status == DECLINE:
+    #             fees_adj += p.adjusted_fee
+    #             fees_app += p.application_fee
+
+    #     fees_app = fees_app + fees_adj
+    #     fees_app_tot = fees_app
+    #     fees_lic_tot = fees_lic
+
+    #     over_paid = paid - fees_app_tot - fees_lic_tot
+
+    #     return over_paid if over_paid > 0 else 0
 
     def set_original_issue_date(self, issue_date):
         '''
@@ -5090,11 +5495,17 @@ class ApplicationSelectedActivity(models.Model):
     def process_licence_fee_payment(self, request, application):
         from ledger.payments.models import BpointToken
         from wildlifecompliance.components.applications.payments import (
-            ApplicationFeePolicy
+            ApplicationFeePolicy,
+            LicenceFeeClearingInvoice,
         )
 
         if self.is_licence_fee_paid():
             return True
+
+        # when fee has been overpaid allow processing (refund is required).
+        clear_inv = LicenceFeeClearingInvoice(application)
+        if not clear_inv.is_refundable and clear_inv.requires_refund:
+            return True     # Officer needs to refund with dashboard link.
 
         applicant = application.proxy_applicant if application.proxy_applicant else application.submitter
         card_owner_id = applicant.id
@@ -5221,8 +5632,23 @@ class ApplicationSelectedActivity(models.Model):
 
         self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
 
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
+        # if not self.is_proposed_purposes_status(P_STATUS) and\
+        #    self.activity_status == A_STATUS:
+        #     return
+
+        self.activity_status = A_STATUS
+        self.save()
+
+    def expire_purposes(self, purpose_ids):
+        '''
+        Expire all licence purposes available on this selected activity.
+        '''
+        A_STATUS = ApplicationSelectedActivity.ACTIVITY_STATUS_EXPIRED
+        P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_EXPIRED
+
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS):
             return
 
         self.activity_status = A_STATUS
@@ -5236,25 +5662,26 @@ class ApplicationSelectedActivity(models.Model):
         P_STATUS = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
         REISSUE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE
 
-        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
-
-        if not self.is_proposed_purposes_status(P_STATUS) and\
-           self.activity_status == A_STATUS:
-            return
-
-        # Update this activity status.
-        self.reissue()
-
         # Update purposes processing status so they can be re-issued.
         selected = [
             p for p in self.proposed_purposes.all()
-            if p.purpose.id in purpose_ids
+            if p.id in purpose_ids
         ]
         for purpose in selected:
             purpose.processing_status = REISSUE
             purpose.save()
 
-        return True
+        # Set the status for the selected proposed purposes.
+        self.set_proposed_purposes_status_for(purpose_ids, P_STATUS)
+
+        if not self.is_proposed_purposes_status(P_STATUS) and\
+           self.activity_status == A_STATUS:
+           # No setting of status for this selected Activity when another
+           # purpose is current.
+            return
+
+        # Update this activity status.
+        self.reissue()
 
     def reissue(self):
         '''
@@ -5287,9 +5714,7 @@ class ApplicationSelectedActivity(models.Model):
 
             self.activity_status = self.ACTIVITY_STATUS_CURRENT
             self.decision_action = self.DECISION_ACTION_REISSUE
-
-            with transaction.atomic():
-                self.save()
+            self.save()
 
         except BaseException as e:
             logger.error('ERR {0} ID: {1}: {2}'.format(
@@ -5337,6 +5762,52 @@ class ApplicationSelectedActivity(models.Model):
 
         return sequence_no
 
+    def get_activity_to_replace(self):
+        '''
+        Get the previously issued licence Activity with the correct license
+        Purpose that this Application Selected Activity will replace.
+
+        NOTE: Replacing only occurs for application Amendments and Renewals.
+
+        :return an ApplicationSelectedActivity with correct license purpose.
+        '''
+        activity_to_replace = None
+
+        if not self.application.application_type in [
+            Application.APPLICATION_TYPE_RENEWAL,
+            Application.APPLICATION_TYPE_AMENDMENT,
+        ]:
+            return activity_to_replace
+
+        valid_status = [
+            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
+            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        ]
+
+        # current_activities = self.application.get_current_activity_chain()
+        # NOTE: If applying activity_chain all purposes of the same type will
+        # be selected and will be difficult to distinguish which to replace.
+        # Select relevant using the previous application.
+        current_activities = ApplicationSelectedActivity.objects.filter(
+            application_id=self.application.previous_application,
+            activity_status__in=valid_status,
+        )
+
+        # NOTE: Multiple purposes of the same type can exist on a License but
+        # but only one instance on a Selected Activity. Ensure the correct
+        # Purpose on Activity is selected for replacement.   
+        for activity in current_activities:
+            purposes = [    # use proposed purpose in Selected Activity.
+                p for p in activity.proposed_purposes.all()
+                if p.purpose in self.purposes or p.purpose.get_latest_version(
+                ) in self.purposes  
+            ]
+            if purposes:
+                activity_to_replace = activity
+
+        return activity_to_replace
+
     def set_selected_purpose_sequence(self, p_id, sequence_no):
         '''
         Set all Selected Purposes for the activity to the same sequence number.
@@ -5366,15 +5837,22 @@ class ApplicationSelectedActivity(models.Model):
 
     def is_proposed_purposes_status(self, status):
         '''
-        Check all purposes on this activity have the same status. Used to check
-        if this activity is still current.
-        '''
-        not_same = [
-            p for p in self.proposed_purposes.all()
-            if not p.purpose_status == status
-        ]
+        Check all purposes on this activity have the same status. Where not the
+        same status then this Activity status must not be updated.
 
-        return not len(not_same)
+        :return boolean indicating this Activity status can be updated.
+        '''
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+        can_update_status = True
+
+        list_of_not_same = [
+            p for p in self.proposed_purposes.all()
+            if not p.purpose_status == status \
+                and not p.processing_status == DECLINE      # Excluded.
+        ]
+        can_update_status = not len(list_of_not_same) 
+
+        return can_update_status
 
     @transaction.atomic
     def set_proposed_purposes_status_for(self, ids, status):
@@ -5382,9 +5860,22 @@ class ApplicationSelectedActivity(models.Model):
         Set the status for the selected proposed purposes.
         '''
         is_updated = False
-        selected = [
-            p for p in self.proposed_purposes.all() if p.purpose.id in ids
-        ]
+        CURRENT = ApplicationSelectedActivityPurpose.PURPOSE_STATUS_CURRENT
+        DECLINE = ApplicationSelectedActivityPurpose.PROCESSING_STATUS_DECLINED
+ 
+        # Reinstate or Reissue select all applicable purposes for current. Else
+        # select applicable purposes which have a status of current. 
+        if status == CURRENT:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE
+            ]
+        else:
+            selected = [
+                p for p in self.proposed_purposes.all() 
+                if p.id in ids and not p.processing_status == DECLINE 
+                and p.purpose_status == CURRENT
+            ]
 
         for purpose in selected:
             purpose.purpose_status = status
@@ -5442,38 +5933,89 @@ class ApplicationSelectedActivity(models.Model):
             except BaseException:
                 raise
 
-    def has_licence_amendment(self):
+    def has_licence_amendment(self, purpose_list=[]):
+        '''
+        A check to indicate whether this application selected activity is for a
+        license with an opened amendment application having the same license
+        activity and purposes.
 
+        :param purpose_list containing purpose ids to be filtered on.
+        :return boolean.
+        '''
+        logger.debug('AppSelectedActivity.has_licence_amendment - start()')
+        has_amendment = False
         valid_status = [
-            # Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_DRAFT,
             Application.CUSTOMER_STATUS_UNDER_REVIEW,
             Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
             Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
             Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
         ]
 
-        has_amendment = Application.objects.filter(
+        amendments = Application.objects.filter(
             previous_application_id=self.application.id,
+            application_type=Application.APPLICATION_TYPE_AMENDMENT,
             customer_status__in=valid_status,
-        ).first()
+        )
+
+        for app in amendments:
+            for a in app.activities:
+                for p in a.proposed_purposes.all():
+                    if p.purpose_id in purpose_list:
+                        has_amendment = True
+                        break
+
+        logger.debug('AppSelectedActivity.has_licence_amendment - end()')
 
         return has_amendment
 
-    def get_activity_to_replace(self):
+    def get_proposed_purposes(self):
+        '''
+        Return a list of ApplicationSelectedActivityPurpose records issued
+        on this Selected Activity.
+        '''
+        from wildlifecompliance.components.applications.models import (
+            ApplicationSelectedActivityPurpose,
+            ApplicationSelectedActivity,
+        )
 
-        valid_status = [
-            ApplicationSelectedActivity.ACTIVITY_STATUS_DEFAULT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+        # latest purposes on the activities which are issued or reissued.
+        purpose_process_status = [
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_ISSUED,
+            ApplicationSelectedActivityPurpose.PROCESSING_STATUS_REISSUE,
         ]
 
-        replace = ApplicationSelectedActivity.objects.filter(
-            application_id=self.application.previous_application,
-            activity_status__in=valid_status,
-        ).first()
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity_id=self.id,
+            processing_status__in=purpose_process_status
+        ).order_by('purpose_sequence')
 
-        return replace
+        return purposes
 
+    def can_propose_purposes(self):
+        '''
+        Verification that all conditions on this Selected Activity have been 
+        completed for proposal of purposes.
+
+        :return: boolean flag to indicate no incomplete conditions.
+        '''
+        incomplete_conditions = [
+            c for c in self.get_condition_list() 
+            if c.return_type and not c.due_date     # check due date for return
+        ]
+
+        return not incomplete_conditions
+
+    def get_condition_list(self):
+        '''
+        Get a list of conditions for this Selected Activity.
+        '''
+        condition_list = ApplicationCondition.objects.filter(
+            application_id=self.application.id,
+            licence_activity_id=self.licence_activity.id
+        )
+
+        return condition_list
 
     def get_activity_from_previous(self):
         '''
@@ -5483,9 +6025,10 @@ class ApplicationSelectedActivity(models.Model):
         previous = None
         prev_app = self.application.previous_application
 
+        # RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         status = {
             ApplicationSelectedActivity.ACTIVITY_STATUS_CURRENT,
-            ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
+            # ApplicationSelectedActivity.ACTIVITY_STATUS_REPLACED,
         }
         prev_chain = prev_app.get_current_activity_chain(
             activity_status__in=status).order_by(
@@ -5501,6 +6044,7 @@ class ApplicationSelectedActivity(models.Model):
                 if a.licence_activity_id == act_id
                 and a.activity_status in status
                 and a.processing_status in self.PROCESSING_STATUS_ACCEPTED
+                # and not a.application.application_type == RENEWAL
             ]
             previous = prev_chain[0]    # licence has one current activity.
 
@@ -5569,7 +6113,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
     RENEWABLE = [
         PURPOSE_STATUS_DEFAULT,
         PURPOSE_STATUS_CURRENT,
-        PURPOSE_STATUS_EXPIRED,
+        # PURPOSE_STATUS_EXPIRED,
     ]
 
     processing_status = models.CharField(
@@ -5680,10 +6224,18 @@ class ApplicationSelectedActivityPurpose(models.Model):
             Check licence and application fee has been paid with the latest
             invoice.
             '''
-            if self.selected_activity.application_fee == 0 \
-                    and self.selected_activity.total_paid_amount < 1:
+            # if self.selected_activity.application_fee == 0 \
+            #         and self.selected_activity.total_paid_amount < 1:
+            if self.selected_activity.application_fee == Decimal(0.0) \
+                    and self.selected_activity.licence_fee == Decimal(0.0) \
+                    and self.selected_activity.total_paid_amount < Decimal(1.0):
 
                 _status = ActivityInvoice.PAYMENT_STATUS_NOT_REQUIRED
+
+            elif self.selected_activity.application_fee < Decimal(0.0) \
+                    and self.selected_activity.total_paid_amount < Decimal(1.0):
+
+                _status = ActivityInvoice.PAYMENT_STATUS_OVERPAID
 
             return _status
 
@@ -5804,13 +6356,15 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         Property to indicate that this purpose has expired or about to expire
         and can be renewed.
+
+        :return boolean indicating ok and not replaced with Renew application. 
         '''
         is_ok = False
 
         if self.purpose_status in self.RENEWABLE and self.sent_renewal:
             is_ok = True
 
-        return is_ok
+        return is_ok and not self.is_replaced()
 
     @property
     def is_active(self):
@@ -5860,10 +6414,13 @@ class ApplicationSelectedActivityPurpose(models.Model):
         An attribute for the total fees paid for this Select Activity Purpose.
         The total amount includes fee, additional and licence fee.
         '''
+        lic_fee = self.licence_fee if self.is_payable else 0
+        adj_lic_fee = self.adjusted_licence_fee if self.is_payable else 0
+
         amount = self.application_fee \
-            + self.licence_fee \
+            + lic_fee \
             + self.adjusted_fee \
-            + self.adjusted_licence_fee
+            + adj_lic_fee
 
         return amount
 
@@ -5945,20 +6502,19 @@ class ApplicationSelectedActivityPurpose(models.Model):
             for line in inv_lines:
                 amount += line.amount
 
-            # exclude the refunds
-            detail = Invoice.objects.get(
-                reference=a_inv.invoice_reference)
-            amount -= detail.refund_amount
-
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         if self.selected_activity.application.application_type == AMEND:
             '''
-            For amendments exclude fees for previous adjustments. Note taken
-            from invoice lines.
+            For amendments exclude fees for previous adjustments. Not applicable
+            for Application Renewals having seperate adjustment fields.
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                amount = amount + prev_purpose.adjusted_fee
+                if prev_purpose:
+                    prev_app = prev_purpose.selected_activity.application
+                    if not prev_app.application_type == RENEWAL:
+                        amount = amount + prev_purpose.adjusted_fee
 
             except BaseException as e:
                 logger.error(
@@ -5990,6 +6546,7 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 amount += line.amount
 
         AMEND = Application.APPLICATION_TYPE_AMENDMENT
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
         if self.selected_activity.application.application_type == AMEND:
             '''
             For amendments exclude fees for previous adjustments. Not taken
@@ -5997,7 +6554,10 @@ class ApplicationSelectedActivityPurpose(models.Model):
             '''
             try:
                 prev_purpose = self.get_purpose_from_previous()
-                amount = amount + prev_purpose.adjusted_licence_fee
+                if prev_purpose:
+                    prev_app = prev_purpose.selected_activity.application
+                    if not prev_app.application_type == RENEWAL:
+                        amount = amount + prev_purpose.adjusted_licence_fee
 
             except BaseException as e:
                 logger.error(
@@ -6048,24 +6608,26 @@ class ApplicationSelectedActivityPurpose(models.Model):
     def get_refund_amount(self):
         '''
         Get refundable licence amount for this licence purpose.
+
+        :return refund amount as negative value.
         '''
         refund = 0
         # paid fees are invoiced amounts paid.
         paid_app_fee = self.total_paid_adjusted_application_fee
         paid_lic_fee = self.total_paid_adjusted_licence_fee
 
-        if self.processing_status == self.PROCESSING_STATUS_DECLINED:
-            # refund any licence fees paid.
-            paid_lic_fee = 0
+        # if self.processing_status == self.PROCESSING_STATUS_DECLINED:
+        #     # refund any licence fees paid.
+        #     paid_lic_fee = 0
 
         # total_paid_amount is the expected total paid for this purpose.
         refund = self.total_paid_amount - (paid_app_fee + paid_lic_fee)
 
-        # Refund will be negative when the total_paid_amount is negative, as
-        # adjustments made to the fees are set to negative in admin schema.
-        # Otherwise refund should be a positive amount which will be converted
-        # to negative.
-        refund = refund if refund < 0 else refund * -1
+        # NOTE: Refund will be negative when the total_paid_amount is negative, 
+        # as adjustments made to the fees are set to negative in admin schema.
+        # A postive refund value indicates under paid fees.
+        # refund = refund if refund < 0 else refund * -1
+        refund = refund if refund < 0 else refund * 0
 
         return refund
 
@@ -6093,11 +6655,59 @@ class ApplicationSelectedActivityPurpose(models.Model):
         '''
         self.purpose_status = self.PURPOSE_STATUS_CURRENT
 
+    def is_replaced(self):
+        '''
+        Verifies if this selected purpose is going to be replaced by being
+        associated with a newer application. (amendments, renewals)
+
+        :return boolean indicating this selected purpose is being replaced.
+        '''
+        is_replacing = False
+
+        app_customer_status = [                 # customer status to include.
+            Application.CUSTOMER_STATUS_DRAFT,
+            Application.CUSTOMER_STATUS_UNDER_REVIEW,
+            Application.CUSTOMER_STATUS_AWAITING_PAYMENT,
+            Application.CUSTOMER_STATUS_AMENDMENT_REQUIRED,
+            Application.CUSTOMER_STATUS_PARTIALLY_APPROVED,
+        ]
+
+        app_processing_status = [               # processing status to exclude.
+            Application.PROCESSING_STATUS_DECLINED,
+            Application.PROCESSING_STATUS_DISCARDED,
+        ]
+
+        app_application_type = [                # Only types which can replace.
+            Application.APPLICATION_TYPE_AMENDMENT,
+            Application.APPLICATION_TYPE_REISSUE,
+            Application.APPLICATION_TYPE_RENEWAL,
+        ]
+
+        applications = Application.objects.filter(
+            previous_application_id=self.selected_activity.application_id,
+            application_type__in=app_application_type,
+            customer_status__in=app_customer_status,
+        )
+
+        is_replacing = len(
+            [
+                a for a in applications 
+                if a.processing_status not in app_processing_status
+                and self.purpose in a.licence_purposes.all()
+            ]
+        )
+
+        return is_replacing
+
     def get_purpose_from_previous(self):
         '''
         Gets this Application Selected Activity Purpose from the previous
         replaced selected Activity.
         '''
+        SELECTED = self.PROCESSING_STATUS_SELECTED
+        RENEWAL = Application.APPLICATION_TYPE_RENEWAL
+        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
+
         previous = None
         prev_app = self.selected_activity.application.previous_application
 
@@ -6112,7 +6722,6 @@ class ApplicationSelectedActivityPurpose(models.Model):
         if not activities:
             return previous
 
-        ACCEPT = ApplicationSelectedActivity.PROCESSING_STATUS_ACCEPTED
         try:
             act_id = self.selected_activity.licence_activity_id
             self_id = self.purpose_id
@@ -6121,16 +6730,30 @@ class ApplicationSelectedActivityPurpose(models.Model):
                 if a.licence_activity_id == act_id
                 # and a.activity_status in status
                 and a.processing_status == ACCEPT
+                # ignore activities for renewals.
+                # and not a.application.application_type == RENEWAL
                 # replaced purposes are no longer issued.
                 # and self.purpose in a.issued_purposes
             ]
+
             # order by Application Selected Activity ID with Current last.
             sorted_prev = sorted(prev, key=lambda x: x.id, reverse=False)
             # when multiple Replaced applications only use the last one.
             prev_id = len(sorted_prev) - 2 if len(sorted_prev) > 1 else 0
+            # purpose which has not been proposed (selected) may still have
+            # multiple replaced. Only use last current. ie last in order.
+            if self.processing_status == SELECTED and len(sorted_prev) > 1:
+                prev_id = len(sorted_prev) - 1
+
             purposes = sorted_prev[prev_id].proposed_purposes.all()
-            prev = [p for p in purposes if p.purpose_id == self_id]
-            previous = prev[0]
+            prev = [
+                p for p in purposes
+                if p.purpose_id == self_id or p.purpose.get_latest_version(
+                # if schema had been updated need to also check the previous
+                # version had been used on the last proposed purpose aswell.  
+                ).id == self_id 
+            ]
+            previous = prev[0] if prev else None
 
         except WildlifeLicence.DoesNotExist:
             pass
@@ -6234,6 +6857,7 @@ class ApplicationFormDataRecord(models.Model):
 
     ACTION_TYPE_ASSIGN_VALUE = 'value'
     ACTION_TYPE_ASSIGN_COMMENT = 'comment'
+    ACTION_TYPE_ASSIGN_SUBMIT = 'submit'
 
     COMPONENT_TYPE_TEXT = 'text'
     COMPONENT_TYPE_TAB = 'tab'
@@ -6520,6 +7144,7 @@ class ApplicationUserAction(UserAction):
     ACTION_CANCEL_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_SUSPEND_LICENCE_ = "Cancel Licence for activity purpose {}"
     ACTION_REFUND_LICENCE_ = "Refund Licence Fee {0} for activity purpose {1}"
+    ACTION_VERSION_LICENCE_ = "New Licence version for activity purpose {} v{}"
     ACTION_DISCARD_APPLICATION = "Discard application {}"
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"

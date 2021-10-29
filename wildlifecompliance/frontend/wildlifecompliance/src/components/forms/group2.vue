@@ -131,7 +131,7 @@ const Group2 = {
             delete this.components[tableId]
             //console.log("Remove: " + JSON.stringify(this.components))
             //console.log("*************************************************************")
-            this.refreshApplicationFees();
+            // this.refreshApplicationFees();
         },
         addNewGroup: function(params={}) {
             let { tableId } = params;
@@ -142,7 +142,7 @@ const Group2 = {
             this.updateVisibleGroups(
                 this.existingGroups
             );
-            this.refreshApplicationFees();
+            // this.refreshApplicationFees();
         },
         updateVisibleGroups: function(tableList) {
             this.setFormValue({

@@ -4,8 +4,32 @@ from django.db.models import Q
 from ledger.accounts.models import RevisionedMixin
 
 
+class Act(RevisionedMixin):
+    NAME_CHOICES =  (
+            ('BCA', 'Biodiversity Conservation Act 2016'),
+            ('CALM', 'Conservation and Land Management Act 1984'),
+            ('BCR', 'Biodiversity Conservation Regulations 2018'),
+            ('CLMR', 'Conservation and Land Management Regulations 2002'),
+            ('FMR', 'Forest Management Regulations 1993'),
+            ('CIIPA', 'Criminal Investigation (Identifying People) Act 2006'),
+            ('SCMRA', 'Swan and Canning Rivers Management Act 2006'),
+            ('SCRMR', 'Swan and Canning Rivers Management Regulations 2007'),
+            )
+
+    name = models.CharField(max_length=50, choices=NAME_CHOICES)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_Act'
+        verbose_name_plural = 'CM_Acts'
+
+    def __str__(self):
+        return self.name
+
+
 class SectionRegulation(RevisionedMixin):
-    act = models.CharField(max_length=100, blank=True)
+    #act = models.CharField(max_length=100, blank=True)
+    act = models.ForeignKey(Act, related_name='section_regulations')
     name = models.CharField(max_length=50, blank=True, verbose_name='Regulation')
     offence_text = models.CharField(max_length=200, blank=True)
     is_parking_offence = models.BooleanField(default=False)

@@ -38,7 +38,7 @@
                                 </select> -->
                             </div>
                         </div>
-                        <div v-if="is_external" class="col-md-3">
+                        <div class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_application_organisation' }">New Application</router-link>
                         </div>
                     </div>
@@ -292,11 +292,11 @@ export default {
                     else{
                         if (full.can_current_user_edit) {
                             links +=  `<a href='/external/application/${full.id}'>Continue</a><br/>`;
-                            if(vm.canDiscardApplication(full)) {
-                                links +=  `<a href='#${full.id}' data-discard-application='${full.id}'>Discard</a><br/>`;
-                            }
                         }
-                        else if (full.can_user_view) {
+                        if(vm.canDiscardApplication(full)) {
+                            links +=  `<a href='#${full.id}' data-discard-application='${full.id}'>Discard</a><br/>`;
+                        }
+                        if (full.can_user_view) {
                             links +=  `<a href='/external/application/${full.id}'>View</a><br/>`;
                         }
                         if (full.can_pay_application){
@@ -523,6 +523,8 @@ export default {
     computed: {
         ...mapGetters([
             'canViewPayments',
+            'current_user',
+            'isIdentifiedUser',
         ]),
         visibleHeaders: function() {
             return this.is_external ? this.application_ex_headers : this.application_headers;
@@ -818,7 +820,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
-        vm.loadCurrentUser({ url: `/api/my_user_details` });
+        vm.loadCurrentUser({ url: `/api/my_user_details` });     
         $( 'a[data-toggle="collapse"]' ).on( 'click', function () {
             var chev = $( this ).children()[ 0 ];
             window.setTimeout( function () {

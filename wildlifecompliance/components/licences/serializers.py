@@ -30,6 +30,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
     latest_activities_merged = serializers.SerializerMethodField(
         read_only=True)
     can_add_purpose = serializers.SerializerMethodField(read_only=True)
+    status = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = WildlifeLicence
@@ -43,6 +44,7 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
             'last_issue_date',
             'latest_activities_merged',
             'can_add_purpose',
+            'status',
         )
 
     def get_last_issue_date(self, obj):
@@ -62,10 +64,28 @@ class WildlifeLicenceSerializer(serializers.ModelSerializer):
         '''
         Check if there are purposes left in the category to add on licence.
         '''
-        can_add = obj.is_latest_in_category and\
-            obj.purposes_available_to_add.count() > 0
+        is_latest = obj.is_latest_in_category
+        has_available_purposes = obj.purposes_available_to_add.count() > 0 
+        has_current_purposes = obj.has_proposed_purposes_in_current()
+        # can_add = obj.is_latest_in_category and\
+        #     obj.purposes_available_to_add.count() > 0 and\
+        #         obj.has_proposed_purposes_in_current()
 
-        return can_add
+        return is_latest and has_available_purposes and has_current_purposes
+
+    def get_status(self, obj):
+
+        default_status = [
+            obj.LICENCE_STATUS_CURRENT
+        ]
+
+        status = [
+            s[1] for s in obj.LICENCE_STATUS_CHOICES
+            if s[0] == obj.get_property_cache_status() or
+            (s[0] in default_status and not obj.get_property_cache_status())
+        ][0]
+
+        return status
 
 
 class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
@@ -89,6 +109,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_add_purpose',
             'invoice_url',
             'has_inspection_open',
+            'status',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
@@ -162,8 +183,7 @@ class DTInternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
 
 
 class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
-    licence_document = serializers.CharField(
-        source='licence_document._file.url')
+    licence_document = serializers.SerializerMethodField(read_only=True)
     current_application = WildlifeLicenceApplicationSerializer(read_only=True)
     last_issue_date = serializers.SerializerMethodField(read_only=True)
     can_action = serializers.SerializerMethodField(read_only=True)
@@ -182,12 +202,16 @@ class DTExternalWildlifeLicenceSerializer(WildlifeLicenceSerializer):
             'can_action',
             'can_add_purpose',
             'invoice_url',
+            'status',
         )
         # the serverSide functionality of datatables is such that only columns
         # that have field 'data' defined are requested from the serializer. Use
         # datatables_always_serialize to force render of fields that are not
         # listed as 'data' in the datatable columns.
         datatables_always_serialize = fields
+
+    def get_licence_document(self, obj):
+        return None
 
     def get_can_action(self, obj):
         # set default but use to_representation to calculate based on
@@ -369,6 +393,7 @@ class ActivitySerializer(serializers.ModelSerializer):
             'short_name',
             'not_for_organisation'
         )
+        order_by = ['-id']
 
     def get_purpose(self, obj):
         purposes = self.context.get('purpose_records')
@@ -439,6 +464,7 @@ class LicenceCategorySerializer(serializers.ModelSerializer):
                     a for a in obj.get_activities()
                 ]
 
+        activities = sorted(activities, key=lambda x: x.id, reverse=False)
         request = self.context.get('request')
         user = request.user if request and request.user else None
         serializer = ActivitySerializer(

@@ -69,7 +69,7 @@
                 <div class="panel panel-default">
                   <div class="panel-heading">
                     <i v-if="showCompletion && uploadedID" class="fa fa-check fa-2x pull-left" style="color:green"></i>
-                    <i v-else-if="!uploadedID" class="fa fa-times fa-2x pull-left" style="color:red"></i>
+                    <i v-else-if="!uploadedID && !current_user.has_complete_first_time" class="fa fa-times fa-2x pull-left" style="color:red"></i>
                     <h3 class="panel-title">Identification <small>Upload your photo ID</small>
                         <a class="panelClicker" :href="'#'+idBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="idBody">
                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
@@ -83,39 +83,20 @@
                           </div>
                           <div class="form-group">
                             <label class="col-sm-3 control-label">Identification</label>
-                            <div class="col-sm-6">
-                                <span v-if="!uploadedID" class="btn btn-link btn-file pull-left">Attach File<input type="file" ref="uploadedID" @change="readFileID()"/></span>
-                                <span v-if="!uploadingID" class="btn btn-link btn-file pull-left"><a :href="'../media'+idFileName" target="_blank">{{uploadedID}}</a></span>
-                                <span v-else class="btn btn-link btn-file pull-left">&nbsp;Uploading...</span>
-                                <div>
-                                    <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
-                                        <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
-                                    </span>
-                                </div>
+                            <div class="col-sm-9">
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-if="uploadedID"><SecureBaseLink link_name="Uploaded Photo ID" :link_data="{'user_id': current_user.id}" /></span>
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else-if="!uploadedID">Attach Photo ID<input type="file" ref="uploadedID" @change="readFileID()"/></span>
+                                <span class="col-sm-3 btn btn-link btn-file pull-left" v-else >&nbsp;Uploading...</span>
+                                <span v-if="uploadedID" class="btn btn-link btn-file pull-left">
+                                    <a @click="removeID()" class="fa fa-trash-o" title="Remove file" style="cursor: pointer; color:red;" />
+                                </span>
                             </div>                            
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
-                                <!-- <div v-if="openIDFileTab">
-                                    <a :href="'../media'+idFileName" target="_blank">
-                                        [ View Image in New Tab ]
-                                    </a>         
-                                </div>
-                                <div v-else>    
-                                    <img v-if="current_user.identification" width="100%" name="identification" v-bind:src="current_user.identification.file" />
-                                </div> -->
-                            </div>
+                            <div class="col-sm-12"></div>
                           </div>
                           <div class="form-group">
-                            <div class="col-sm-12">
-                                <!-- output order in reverse due to pull-right at runtime -->
-                                <!-- <button v-if="!uploadingID" class="pull-right btn btn-primary" @click.prevent="uploadID()">Upload</button>
-                                <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Uploading</button>
-                                <span class="pull-right" style="margin-left:10px;margin-top:10px;margin-right:10px">{{uploadedIDFileName}}</span>
-                                <span class="btn btn-primary btn-file pull-right">
-                                    Select ID to Upload<input type="file" ref="uploadedID" @change="readFileID()"/>
-                                </span> -->
-                            </div>
+                            <div class="col-sm-12"></div>
                           </div>
                        </form>
                   </div>
@@ -162,7 +143,7 @@
                             <label for="" class="col-sm-3 control-label" >Country</label>
                             <div class="col-sm-4">
                                 <select class="form-control" name="country" v-model="current_user.residential_address.country">
-                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="c.alpha2Code">{{ c.name }}</option>
                                 </select>
                             </div>
                           </div>
@@ -251,7 +232,7 @@
                                 </div>
                             </div>
                           </div>
-                          <div v-for="org in current_user.wildlifecompliance_organisations">
+                          <div v-for="org in current_user.wildlifecompliance_organisations" v-bind:key="org.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3"> 
@@ -264,7 +245,7 @@
                                 <a style="cursor:pointer;text-decoration:none;" @click.prevent="unlinkUser(org)"><i class="fa fa-chain-broken fa-2x" ></i>&nbsp;Unlink</a>
                               </div>
                           </div>
-                          <div v-for="orgReq in orgRequest_pending">
+                          <div v-for="orgReq in orgRequest_pending" v-bind:key="orgReq.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3"> 
@@ -277,7 +258,7 @@
                                 <label><i class="fa fa-hourglass-o fa-2x" ></i> Pending Approval</label>
                               </div>
                           </div>
-                          <div v-for="orgReq in orgRequest_amendment_requested">
+                          <div v-for="orgReq in orgRequest_amendment_requested" v-bind:key="orgReq.id">
                               <div class="form-group">
                                 <label for="" class="col-sm-2 control-label" >Organisation</label>
                                 <div class="col-sm-3">
@@ -416,8 +397,12 @@
 import Vue from 'vue'
 import $ from 'jquery'
 import { api_endpoints, helpers } from '@/utils/hooks'
+import SecureBaseLink from '@/components/common/securebase_link.vue';
 export default {
     name: 'MyUserDetails',
+    components: {
+        SecureBaseLink,
+    },
     data () {
         let vm = this;
         return {
@@ -465,6 +450,7 @@ export default {
                 keepInvalid:true,
                 allowInputToggle:true
             },
+            showCompleteMsg:false,
         }
     },
     watch: {
@@ -502,22 +488,15 @@ export default {
         uploadedFileName: function() {
             return this.uploadedFile != null ? this.uploadedFile.name: '';
         },
-        // uploadedIDFileName: function() {
-        //     let id_file = this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
-        //     return this.uploadedID != null ? this.uploadedID.name: id_file;
-        // },
         showCompletion: function() {
+            // if (!this.showCompleteMsg) {
+            //     this.showCompleteMsg = this.$route.name == 'first-time' ? true : this.current_user.identification == null ? true : false
+            // }
             return this.$route.name == 'first-time'
         },
         completedProfile: function(){
             return this.current_user.contact_details && this.current_user.personal_details && this.current_user.address_details && this.current_user.identification;
         },
-        // openIDFileTab: function() {
-        //     return this.current_user.identification && !this.current_user.identification.file.includes('.png', '.jpeg', '.jpg', '.tiff');
-        // },
-        idFileName: function() {
-            return this.current_user.identification != null ? this.current_user.identification.file.split('/media').pop() : '';
-        }
     },
     methods: {
         readFile: function() {
@@ -827,19 +806,12 @@ export default {
                 }).then((response) => {
                     vm.uploadingID = false;
                     vm.uploadedID = null;
-                    vm.uploadedID = response.body.identification.file.split('/').pop();
-                    vm.current_user.identification = response.body.identification
-                    // swal({
-                    //     title: 'Upload ID',
-                    //     html: 'Your ID has been successfully uploaded.',
-                    //     type: 'success',
-                    // });
-                    // }).then(() => {
-                    //     window.location.reload(true);
-                    // });
+                    vm.uploadedID = response.body.identification;
+                    vm.current_user.identification = response.body.identification;
                 }, (error) => {
                     console.log(error);
                     vm.uploadingID = false;
+                    vm.uploadedID = null;
                     let error_msg = '<br/>';
                     for (var key in error.body) {
                         error_msg += key + ': ' + error.body[key] + '<br/>';
@@ -1103,7 +1075,7 @@ export default {
     },
     beforeRouteEnter: function(to,from,next){
         Vue.http.get(api_endpoints.my_user_details).then((response) => {
-            if (response.body.address_details && response.body.personal_details && response.body.contact_details && to.name == 'first-time'){
+            if (to.name == 'first-time' && response.body.address_details && response.body.personal_details && response.body.contact_details && response.body.has_complete_first_time){
                 window.location.href='/';
             }
             else{
@@ -1111,7 +1083,7 @@ export default {
                     vm.current_user = response.body
                     if (vm.current_user.residential_address == null){ vm.current_user.residential_address = {}; }
                     if (vm.current_user.wildlifecompliance_organisations && vm.current_user.wildlifecompliance_organisations.length > 0) { vm.managesOrg = 'Yes' }
-                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification.file.split('/').pop(); }
+                    if (vm.current_user.identification){ vm.uploadedID = vm.current_user.identification; }
                 });
             }
         },(error) => {

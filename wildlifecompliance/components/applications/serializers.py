@@ -37,7 +37,7 @@ from wildlifecompliance.components.organisations.serializers import (
     ExternalOrganisationSerializer
 )
 from wildlifecompliance.components.users.serializers import (
-    UserAddressSerializer, DocumentSerializer
+    UserAddressSerializer, IdentificationSerializer
 )
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.management.permissions_manager import PermissionUser
@@ -94,6 +94,7 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
         returns all status types available for either internal or external
         application.
         '''
+        is_internal = self.context['is_internal']
         # Displayable text for drop-down.
         N1 = 'Draft'
         N2 = 'Under Review'
@@ -263,6 +264,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
+    can_propose_purposes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -365,6 +367,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         logger.debug('SelectedActivitySerializer.has_inspection() - end')
 
         return has_inspection
+
+    def get_can_propose_purposes(self, obj):
+        return obj.can_propose_purposes()
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
@@ -505,7 +510,6 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
-        print('get_invoice_url')
         url = None
         if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
@@ -516,7 +520,7 @@ class DTExternalApplicationSelectedActivitySerializer(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-        print(url)
+
         return url
 
 
@@ -675,9 +679,8 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
-    # identification = DocumentSerializer()
+    identification = IdentificationSerializer()
     dob = serializers.SerializerMethodField(read_only=True)
-    identification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -693,15 +696,6 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
-
-    def get_identification(self, obj):
-        uid = None
-        if obj.identification:
-            id_file = 'media/' + str(obj.identification.file)
-            if os.path.exists(id_file):
-                uid = DocumentSerializer(obj.identification).data
-
-        return uid
 
     def get_dob(self, obj):
 
@@ -947,7 +941,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'invoice_url',
             'total_paid_amount',
             'payment_url',
-            'requires_refund',
+            # 'requires_refund',
             'all_payments_url',
             'adjusted_paid_amount',
             'is_reception_paper',
@@ -1090,6 +1084,11 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
                 Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE:
             # Outstanding amendment request - edit required.
             result = True
+        elif not obj.licence:
+            result = obj.can_user_edit
+        elif not obj.licence.has_proposed_purposes_in_current():
+            # no active purposes ie. licence is expired.
+            result = False
         else:
             result = obj.can_user_edit
         logger.debug('BaseApplicationSerializer.can_user_edit() - end')
@@ -1153,15 +1152,20 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             for invoice in invoices:
                 invoice_str += '&invoice={}'.format(invoice.invoice_reference)
 
-            if app.requires_refund:
-                if app.application_type == \
-                        Application.APPLICATION_TYPE_AMENDMENT:
-                    previous = Application.objects.get(
-                        id=app.previous_application.id)
-                    invoices = previous.invoices.all()
-                    for invoice in invoices:
-                        invoice_str += '&invoice={}'.format(
-                            invoice.invoice_reference)
+            url = '{0}payment?invoice={1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                invoice_str,
+            )
+
+        elif app.requires_refund_amendment():
+            # build url for refunding 
+            invoice_str = ''
+            previous = Application.objects.get(
+                id=app.previous_application.id)
+            invoices = previous.invoices.all()
+            for invoice in invoices:
+                invoice_str += '&invoice={}'.format(
+                    invoice.invoice_reference)
 
             url = '{0}payment?invoice={1}'.format(
                 settings.WC_PAYMENT_SYSTEM_URL_INV,
@@ -1229,6 +1233,15 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
         return is_accept
 
     def get_can_pay_application(self, obj):
+        '''
+        Returns a flag to indicate whether this application has an outstanding
+        application fee when under review. It is used to provide link to ledger
+        screen from dashboard.
+
+        NOTE: not required. Application fees are paid up front. Internal staff
+        pay application fees only through proxy process. When applicant payment
+        is required for a requested amendment then pay and submit (no link).
+        '''
         can_pay = False
 
         pay_status = [
@@ -1241,7 +1254,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
 
             can_pay = True
 
-        return can_pay
+        return False
 
     def get_can_pay_licence(self, obj):
         can_pay = False
@@ -1643,6 +1656,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
     total_paid_amount = serializers.SerializerMethodField()
     adjusted_paid_amount = serializers.SerializerMethodField()
     is_return_check_accept = serializers.SerializerMethodField(read_only=True)
+    on_active_licence = serializers.SerializerMethodField()
 
     class Meta:
         model = Application
@@ -1688,6 +1702,7 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
             'total_paid_amount',
             'adjusted_paid_amount',
             'is_return_check_accept',
+            'on_active_licence',
         )
         read_only_fields = ('documents', 'conditions')
 
@@ -1787,6 +1802,21 @@ class InternalApplicationSerializer(BaseApplicationSerializer):
 
         logger.debug('InternalApplicationSerializer.get_user_roles() - end')
         return roles
+
+    def get_on_active_licence(self, obj):
+        '''
+        Check status of licence (if existing) for application after submission.
+        '''
+        on_active = not obj.on_nonactive_licence()
+
+        # The status of licence is not required for new activities on licence.
+        exclude = [ 
+            Application.APPLICATION_TYPE_ACTIVITY
+        ]
+        if obj.application_type in exclude:
+            on_active = True
+
+        return on_active
 
 
 class ApplicationUserActionSerializer(serializers.ModelSerializer):

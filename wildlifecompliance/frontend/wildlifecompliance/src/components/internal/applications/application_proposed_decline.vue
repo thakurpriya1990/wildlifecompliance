@@ -7,7 +7,7 @@
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
                         <div class="col-sm-12">
                             <div class="form-group">
-                                <div class="row">
+                                <!-- <div class="row">
                                     <div class="col-sm-12">
                                         <label class="control-label" for="Name">Select licensed activities to Propose Decline</label>
                                         <div v-for="activity in visibleLicenceActivities">
@@ -16,7 +16,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div> -->
                             </div>
                             <div class="form-group">
                                 <div class="row">
@@ -65,6 +65,7 @@ export default {
         let vm = this;
         return {
             isModalOpen:false,
+            noActiveLicense:false,
             form:null,
             propose_decline:{
                 activity:[],
@@ -87,21 +88,29 @@ export default {
             'hasRole',
             'licenceActivities',
             'canAssignOfficerFor',
+            'selected_activity_tab_id',
+            'selected_activity_tab_name',
         ]),
         showError: function() {
             var vm = this;
             return vm.errors;
         },
         title: function(){
-            return 'Proposed Decline';
-        },
-        visibleLicenceActivities: function() {
-            return this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
-                activity => { return this.canAssignOfficerFor(activity.id); }
-            );
+            return 'Propose to decline activity ' + this.selected_activity_tab_name;
         },
     },
     methods:{
+        visibleLicenceActivities: function() {
+            let visible_ids = []
+            this.licenceActivities(['with_officer_conditions', 'licensing_officer']).filter(
+                    activity => {
+                        let ok = activity.id === this.selected_activity_tab_id;
+                        if (ok) {visible_ids.push(activity.id)}
+                        return this.canAssignOfficerFor(activity.id) && ok;
+                    }
+            );
+            return this.noActiveLicense ? this.licence_type_data.activity : visible_ids;
+        },
         ok:function () {
             let vm =this;
             if($(vm.form).valid()){
@@ -125,6 +134,7 @@ export default {
         sendData:function(){
             let vm = this;
             vm.errors = false;
+            vm.propose_decline.activity = vm.visibleLicenceActivities()
             let propose_decline = JSON.parse(JSON.stringify(vm.propose_decline));
             vm.decliningApplication = true;
             if (propose_decline.activity.length > 0){

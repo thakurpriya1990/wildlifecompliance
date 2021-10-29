@@ -12,8 +12,8 @@ class SanctionOutcomeDueDateConfiguration(RevisionedMixin):
 
     class Meta:
         app_label = 'wildlifecompliance'
-        verbose_name = 'CM_SanctionOutcomeDueDateConfiguration'
-        verbose_name_plural = 'CM_SanctionOutcomeDueDateConfiguration'
+        verbose_name = 'CM_Sanction Outcome Due Date Configuration'
+        verbose_name_plural = 'CM_Sanction Outcome Due Date Configuration'
         ordering = ('date_of_enforcement', )  # oldest record first, latest record last
 
     @classmethod

@@ -1,0 +1,5 @@
+{%  extends 'wildlifecompliance/emails/base_management_email.txt' %}
+
+{%  block content %}
+        The above executed command script has excuted sucessfully with {{verified_total}} records verified.
+{%  endblock %}

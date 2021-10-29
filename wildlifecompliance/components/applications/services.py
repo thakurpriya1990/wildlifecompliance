@@ -3,6 +3,9 @@ import abc
 import requests
 import logging
 
+from django.db import transaction
+from django.utils import timezone
+
 from wildlifecompliance import settings
 
 from wildlifecompliance.components.licences.models import (
@@ -29,9 +32,14 @@ from wildlifecompliance.components.applications.models import (
     ApplicationFormDataRecord,
     ApplicationStandardCondition,
     ApplicationCondition,
+    ApplicationUserAction,
     LicenceActivity,
+    AmendmentRequest,
+    ActivityPermissionGroup,
+    DefaultCondition,
 )
 
+from wildlifecompliance.exceptions import ApplicationServiceException
 logger = logging.getLogger(__name__)
 # logger = logging
 
@@ -43,6 +51,37 @@ class ApplicationService(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def process_submission(request, application=None):
+        '''
+        Prepares the customer application for internal review.
+
+        :param: application is an Licence Application for submission.
+        :param: request is an incoming client request.
+        '''
+        logger.debug('ApplicationService.submit_application_request() - start')
+        logger_title = '{0} AppID {1}:'.format(
+            'ApplicationService.submit_application_request()',
+            application.id,
+        )
+
+        try:
+            with transaction.atomic():
+                submit = SubmitRequestCommand(request, application)
+                submit.execute()
+
+        except ApplicationServiceException as ase:
+            log = '{0} {1}'.format(logger_title, ase)
+            logger.exception(log)
+
+        except Exception as e:
+            log = '{0} {1}'.format(logger_title, e)
+            logger.exception(log)
+            raise
+
+        logger.debug('ApplicationService.submit_application_request() - end')
+
 
     @staticmethod
     def cash_payment_submission(request):
@@ -175,7 +214,16 @@ class ApplicationService(object):
         logger.debug('ApplicationService.calculate_fees() - start')
         # Get all fee adjustments made with checkboxes and radio buttons.
         checkbox = CheckboxAndRadioButtonVisitor(application, data_source)
-        for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+        # Utilise correct Fee Field Element for Renewal Applications.
+        if application.application_type \
+                == Application.APPLICATION_TYPE_RENEWAL:
+            for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+
+        else:
+            for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+        # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
         for_increase_fee_fields.accept(checkbox)
         # set fee exemption for migrations.
         MIGRATE = Application.SUBMIT_TYPE_MIGRATE
@@ -204,6 +252,11 @@ class ApplicationService(object):
         """
         logger.debug('ApplicationService.process_form() - start')
         update_fee = form_data.pop('__update_fee', False)
+        submitting = form_data.pop('__submit', False)
+
+        if submitting:
+            action = ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT
+
         do_process_form(
             request,
             application,
@@ -216,7 +269,7 @@ class ApplicationService(object):
 
         if update_fee or application.processing_status not in process_status:
             do_update_dynamic_attributes(application)
-        # 
+        #
         # else:
         #     updated_app = Application.objects.get(id=application.id)
         #     updated_app.save()      # save for reversion log on form.
@@ -239,6 +292,278 @@ class ApplicationService(object):
 
     def __str__(self):
         return 'ApplicationService'
+
+
+"""
+NOTE: This section for objects relating to Application Commands.
+"""
+
+
+class ApplicationCommand(object):
+    '''
+    Declares an interface common to all supported Application client requests.
+
+    '''
+    request = None                      # property for client request.
+    application = None                  # property for application.
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def execute(self):
+        '''
+        Method to perfom an operation on the Application.
+        '''
+        pass
+
+
+class SubmitRequestCommand(ApplicationCommand):
+    '''
+    An ApplicationCommand to execute the submission process on an Application
+    to prepare for internal review.
+    '''
+    ONLINE = Application.SUBMIT_TYPE_ONLINE
+    AWAITING_PAYMENT = Application.CUSTOMER_STATUS_AWAITING_PAYMENT
+    UNDER_REVIEW = Application.CUSTOMER_STATUS_UNDER_REVIEW
+
+    REQUESTED = AmendmentRequest.AMENDMENT_REQUEST_STATUS_REQUESTED
+    AMENDED = AmendmentRequest.AMENDMENT_REQUEST_STATUS_AMENDED
+
+    OFFICER = ApplicationSelectedActivity.PROCESSING_STATUS_WITH_OFFICER
+    DRAFT = ApplicationSelectedActivity.PROCESSING_STATUS_DRAFT
+    FIN = ApplicationSelectedActivity.PROCESSING_STATUS_OFFICER_FINALISATION
+    PROPOSED = ApplicationSelectedActivity.PROPOSED_ACTION_ISSUE
+
+    AMEND_ACTION = ApplicationUserAction.ACTION_ID_REQUEST_AMENDMENTS_SUBMIT
+    APPLICATION_ACTION = ApplicationUserAction.ACTION_LODGE_APPLICATION
+
+    log_action = None
+    amendment_request = False
+    officer_reissue = False
+
+    def __init__(self, request, application):
+        self.request = request
+        self.application = application
+
+    def __str__(self):
+        return 'SubmitRequestCommand() AppID: {0}'.format(self.application.id)
+
+    def prepare_amendment_request(self):
+        '''
+        Process the request for submit of application amendment request.
+        '''
+        qs = self.application.amendment_requests.filter(
+            status=self.REQUESTED
+        )
+
+        if qs:
+
+            for q in qs:
+                q.status = self.AMENDED
+                self.application.set_activity_processing_status(
+                    q.licence_activity.id, self.OFFICER)
+                q.save()
+
+            self.amendment_request = True
+            self.application.save()
+            self.log_action = self.AMEND_ACTION
+
+    def prepare_default_conditions(self, selected_activity):
+        '''
+        Process Default Conditions on the Application.
+        '''
+        for purpose in selected_activity.proposed_purposes.all():
+
+            conditions = DefaultCondition.objects.filter(
+                licence_activity=selected_activity.licence_activity_id,
+                licence_purpose=purpose.purpose_id
+                )
+
+            for d in conditions:
+                sc = ApplicationStandardCondition.objects.get(
+                    id=d.standard_condition_id
+                    )
+
+                ac, c = ApplicationCondition.objects.get_or_create(
+                    standard_condition=sc,
+                    application=self.application,
+                    licence_purpose=d.licence_purpose,
+                    licence_activity=d.licence_activity,
+                    return_type=sc.return_type,
+                )
+                ac.is_default = True
+                ac.standard = True
+                ac.save()
+
+                self.application.log_user_action(
+                    ApplicationUserAction.ACTION_CREATE_CONDITION.format(
+                        ac.condition[:256],
+                        ac.licence_purpose.short_name,
+                    ),
+                    self.request
+                )
+
+    def prepare_selected_purposes(self, selected_activity):
+        '''
+        Process Selected Activity Purposes for the selected Activity for
+        applicable licences. Set proposed dates to the previous date period.
+        '''
+        APPLICABLE_TYPES = [
+            Application.APPLICATION_TYPE_AMENDMENT,
+            Application.APPLICATION_TYPE_RENEWAL,
+        ]
+        if self.application.application_type in APPLICABLE_TYPES:
+
+            for p in selected_activity.proposed_purposes.all():
+                prev = p.get_purpose_from_previous()
+                p.proposed_start_date = prev.start_date
+                p.proposed_end_date = prev.expiry_date
+                p.original_issue_date = prev.issue_date
+
+                if prev.original_issue_date:
+                    p.original_issue_date \
+                        = prev.original_issue_date
+
+                p.start_date = prev.start_date
+                p.expiry_date = prev.expiry_date
+
+                p.purpose_species_json = \
+                    prev.purpose_species_json
+
+                p.save()
+
+    def prepare_reissue(self, selected_activity):
+        '''
+        Process the request for a reissue on the application.
+        '''
+        if self.application.application_type \
+                == Application.APPLICATION_TYPE_REISSUE:
+
+            latest_activity = self.application.get_latest_current_activity(
+                selected_activity.licence_activity_id
+            )
+
+            if not latest_activity:
+                log = 'licence not found for activity ID: {0}'.format(
+                    selected_activity.licence_activity_id
+                )
+                raise Exception(log)
+
+            self.application.set_activity_processing_status(
+                selected_activity.licence_activity_id, self.FIN
+            )
+
+            selected_activity.proposed_action = self.PROPOSED
+            selected_activity.save()
+
+    def prepare_application(self):
+        '''
+        Process the request for standard application submit.
+        '''
+        for activity in self.application.licence_type_data['activity']:
+            if activity["processing_status"]["id"] != self.DRAFT:
+                continue
+
+            selected_activity = \
+                self.application.get_selected_activity(activity["id"])
+
+            # set licence to with-officer.
+            self.application.set_activity_processing_status(
+                activity["id"], self.OFFICER
+            )
+
+            '''
+            1. Process details for reissued applications.
+            '''
+            # will set licence to with-approver.
+            self.prepare_reissue(selected_activity)
+
+            '''
+            2. Process Default Conditions for an Application.
+            '''
+            self.prepare_default_conditions(selected_activity)
+
+            '''
+            3. Process Selected Activity Purposes for the selected
+            Activity for applicable licences. Set proposed dates to
+            the previous date period.
+            '''
+            self.prepare_selected_purposes(selected_activity)
+
+        self.application.save()
+
+    def execute(self):
+        '''
+        Concrete method.
+        '''
+        from ledger.accounts.models import EmailUser
+        from wildlifecompliance.components.applications.email import (
+            send_application_submit_email_notification,
+        )
+
+        if not self.application.can_user_edit:
+            raise ApplicationServiceException('Incorrect status for Submit')
+
+        type_id = self.application.licence_type_data["id"]
+        officer_groups = ActivityPermissionGroup.objects.filter(
+            permissions__codename='licensing_officer',
+            licence_activities__purpose__licence_category__id=type_id
+        )
+        group_users = EmailUser.objects.filter(
+            groups__id__in=officer_groups.values_list('id', flat=True)
+        ).distinct()
+
+        requires_refund = self.application.requires_refund_at_submit()
+
+        # stop process when outstanding fee.
+        if self.application.submit_type == self.ONLINE \
+                and not self.application.application_fee_paid \
+                and not requires_refund:
+            self.application.customer_status = self.AWAITING_PAYMENT
+            self.application.save()
+            return
+
+        self.application.customer_status = self.UNDER_REVIEW
+        self.application.submitter = self.request.user
+        self.application.lodgement_date = timezone.now()
+
+        # set assess status to True everytime. Flag is only used for
+        # assessments and conditions and is set to false once conditions
+        # are processed.
+        self.application.set_property_cache_assess(True)
+
+        # if amendment is submitted change the status of only particular
+        # activity else if the new application is submitted change the
+        # status of all the activities
+        self.submit_amendment_request()
+
+        if not self.amendment_request:
+
+            self.prepare_application()
+
+            if not requires_refund:
+
+                try:
+                    send_application_submit_email_notification(
+                        group_users, self.application, self.request)
+
+                except Exception as e:
+                    log = '{0} - {1}'.format(
+                        'Could not send submit email notification',
+                        e
+                    )
+                    raise Exception(log)
+
+            self.log_action = self.APPLICATION_ACTION
+
+        # Create a log entry for the application
+        self.application.log_user_action(
+            self.log_action.format(self.application.id), self.request
+        )
+        if requires_refund:
+            self.application.alert_for_refund(self.request)
+
+        self.application.documents.all().update(can_delete=False)
 
 
 """
@@ -324,16 +649,54 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
         self._field = special_field_element
         self.render()
 
+    @staticmethod
+    def get_application_schema_components(application):
+        '''
+        Get all radio and checkboxes selected on an application.
+
+        :param an application with schema to search.
+        '''
+        components = []
+
+        schema_fields = application.get_schema_fields_for_purposes(
+             application.licence_purposes.values_list('id', flat=True),
+        )
+
+        for record in application.form_data_records.all():
+
+            if record.component_type not in ['checkbox', 'radiobuttons']:
+                continue
+
+            if 'ridx' in record.field_name:
+                # TODO support for repeatable groups.
+                # idx = record.field_name.find('-ridx')
+                # record.filed_name = record.field_name[:idx]
+                continue
+
+            component = schema_fields[record.field_name]
+            if 'options' in component:
+
+                for option in component['options']:
+                    if option['value'] != record.value:
+                        continue
+                    components.append(option)
+
+            elif record.value == 'on':
+                components.append(record)
+
+        return components
+
     def render(self):
         logger.debug('CheckboxAndRadioButtonCompositor.render()')
         for selected_activity in self._application.activities:
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
-
+            # schema_fields1
+            #       = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
             # Adjustments based on selected options (radios and checkboxes)
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -349,6 +712,13 @@ class CheckboxAndRadioButtonCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id \
+                        == schema_data['licence_activity_id']:
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] not in ['checkbox', 'radiobuttons']:
                     continue
@@ -400,9 +770,10 @@ class TextAreaCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
+            # schema_fields = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
 
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -418,6 +789,14 @@ class TextAreaCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id == schema_data[
+                    'licence_activity_id',
+                ]:
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] == 'text_area':
                     self._field.parse_component(
@@ -448,9 +827,10 @@ class TextCompositor(ApplicationFormCompositor):
 
             self._field.reset(selected_activity)
 
-            schema_fields = self._application.get_schema_fields_for_purposes(
-                selected_activity.purposes.values_list('id', flat=True)
-            )
+            # schema_fields = self._application.get_schema_fields_for_purposes(
+            #     selected_activity.purposes.values_list('id', flat=True)
+            # )
+            schema_fields = selected_activity.get_schema_fields_for_purposes()
 
             adjusted_by_fields = {}
             for form_data_record in self._data_source:
@@ -466,6 +846,14 @@ class TextCompositor(ApplicationFormCompositor):
                 if schema_name not in schema_fields:
                     continue
                 schema_data = schema_fields[schema_name]
+
+                if not selected_activity.licence_activity_id == schema_data[
+                    'licence_activity_id',
+                ]:
+                    # FIXME: this check is required because the function
+                    # selected_activity.get_schema_fields_for_purposes() is
+                    # retrieving fields for all purposes on the Application.
+                    continue
 
                 if schema_data['type'] == 'text':
                     self._field.parse_component(
@@ -705,8 +1093,12 @@ class CopyToLicenceFieldElement(SpecialFieldElement):
         """
         Reset the selected licence activity to have no CopyToLicenceFields.
         """
-        if self.is_refreshing:
-            # No user update with a page refesh.
+        ISSUED = [
+            licence_activity.DECISION_ACTION_ISSUED_WITH_REFUND,
+            licence_activity.DECISION_ACTION_ISSUED,
+        ]
+        if self.is_refreshing or licence_activity.decision_action in ISSUED:
+            # No user update with a page refesh or issued activities.
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
@@ -813,8 +1205,12 @@ class StandardConditionFieldElement(SpecialFieldElement):
         NOTE: Standard Conditions created will need to be manually deleted
         by the officer when need to change so that it is audited.
         """
-        if self.is_refreshing:
-            # No user update with a page refesh.
+        ISSUED = [
+            licence_activity.DECISION_ACTION_ISSUED_WITH_REFUND,
+            licence_activity.DECISION_ACTION_ISSUED,
+        ]
+        if self.is_refreshing or licence_activity.decision_action in ISSUED:
+            # No user update with a page refesh or issued activities.
             return
 
         if isinstance(licence_activity, ApplicationSelectedActivity):
@@ -823,7 +1219,7 @@ class StandardConditionFieldElement(SpecialFieldElement):
                 is_rendered=True,
                 standard=True,
                 application=self._application,
-                licence_activity_id=licence_activity.id
+                licence_activity_id=licence_activity.licence_activity_id,
             ):
                 condition.delete()
 
@@ -865,6 +1261,228 @@ class StandardConditionFieldElement(SpecialFieldElement):
         return 'Field Element: {0}'.format(self._NAME)
 
 
+class IncreaseRenewalFeeFieldElement(SpecialFieldElement):
+    '''
+    An implementation of an SpecialFieldElement operation that takes an
+    ApplicationFormVisitor as an argument and dynamically updates any increased
+    adjustments to the renewal application fee for the Activity/Purpose.
+
+    NOTE: Adjustment fees from the previous application are not included.
+    '''
+    NAME = 'IncreaseRenewalFee'
+    LICENCE = 'IncreaseLicenceFee'
+
+    fee_policy = None           # Policy applied to the fee update.
+    dynamic_attributes = None   # Attributes on the Activity Purpose.
+    is_updating = False         # Flag indicating if update or retrieval.
+    is_refreshing = False       # Flag indicating a page refresh.
+    has_fee_exemption = False   # Allow exemption for zero amount invoice.
+
+    adjusted_fee = 0
+    adjusted_licence_fee = 0
+
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return 'Field Element: {0}'.format(self.NAME)
+
+    def accept(self, application_form_visitor):
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() - start')
+        self._app = application_form_visitor._application
+        self._data_source = application_form_visitor._data_source
+        # Add relevant Fee policy to impact the Increase Application Fee.
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() #2')
+        self.fee_policy = ApplicationFeePolicy.get_fee_policy_for(self._app)
+        if not self._data_source:  # No form data set fee from application fee.
+            self.fee_policy.set_application_fee()
+            self.is_refreshing = True
+        self.dynamic_attributes = self.fee_policy.get_dynamic_attributes()
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() #3')
+        application_form_visitor.visit_increase_application_fee_field(self)
+        logger.debug('IncreaseRenewalFeeFieldElement.accept() - end')
+
+    def set_updating(self, is_update):
+        '''
+        Sets the flag indicating that this visit is an update and not retrieve
+        for estimate calculation.
+        '''
+        self.is_updating = is_update
+
+    def set_has_fee_exemption(self, is_exempt):
+        '''
+        Sets the flag indicating that this visit will force a zero amount to be
+        calculated for invoicing (zero amount invoice). The fee stored is only
+        for the adjusted amounts on the licence purpose.
+        '''
+        self.has_fee_exemption = is_exempt
+        self.fee_policy.set_has_fee_exemption(is_exempt)
+
+    def reset(self, licence_activity):
+        '''
+        Reset the fees for the licence activity to the base fee amount.
+        '''
+        logger.debug('IncreaseRenewalFeeFieldElement.reset()')
+        self.adjusted_fee = 0
+        self.adjusted_licence_fee = 0
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if isinstance(licence_activity, ApplicationSelectedActivity):
+            self.dynamic_attributes[
+                'activity_attributes'][licence_activity] = {
+                    'fees': licence_activity.base_fees
+                }
+
+            if self.is_updating:
+                licence_activity.save_without_cache()
+
+    def reset_licence_purpose(self, licence_activity, purpose_id):
+        """
+        Reset previous options settings on the licence purpose by removing.
+        """
+        logger.debug(
+            'IncreaseRenewalFeeFieldElement.reset_licence_purpose()'
+        )
+        if self.is_refreshing or not self.is_updating:
+            # No user update with a page refesh.
+            return
+
+        # reset purpose adjusted fee amount.
+        purposes = ApplicationSelectedActivityPurpose.objects.filter(
+            selected_activity=licence_activity,
+        )
+        for p in purposes:
+            p.adjusted_fee = self.adjusted_fee
+            p.adjusted_licence_fee = self.adjusted_licence_fee
+            p.save()
+
+    def parse_component(
+            self,
+            component,
+            schema_name,
+            adjusted_by_fields,
+            activity,
+            purpose_id):
+        '''
+        Aggregate adjusted fees for the Activity/Purpose.
+        '''
+        from decimal import Decimal as D
+        from decimal import ROUND_DOWN
+
+        logger.debug('IncreaseApplicationFeeFieldElement.parse_component()')
+
+        if self.is_refreshing:
+            # No user update with a page refesh.
+            return
+
+        if set([self.NAME]).issubset(component) \
+                or set([self.LICENCE]).issubset(component):
+
+            def increase_fee(fees, field, amount):
+                if self.has_fee_exemption:
+                    return True
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
+                fees[field] += amount
+                # increase_fee is for dynamic attributes so include negatives.
+                # fees[field] = fees[field] if fees[field] >= 0 else D(0)
+                logger.debug('fees[field] = {}'.format(fees[field]))
+                return True
+
+            def adjusted_fee(field, amount):
+                amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
+                if field == 'application':
+                    self.adjusted_fee += amount
+                return True
+
+            fee_modifier_keys = {
+                self.LICENCE: 'licence',
+                self.NAME: 'application',
+            }
+            increase_limit_key = 'IncreaseTimesLimit'
+            try:
+                increase_count = adjusted_by_fields[schema_name]
+            except KeyError:
+                increase_count = adjusted_by_fields[schema_name] = 0
+
+            if increase_limit_key in component:
+                max_increases = int(component[increase_limit_key])
+                if increase_count >= max_increases:
+                    return
+
+            adjustments_performed = sum(key in component and increase_fee(
+                self.dynamic_attributes['fees'],
+                field,
+                component[key]
+            ) and increase_fee(
+                self.dynamic_attributes[
+                    'activity_attributes'][activity]['fees'],
+                field,
+                component[key]
+            ) and adjusted_fee(
+                field,
+                component[key]
+            ) for key, field in fee_modifier_keys.items())
+
+            if adjustments_performed:
+                adjusted_by_fields[schema_name] += 1
+
+            if adjustments_performed and self.is_updating:
+                purpose = LicencePurpose.objects.get(
+                       id=purpose_id
+                )
+                # update adjusted fee for the activity purpose.
+                p, c = ApplicationSelectedActivityPurpose.objects.\
+                    get_or_create(purpose=purpose, selected_activity=activity)
+
+                if c:  # Only save base fees for those not created.
+                    p.application_fee = purpose.renewal_application_fee
+                    p.licence_fee = purpose.base_licence_fee
+
+                p.adjusted_fee = self.adjusted_fee
+                p.adjusted_licence_fee = self.adjusted_licence_fee
+                p.save()
+
+    def get_adjusted_fees(self):
+        '''
+        Gets the new dynamic attributes after the Increase Application Fee has
+        been applied with the relevant fee policy.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes['fees']
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
+
+        return self.dynamic_attributes['fees']
+
+    def set_adjusted_fees_for(self, activity):
+        '''
+        Sets the Increase Application Fee on the licence activity applying the
+        relevant fee policy.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_dynamic_attributes_for(activity)
+
+    def get_dynamic_attributes(self):
+        '''
+        Gets the current dynamic attributes created by this Field Element.
+        '''
+        if self.is_refreshing:
+            # don't calculate new fees for attributes.
+            return self.dynamic_attributes
+        # apply fee policy to re-calculate total fees for application.
+        self.fee_policy.set_has_fee_exemption(self.has_fee_exemption)
+        self.fee_policy.set_dynamic_attributes(self.dynamic_attributes)
+
+        return self.dynamic_attributes
+
+
 class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
     """
     An implementation of an SpecialFieldElement operation that takes a
@@ -887,7 +1505,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
         pass
 
     def __str__(self):
-        return 'Field Element: {0}'.format(self._NAME)
+        return 'Field Element: {0}'.format(self.NAME)
 
     def accept(self, application_form_visitor):
         logger.debug('IncreaseApplicationFeeFieldElement.accept() - start')
@@ -987,7 +1605,7 @@ class IncreaseApplicationFeeFieldElement(SpecialFieldElement):
                     return True
                 amount = D(amount).quantize(D('0.01'), rounding=ROUND_DOWN)
                 fees[field] += amount
-                fees[field] = fees[field] if fees[field] >= 0 else 0
+                # fees[field] = fees[field] if fees[field] >= 0 else 0
                 return True
 
             def adjusted_fee(field, amount):
@@ -1130,18 +1748,28 @@ def do_process_form(
         officer_comment = field_data.get('officer_comment', '')
         assessor_comment = field_data.get('assessor_comment', '')
         deficiency = field_data.get('deficiency_value', '')
-        activity_id = field_data.get('licence_activity_id', '')
-        purpose_id = field_data.get('licence_purpose_id', '')
+
+        if not field_data.get('licence_activity_id', '') == '':
+            activity_id = field_data.get('licence_activity_id', '')
+
+        if not field_data.get('licence_purpose_id', '') == '':
+            purpose_id = field_data.get('licence_purpose_id', '')
+
         component_attribute = field_data.get('component_attribute', '')
 
         if ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR in field_name:
-            [parsed_schema_name, parsed_instance_name] = field_name.split(
-                ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
-            )
-            schema_name = schema_name if schema_name \
-                else parsed_schema_name
-            instance_name = instance_name if instance_name \
-                else parsed_instance_name
+
+            try:
+                [parsed_schema_name, parsed_instance_name] = field_name.split(
+                    ApplicationFormDataRecord.INSTANCE_ID_SEPARATOR
+                )
+                schema_name = schema_name if schema_name \
+                    else parsed_schema_name
+                instance_name = instance_name if instance_name \
+                    else parsed_instance_name
+
+            except ValueError:
+                pass
 
         try:
             visible_data_tree[instance_name][schema_name]
@@ -1170,8 +1798,16 @@ def do_process_form(
             form_data_record.component_attribute = component_attribute
 
         if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_VALUE:
-            if not is_draft and not value \
-                    and schema_name in required_fields:
+            # if not is_draft and not value \
+            #         and schema_name in required_fields:
+            #     missing_item = {'field_name': field_name}
+            #     missing_item.update(required_fields[schema_name])
+            #     missing_fields.append(missing_item)
+            #     continue
+            form_data_record.value = value
+
+        if action == ApplicationFormDataRecord.ACTION_TYPE_ASSIGN_SUBMIT:
+            if not value and schema_name in required_fields:
                 missing_item = {'field_name': field_name}
                 missing_item.update(required_fields[schema_name])
                 missing_fields.append(missing_item)
@@ -1217,12 +1853,21 @@ def do_update_dynamic_attributes(application, fee_exemption=False):
             Application.PROCESSING_STATUS_DRAFT,
             Application.PROCESSING_STATUS_AWAITING_APPLICANT_RESPONSE,
             Application.PROCESSING_STATUS_UNDER_REVIEW,
+            Application.PROCESSING_STATUS_PARTIALLY_APPROVED,
     ]:
         return
 
     # Get all fee adjustments made with check boxes and radio buttons.
     checkbox = CheckboxAndRadioButtonVisitor(application, application.data)
-    for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+    # Utilise correct Fee Field Element for Renewal Applications.
+    if application.application_type == Application.APPLICATION_TYPE_RENEWAL:
+        for_increase_fee_fields = IncreaseRenewalFeeFieldElement()
+
+    else:
+        for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
+
+    # for_increase_fee_fields = IncreaseApplicationFeeFieldElement()
     for_increase_fee_fields.set_updating(True)
     for_increase_fee_fields.accept(checkbox)
     for_increase_fee_fields.set_has_fee_exemption(fee_exemption)

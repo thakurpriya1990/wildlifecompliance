@@ -1,11 +1,14 @@
 <template id="application_issuance">
                 <div class="col-md-12">
 
-                    <ul class="nav nav-pills mb-3" id="tabs-section" data-tabs="tabs">
+                    <div class="row">
+                    <ul class="nav nav-pills mb-3" id="tabs-main" data-tabs="tabs">
+                        <li class="nav-item"><a class="nav-link" data-toggle="pill" v-on:click="selectApplicantTab()">Applicant</a></li>
                         <li class="nav-item" v-for="(activity, index) in visibleLicenceActivities" v-bind:key="`issue_activity_tab_${index}`">
                             <a class="nav-link" data-toggle="pill" v-on:click="selectTab(activity)">{{activity.name}}</a>
                         </li>
                     </ul>
+                    </div>
                     <div class="tab-content">
                         <div class="row" v-for="(item, index) in selectedActivity" v-bind:key="`issue_activity_content_${index}`">
                             <div class="panel panel-default">
@@ -20,18 +23,10 @@
                                     <form class="form-horizontal" action="index.html" method="post">
                                         <div class="col-sm-12">
                                             <div class="form-group">
+
                                                 <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Ready for finalisation?</label>
-                                                    </div>
-                                                    <div class="col-sm-9">
-                                                        <input type="checkbox" class="confirmation-checkbox" v-model="getActivity(item.id).confirmed">
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-sm-3">
-                                                        <label class="control-label pull-left">Proposed Purposes</label>
-                                                    </div>
+                                                    <div class="col-sm-12"><label class="control-label pull-left">Proposed Purposes:</label></div>
+                                                    <div class="col-sm-12"><label class="control-label pull-left">&nbsp;</label></div>
                                                     <div class="col-sm-12">
                                                         <div v-for="(p, index) in applicationSelectedActivitiesForPurposes" v-bind:key="`p_${index}`">
                                 
@@ -45,25 +40,26 @@
                                                                 </div>
                                                                 <div class="panel-body panel-collapse collapse" :id="`${index}`+purposeBody">
                                                                     <div class="row">
-                                                                        <div class="col-sm-3">
-                                                                            <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
-                                                                            <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
-                                                                        </div>
-
-                                                                        <div class="col-sm-3">
-                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
-                                                                                <input :readonly="!canEditLicenceDates && p.proposed_start_date" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
-                                                                                <span class="input-group-addon">
-                                                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                                                </span>
+                                                                        <div class="col-sm-12">
+                                                                            <div class="col-sm-3">
+                                                                                <input type="radio" :value ="true" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Issue &nbsp;
+                                                                                <input type="radio" :value ="false" :id="p.purpose.id" v-model="getPickedPurpose(p.purpose.id).isProposed" /> Decline &nbsp;
                                                                             </div>
-                                                                        </div>                                                
-                                                                        <div class="col-sm-3">                                                        
-                                                                            <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
-                                                                                <input :readonly="!canEditLicenceDates && p.proposed_end_date" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
-                                                                                <span class="input-group-addon">
-                                                                                    <span class="glyphicon glyphicon-calendar"></span>
-                                                                                </span>
+                                                                            <div class="col-sm-3">
+                                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`start_date_${p.id}`" style="width: 100%;">
+                                                                                    <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`start_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_start_date">
+                                                                                    <span class="input-group-addon">
+                                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>                                                                                                                                                 
+                                                                            <div class="col-sm-3">                                                        
+                                                                                <div class="input-group date" v-if="getPickedPurpose(p.purpose.id).isProposed" :ref="`end_date_${p.id}`" style="width: 100%;">
+                                                                                    <input :readonly="p.processing_status!=='reissue' && (!canEditLicenceDates && p.proposed_end_date)" type="text" class="form-control" :name="`end_date_${p.id}`" placeholder="DD/MM/YYYY" v-model="p.proposed_end_date">
+                                                                                    <span class="input-group-addon">
+                                                                                        <span class="glyphicon glyphicon-calendar"></span>
+                                                                                    </span>
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                         <div class="col-sm-12">
@@ -87,34 +83,20 @@
                                                                         <div v-for="(free_text, pt_idx) in p.purpose_species_json" v-bind:key="`pt_${pt_idx}`">
                                                                             <br/>
 
-                                                                            <!--
+
                                                                             <div class="col-sm-12">
                                                                                 <div class="col-sm-3">
-                                                                                    <label class="control-label pull-left" for="Name">Header</label>
-                                                                                </div>
-                                                                                <div class="col-sm-6">
-                                                                                    <input type="text" ref="ap_text_header" class="form-control" style="width:70%;" v-model="free_text.header" />
-                                                                                </div>
-                                                                                <div v-show="free_text.is_additional_info" class="col-sm-3">
-                                                                                    <input type="checkbox" checked disabled/>
-                                                                                    <label>Is additional info</label>
-                                                                                </div>
-                                                                            </div>
-                                                                            -->
-                                                                            <div class="col-sm-12">
-                                                                                <div class="col-sm-2">
                                                                                     <label class="control-label pull-left" for="Name">Details</label>
+                                                                                    <div v-show="free_text.is_additional_info" ><br/><br/>
+                                                                                        <input type="checkbox" checked disabled/>
+                                                                                        <label>Is additional info</label>
+                                                                                    </div>
                                                                                 </div>
-                                                                                <div class="col-sm-8">
-                                                                                    <!--
-                                                                                    <textarea ref="ap_text_detail" class="form-control" style="width:100%;" v-model="free_text.details" />
-                                                                                    -->
+                                                                                <div class="col-sm-9">
+
                                                                                     <ckeditor ref="ap_text_detail" v-model="free_text.details" :config="editorConfig"></ckeditor>
                                                                                 </div>
-                                                                                <div v-show="free_text.is_additional_info" class="col-sm-2">
-                                                                                    <input type="checkbox" checked disabled/>
-                                                                                    <label>Is additional info</label>
-                                                                                </div>
+
                                                                             </div>
 
                                                                         </div>
@@ -144,12 +126,12 @@
                             <div class="panel panel-default">
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Emailing
-                                        <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
+                                        <a class="panelClicker" :href="'#'+emailPanelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="emailPanelBody">
                                             <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
-                                <div class="panel-body panel-collapse collapse in" :id="panelBody">
+                                <div class="panel-body panel-collapse collapse in" :id="emailPanelBody">
                                     <div class="row">
                                         <div class="col-sm-3">
                                             
@@ -186,29 +168,29 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> <!-- end of tab content -->
 
                     <div class="row" v-if="licence.activity.some(activity => activity.final_status === 'issued')">
                         <div class="panel panel-default">
                             <div class="panel-heading">
                                 <h3 class="panel-title">Issue
-                                    <a class="panelClicker" :href="'#'+panelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="panelBody">
+                                    <a class="panelClicker" :href="'#'+issuePanelBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="issuePanelBody">
                                         <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                     </a>
                                 </h3>
                             </div>
-                            <div class="panel-body panel-collapse collapse in" :id="panelBody">
+                            <div class="panel-body panel-collapse collapse in" :id="issuePanelBody">
                                 <div class="row">
                                     <div class="col-sm-3">
                                         <label class="control-label pull-left"  for="details">ID Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="details" style="width: 70%;">
-                                            <button v-if="isIdCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isIdCheckAwaitingUpdate">Awaiting update. Override to Issue: &nbsp;</label>
-                                            <label v-if="isIdNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isIdNotChecked || isIdCheckAwaitingUpdate" type="checkbox" v-model="licence.id_check" />
-                                        </div>
+
+                                        <button v-if="isIdCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isIdCheckAwaitingUpdate">Awaiting update. Override to Issue: &nbsp;</label>
+                                        <label v-if="isIdNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isIdNotChecked || isIdCheckAwaitingUpdate" type="checkbox" :value="true" v-model="getCheckedItem('id_check').isChecked" />
+
                                     </div>
                                 </div>
                                 <div class="row">
@@ -216,11 +198,11 @@
                                         <label class="control-label pull-left"  for="details">Character Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="cc_email" style="width: 70%;">
-                                            <button v-if="isCharacterCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isCharacterNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isCharacterNotChecked" type="checkbox" v-model="licence.character_check" />
-                                        </div>
+
+                                        <button v-if="isCharacterCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isCharacterNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isCharacterNotChecked" type="checkbox" :value="true" v-model="getCheckedItem('character_check').isChecked" />
+
                                     </div>
                                 </div>
                                 <div class="row">
@@ -228,12 +210,12 @@
                                         <label class="control-label pull-left"  for="details">Return Check</label>
                                     </div>
                                     <div class="col-sm-9">
-                                        <div class="input-group date" ref="cc_email" style="width: 70%;">
-                                            <button v-if="isReturnCheckAccepted" disabled class="btn btn-success">Accepted</button>
-                                            <label v-if="isReturnCheckAwaitingReturns">Awaiting return. Override to Issue: &nbsp;</label>
-                                            <label v-if="isReturnNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
-                                            <input v-if="isReturnNotChecked || isReturnCheckAwaitingReturns" type="checkbox" v-model="licence.return_check" />
-                                        </div>
+
+                                        <button v-if="isReturnCheckAccepted" disabled class="btn btn-success">Accepted</button>
+                                        <label v-if="isReturnCheckAwaitingReturns">Awaiting return. Override to Issue: &nbsp;</label>
+                                        <label v-if="isReturnNotChecked">Has not been accepted. Override to Issue: &nbsp;</label>
+                                        <input v-if="isReturnNotChecked || isReturnCheckAwaitingReturns" type="checkbox" :value="true" v-model="getCheckedItem('return_check').isChecked" />
+
                                     </div>
                                 </div>
                             </div>
@@ -280,7 +262,11 @@ export default {
     },    
     props: {
         application: Object,
-        licence_activity_tab:Number
+        licence_activity_tab:Number,
+        final_view_conditions: {
+            type: Boolean,
+            default: false,
+        },        
     },
     data: function() {
         let vm = this;
@@ -304,13 +290,17 @@ export default {
 
         return {
             panelBody: "application-issuance-"+vm._uid,
+            issuePanelBody: "app-issuance-check-"+vm._uid,
+            emailPanelBody: "app-issuance-email-"+vm._uid,
             purposeBody: `purposeBody${vm._uid}`,
             proposed_licence:{},
             licence:{
                 activity: [],
-                id_check:false,
-                character_check:false,
-                return_check:false,
+                checked_items: [{
+                    id: null,
+                    isChecked: false,
+                }],
+
                 current_application: vm.application.id,
                 purposes: [],
                 selected_purpose_ids: [],
@@ -324,7 +314,7 @@ export default {
             },
             pickedPurposes: [],
             spinner:false,
-            //editorData: '<p>Content of the editor.</p>',
+
             editorConfig: {
                 // The configuration of the editor.
                 toolbar: toolbar_options,
@@ -343,6 +333,8 @@ export default {
             'selected_activity_tab_id',
             'licenceActivities',
             'filterActivityList',
+            'isApplicationActivityVisible',
+            'application_workflow_state',
         ]),
         csrf_token: function() {
             return helpers.getCookie('csrftoken')
@@ -359,14 +351,18 @@ export default {
         },
         applicationSelectedActivitiesForPurposes: function() {
             var proposed = this.selectedApplicationActivity.proposed_purposes.filter(purpose => {
-                return ['selected','reissue','propose'].includes(purpose.processing_status)
+                if (purpose.processing_status === 'reissue'){
+                    purpose.proposed_start_date = purpose.start_date
+                    purpose.proposed_end_date = purpose.expiry_date              
+                }
+                return ['reissue','propose','selected'].includes(purpose.processing_status)
             });
             return proposed;
         },
         canIssueOrDecline: function() {
-            return (this.allActivitiesDeclined || (
-                this.licence.id_check && this.licence.character_check && this.licence.return_check)
-            ) && this.visibleLicenceActivities.length;
+
+            let is_checked = this.getCheckedItem('id_check').isChecked && this.getCheckedItem('character_check').isChecked  && this.getCheckedItem('return_check').isChecked;
+            return (this.allActivitiesDeclined || is_checked) && this.visibleLicenceActivities.length;
         },
         selectedActivity: function() {
             return this.visibleLicenceActivities.filter(
@@ -374,12 +370,11 @@ export default {
             );
         },
         visibleLicenceActivities: function() {
-            return this.filterActivityList({
-                activity_list: this.licenceActivities([
-                    'with_officer_finalisation',
-                ], 'issuing_officer'),
-                exclude_processing_statuses: ['discarded']
-            });
+
+            return this.licenceActivities();
+        },
+        isActivityVisible: function(activity_id) {
+            return this.isApplicationActivityVisible({ activity_id: activity_id });
         },
         selectedApplicationActivity: function() {       
             let selected_activity = this.application.activities.find(
@@ -420,14 +415,6 @@ export default {
             return this.application.return_check_status.id == 'not_checked'
                 || this.application.return_check_status.id == 'updated' ;
         },
-        isValidAdditionalFee: function(){
-            // if additional fee exists then addition fee text must be included.
-            // let invalid = this.licence.activity.filter(function(e) {
-            //     return (e.additional_fee.substring(0)!=='0.00' && e.additional_fee.substring(0)!=='0' && e.additional_fee.substring(0)!=='')
-            //         && (e.additional_fee_text == null || e.additional_fee_text === '')
-            // });        
-            // return invalid.length < 1 ? true : false
-        },
         finalStatus: function() {
             return (id) => {
                 return this.getActivity(id).final_status;
@@ -439,11 +426,19 @@ export default {
             ).length;
         },
         canSubmit: function() {
-            const required_confirmations = this.visibleLicenceActivities.length
-            const confirmations = this.licence.activity.filter(
-                activity => activity.confirmed
-            ).length;
-            return confirmations === required_confirmations;
+
+            let required_confirmations = this.application.activities.find(activity => {
+ 
+                return activity.licence_activity === this.selected_activity_tab_id
+                
+            });
+            let confirmations = this.licence.activity.filter(activity => {
+
+                return activity.id === required_confirmations.licence_activity && activity.confirmed;
+
+            }).length;
+
+            return confirmations;
         },
         canEditLicenceDates: function() {
             return this.application.application_type && this.application.application_type.id !== 'amend_activity';
@@ -452,6 +447,7 @@ export default {
             return this.spinner
         },
         preview_licence_url: function() {
+            this.initialiseLicenceDetails();
             return (this.application.id) ? `/preview/licence-pdf/${this.application.id}` : ''
         },
     },
@@ -463,35 +459,55 @@ export default {
         ...mapActions([
             'setActivityTab',
             'finalDecisionData',
+            'setApplicationWorkflowState',
         ]),
         selectTab: function(component) {
             this.setActivityTab({id: component.id, name: component.name});
+            this.$emit('action-tab', {tab: component})
+        },
+        selectApplicantTab: function() {
+            this.$emit('action-tab', {tab: 'IssueApplicant'})
         },
        preview: async function () {
             let vm = this;
 
-            if(!this.canSubmit) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs hasn't been marked as ready for finalisation!",
-                    'error'
-                );
-            }
+            this.setApplicationWorkflowState({bool: true});
 
             this.spinner = true;
             let selected = []
+            let activity_pickedPurposes = []
+            let confirmations = []
             for (let a=0; a<this.application.activities.length; a++){
                 let activity = this.application.activities[a]
-                let proposed = activity.proposed_purposes
-                for (let p=0; p<proposed.length; p++){
-                    let purpose = proposed[p]
-                    if (['reissue','propose','selected'].includes(purpose.processing_status)){
-                        selected.push(purpose)
+
+                if (activity.licence_activity === this.selected_activity_tab_id){
+
+                    let confirmation = this.licence.activity.filter(a => {
+
+                        return a.id === activity.licence_activity;
+
+                    })[0]
+                    confirmation.confirmed=true;
+                    confirmations.push(confirmation);
+
+                    let proposed = activity.proposed_purposes
+                    for (let p=0; p<proposed.length; p++){
+                        let purpose = proposed[p]
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                            selected.push(purpose)
+
+                            let picked_purpose = this.pickedPurposes.filter(picked => {
+                                return picked.id === purpose.purpose.id;
+                            })[0]
+                            activity_pickedPurposes.push(picked_purpose)
+                        }
                     }
                 }
             }
-            vm.licence.purposes = selected
-            vm.licence.selected_purpose_ids = this.pickedPurposes
+
+            vm.licence.purposes = selected;
+            vm.licence.activity = confirmations;
+            vm.licence.selected_purpose_ids = activity_pickedPurposes;
             let licence = JSON.parse(JSON.stringify(vm.licence));
             licence.purposes = vm.licence.purposes.map(purpose => {
                 const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
@@ -508,6 +524,8 @@ export default {
                 vm.preview_licence_url,
                 {'csrfmiddlewaretoken' : vm.csrf_token, 'formData': JSON.stringify(licence)}
             );
+
+            this.setApplicationWorkflowState({bool: false});
 
         },
 
@@ -534,87 +552,87 @@ export default {
         ok: async function () {
             let vm = this;
 
-            // if(!this.isValidAdditionalFee) {
-            //     return swal(
-            //         'Cannot issue/decline',
-            //         "One or more activity tabs has additional fee amount without description",
-            //         'error'
-            //     );
-            // }
+            this.spinner = true;
+            let selected = []
+            let activity_pickedPurposes = []
+            let confirmations = []
+            for (let a=0; a<this.application.activities.length; a++){
+                let activity = this.application.activities[a]
 
-            if(!this.canSubmit) {
-                return swal(
-                    'Cannot issue/decline',
-                    "One or more activity tabs hasn't been marked as ready for finalisation!",
-                    'error'
-                );
-            }
+                if (activity.licence_activity === this.selected_activity_tab_id){
 
-            swal({
-                title: "Issue/Decline Activities",
-                text: "Payment for issued licences will be charged from the applicant's last used card.",
-                type: "question",
-                showCancelButton: true,
-                confirmButtonText: 'Finalise'
-            }).then( async (result) => {
-                if (result.value) {
-                    this.spinner = true;
-                    let selected = []
-                    for (let a=0; a<this.application.activities.length; a++){
-                        let activity = this.application.activities[a]
-                        let proposed = activity.proposed_purposes
-                        for (let p=0; p<proposed.length; p++){
-                            let purpose = proposed[p]
-                            if (['reissue','propose','selected'].includes(purpose.processing_status)){
-                                selected.push(purpose)
-                            }
+                    let confirmation = this.licence.activity.filter(a => {
+
+                        return a.id === activity.licence_activity;
+
+                    })[0]
+                    confirmation.confirmed=true;
+                    confirmations.push(confirmation);
+
+                    let proposed = activity.proposed_purposes
+                    for (let p=0; p<proposed.length; p++){
+                        let purpose = proposed[p]
+                        if (['reissue','propose','selected'].includes(purpose.processing_status)){
+                            selected.push(purpose)
+
+                            let picked_purpose = this.pickedPurposes.filter(picked => {
+                                return picked.id === purpose.purpose.id;
+                            })[0]
+                            activity_pickedPurposes.push(picked_purpose)
                         }
                     }
-                    vm.licence.purposes = selected
-                    vm.licence.selected_purpose_ids = this.pickedPurposes
-                    let licence = JSON.parse(JSON.stringify(vm.licence));
-                    licence.purposes = vm.licence.purposes.map(purpose => {
-                        const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
-                        return {
-                            ...purpose,
-                            proposed_start_date: purpose.proposed_start_date ?
-                                moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
-                            proposed_end_date: purpose.proposed_end_date ?
-                                moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
-                        }
-                    });
-
-                    await this.finalDecisionData({ url: `/api/application/${this.application.id}/final_decision_data.json` }).then( async response => {
-
-                        await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
-                                    emulateJSON:true,
-
-                                }).then((response)=>{
-                                    this.spinner = false
-                                    vm.$router.push({ name:"internal-dash", });
-
-                                },(error)=>{
-                                    this.spinner = false
-                                    swal(
-                                        'Application Error',
-                                        helpers.apiVueResourceError(error),
-                                        'error'
-                                    )
-                                    // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
-                                });
-
-                    },(error)=>{
-                        this.spinner = false
-                        swal(
-                            'Application Error',
-                            helpers.apiVueResourceError(error),
-                            'error'
-                        )
-                        // this.load({ url: `/api/application/${this.application.id}/internal_application.json` });
-                    });
                 }
-            },(error) => {
+            }
+
+            vm.licence.purposes = selected;
+            vm.licence.activity = confirmations;
+            vm.licence.selected_purpose_ids = activity_pickedPurposes;
+
+            let licence = JSON.parse(JSON.stringify(vm.licence));
+            licence.purposes = vm.licence.purposes.map(purpose => {
+                const date_formats = ["DD/MM/YYYY", "YYYY-MM-DD"];
+                return {
+                    ...purpose,
+                    proposed_start_date: purpose.proposed_start_date ?
+                        moment(purpose.proposed_start_date, date_formats).format('YYYY-MM-DD') : null,
+                    proposed_end_date: purpose.proposed_end_date ?
+                        moment(purpose.proposed_end_date, date_formats).format('YYYY-MM-DD') : null,
+                }
             });
+
+            this.setApplicationWorkflowState({bool: true});
+            await this.finalDecisionData({ url: `/api/application/${this.application.id}/final_decision_data.json` }).then( async response => {
+
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.applications,vm.application.id+'/final_decision'),JSON.stringify(licence),{
+                            emulateJSON:true,
+
+                        }).then((response)=>{
+                            this.spinner = false
+                            this.setApplicationWorkflowState({bool: false});
+                            vm.$router.push({ name:"internal-dash", });
+
+                        },(error)=>{
+                            this.spinner = false
+                            this.setApplicationWorkflowState({bool: false});
+                            swal(
+                                'Application Error',
+                                helpers.apiVueResourceError(error),
+                                'error'
+                            )
+
+                        });
+
+            },(error)=>{
+                this.spinner = false
+                this.setApplicationWorkflowState({bool: false});
+                swal(
+                    'Application Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+
+            });
+
         },
         getActivity: function(id) {
             const activity = this.licence.activity.find(activity => activity.id == id);
@@ -627,6 +645,17 @@ export default {
                 this.pickedPurposes.push(picked)
             }
             return picked
+        },
+        getCheckedItem: function(_id){
+            let checked = this.licence.checked_items.find(c => {return c.id===_id})
+            if (!checked) {
+                checked = {
+                    id: _id, 
+                    isChecked: false,
+                }
+                this.licence.checked_items.push(checked)
+            }
+            return checked;
         },
         initialiseLicenceDetails() {
             var final_status = null;
@@ -652,8 +681,6 @@ export default {
                     final_status: final_status,
                     confirmed: false,
                     purposes: proposal.issued_purposes_id,
-                    // additional_fee: proposal.additional_fee,
-                    // additional_fee_text: proposal.additional_fee_text,
                 });
             }
             if(this.application.id_check_status.id == 'accepted'){
@@ -728,7 +755,7 @@ export default {
         },
 
         initFirstTab: function(force){
-            const tab = $('#tabs-section li:first-child a')[0];
+            const tab = $('#tabs-main li:first-child a')[0];
             var first_tab = this.application.activities[0].licence_activity
 
             if(tab) {
@@ -763,7 +790,7 @@ export default {
                     let start_date = 'start_date_' + purpose.id
                     $(`[name='${start_date}']`).datetimepicker(this.datepickerOptions);
                     $(`[name='${start_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${start_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${start_date}']`).data('DateTimePicker') && $(`[name='${start_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_start_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${start_date}']`).data('date') === "") {
@@ -776,7 +803,7 @@ export default {
                     let end_date = 'end_date_' + purpose.id
                     $(`[name='${end_date}']`).datetimepicker(this.datepickerOptions);
                     $(`[name='${end_date}']`).on('dp.change', function(e){
-                        if ($(`[name='${end_date}']`).data('DateTimePicker').date()) {
+                        if ($(`[name='${end_date}']`).data('DateTimePicker') && $(`[name='${end_date}']`).data('DateTimePicker').date()) {
                             purpose.proposed_end_date =  e.date.format('DD/MM/YYYY');
                         }
                         else if ($(`[name='${end_date}']`).data('date') === "") {
@@ -799,7 +826,7 @@ export default {
 
         this.$nextTick(() => {
             vm.eventListeners();
-            vm.initFirstTab();
+
         });
 
     },
@@ -809,8 +836,7 @@ export default {
 <style scoped>
     .confirmation-checkbox {
         margin-top: 10px;
-    },
-
+    }
     br {
         padding-bottom: 5px;
     }

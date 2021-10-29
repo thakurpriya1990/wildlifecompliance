@@ -1,4 +1,6 @@
 import ast
+
+import pytz
 import requests
 import json
 import logging
@@ -19,12 +21,47 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 
+def singleton(cls):
+    instance = [None]
+
+    def wrapper(*args, **kwargs):
+        if instance[0] is None:
+            instance[0] = cls(*args, **kwargs)
+        return instance[0]
+
+    return wrapper
+
+
+class ListEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, list):
+            inv_str = ''
+            for o in obj:
+                inv_str += ' ' + str(o)
+            return inv_str.lstrip()
+
+    def encode_list(self, obj, iter=None):
+        if isinstance(obj, (list)):
+            return self.default(obj)
+        else:
+            return super(ListEncoder, self).encode_list(obj, iter)
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        from decimal import Decimal as D
+        if isinstance(obj, D):
+            return float(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
 def retrieve_department_users():
     print(settings.CMS_URL)
     try:
         #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
+        #res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
+        res = requests.get('{}/api/v3/departmentuser/'.format(settings.EXT_USER_API_ROOT_URL), 
                 auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
         res.raise_for_status()
         cache.set('department_users',json.loads(res.content).get('objects'),10800)
@@ -549,3 +586,8 @@ class FakeRequest():
     def __init__(self, data):
         self.data = data
         self.user = None
+
+
+def to_local_tz(_date):
+    local_tz = pytz.timezone(settings.TIME_ZONE)
+    return _date.astimezone(local_tz)

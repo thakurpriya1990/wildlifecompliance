@@ -39,7 +39,8 @@ from wildlifecompliance.components.returns.serializers import (
     ReturnLogEntrySerializer,
     ReturnTypeSerializer,
     ReturnRequestSerializer,
-    TableReturnSerializer,
+    DTExternalReturnSerializer,
+    DTInternalReturnSerializer,
 )
 from wildlifecompliance.components.applications.models import (
     Application,
@@ -111,13 +112,15 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
     pagination_class = DatatablesPageNumberPagination
     renderer_classes = (ReturnRenderer,)
     queryset = Return.objects.none()
-    serializer_class = TableReturnSerializer
+    serializer_class = DTExternalReturnSerializer
     page_size = 10
 
     def get_queryset(self):
         user = self.request.user
+
         if is_internal(self.request):
             return Return.objects.all()
+
         elif is_customer(self.request):
             user_orgs = [
                 org.id for org in user.wildlifecompliance_organisations.all()]
@@ -125,11 +128,50 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
                 Q(current_application__org_applicant_id__in=user_orgs) |
                 Q(current_application__proxy_applicant=user) |
                 Q(current_application__submitter=user))]
-            return Return.objects.filter(Q(licence_id__in=user_licences))
+            
+            external_qs = Return.objects.filter(
+                Q(licence_id__in=user_licences)
+            ).exclude(
+                processing_status=Return.RETURN_PROCESSING_STATUS_DISCARDED
+            ).distinct()
+
+            return external_qs
+
         return Return.objects.none()
 
     @list_route(methods=['GET', ])
     def user_datatable_list(self, request, *args, **kwargs):
+        self.serializer_class = ReturnSerializer
+        queryset = self.get_queryset()
+        # Filter by org
+        org_id = request.GET.get('org_id', None)
+        if org_id:
+            queryset = queryset.filter(org_applicant_id=org_id)
+        # Filter by proxy_applicant
+        proxy_applicant_id = request.GET.get('proxy_applicant_id', None)
+        if proxy_applicant_id:
+            queryset = queryset.filter(proxy_applicant_id=proxy_applicant_id)
+        # Filter by submitter
+        submitter_id = request.GET.get('submitter_id', None)
+        if submitter_id:
+            queryset = queryset.filter(submitter_id=submitter_id)
+        # Filter by user (submitter or proxy_applicant)
+        user_id = request.GET.get('user_id', None)
+        if user_id:
+            applications = Application.objects.filter(
+                Q(proxy_applicant=user_id) |
+                Q(submitter=user_id)
+            )
+            queryset = queryset.filter(application__in=applications)
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTInternalReturnSerializer(
+            result_page, context={'request': request}, many=True)
+        return self.paginator.get_paginated_response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    def external_datatable_list(self, request, *args, **kwargs):
         self.serializer_class = ReturnSerializer
         queryset = self.get_queryset()
         # Filter by org
@@ -154,7 +196,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
         result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = TableReturnSerializer(
+        serializer = DTExternalReturnSerializer(
             result_page, context={'request': request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
@@ -632,11 +674,12 @@ class ReturnViewSet(viewsets.ReadOnlyModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['compliance'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                request.data['return_obj'] = instance.id
-                request.data['log_type'] = request.data['type']
-                serializer = ReturnLogEntrySerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['compliance'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                request_data['return_obj'] = instance.id
+                request_data['log_type'] = request.data['type']
+                serializer = ReturnLogEntrySerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files
