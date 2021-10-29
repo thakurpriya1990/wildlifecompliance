@@ -53,8 +53,8 @@
                         </div>
                     </div>
                     <div v-show="!showAssignToList" class="col-sm-12 top-buffer-s">
-                        <strong>Assigned Officer</strong><br/>
-                        <div class="form-group"> {{ returns.assigned_to }} </div>
+                        <!-- <strong>Assigned Officer</strong><br/>
+                        <div class="form-group"> {{ returns.assigned_to }} </div> -->
                     </div>
 
                     <!-- Workflow Actions -->
@@ -280,7 +280,7 @@ export default {
         },
         save_wo: async function(props = { showNotification: true }) {
             const { showNotification } = props;
-            this.form=document.forms.external_returns_form;
+            this.form=document.forms.internal_returns_form;
             var data = new FormData(this.form);
 
             this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/officer_comments'),data,{
