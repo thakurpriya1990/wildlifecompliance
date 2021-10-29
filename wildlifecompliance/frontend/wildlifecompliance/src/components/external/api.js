@@ -1,7 +1,8 @@
 module.exports = {
     applications: '/api/application/',
     my_user_details: '/api/my_user_details/',
-    countries: 'https://restcountries.eu/rest/v1/?fullText=true/',
+    //countries: 'https://restcountries.eu/rest/v1/?fullText=true/',
+    countries: '/api/countries',
     organisations: '/api/organisations/',
     my_organisations: '/api/my_organisations/',
     organisation_contacts: '/api/organisation_contacts/',
