@@ -1,0 +1,213 @@
+commit 3ade74339a17d568934c1480249e8b117fbafbd3
+Author: Brendan Blackford <brendan.blackford@dbca.wa.gov.au>
+Date:   Fri Oct 29 16:28:26 2021 +0800
+
+    Add migrations
+
+commit ddf47a0a4f9e80caaaf8f03a190cea666b37102e
+Author: Brendan Blackford <brendan.blackford@dbca.wa.gov.au>
+Date:   Fri Oct 29 15:04:08 2021 +0800
+
+    Update README
+
+commit 5d29d089dc5f7f0789b07027a8b171e971e5e20b
+Merge: 63759e980 9a9f675ae
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Fri Oct 29 14:40:15 2021 +0800
+
+    Merge pull request #46 from mintcoding/compliance_mgt
+    
+    Compliance_mgt to working
+
+commit 9a9f675ae12e6d0c2dc08637cfb5f4c633bb2b7c
+Merge: a99bc5917 23b34e22b
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Fri Oct 29 14:33:43 2021 +0800
+
+    Merge pull request #45 from dbca-wa/compliance_mgt
+    
+    dbca-wa/Compliance_mgt to mintcoding/compliance_mgt
+
+commit 23b34e22b317b85ab01095078b27178e138b8123
+Merge: 177d09f34 62ca559e2
+Author: jawaidm <jawaid.mushtaq@dpaw.wa.gov.au>
+Date:   Fri Oct 29 14:02:35 2021 +0800
+
+    Merge pull request #77 from dbca-wa/master
+    
+    Merge master to compliance_mgt
+
+commit 177d09f34f479825efdaad93f34757d9cb444386
+Merge: bf48d7ff3 ca2967985
+Author: jawaidm <jawaid.mushtaq@dpaw.wa.gov.au>
+Date:   Fri Oct 29 13:53:24 2021 +0800
+
+    Merge pull request #76 from Djandwich/compliance_mgt
+    
+    djandwich/compliance_mgt to dbca-wa/compliance_mgt
+
+commit ca296798526a56ce67ffc2f7e8ebdbae95077e6d
+Merge: 24dcdb0a4 6f1cc30a8
+Author: Djandwich <62682663+Djandwich@users.noreply.github.com>
+Date:   Fri Oct 29 13:43:51 2021 +0800
+
+    Merge pull request #33 from shibaken/compliance_mgt
+    
+    shibaken/compliance_mgt to djandwich/compliance_mgt
+
+commit 62ca559e23b47b717d7182d379ab843c9bf11b2a
+Merge: 8cbd9d6b2 f4c7dd4d2
+Author: jawaidm <jawaid.mushtaq@dpaw.wa.gov.au>
+Date:   Fri Sep 24 14:11:38 2021 +0800
+
+    Merge pull request #75 from jawaidm/master
+    
+    Fix for Countries API
+
+commit f4c7dd4d24467f7b8033ed80f500132693d85060
+Merge: 5c2ffa578 a3255159e
+Author: Jawaid Mushtaq <jawaid_mushtaq@yahoo.com>
+Date:   Fri Sep 24 14:08:44 2021 +0800
+
+    Merge
+
+commit 5c2ffa578e76c1424e069993ef4881a346a9e1b9
+Author: Jawaid Mushtaq <jawaid_mushtaq@yahoo.com>
+Date:   Fri Sep 24 13:53:11 2021 +0800
+
+    Countries API fix
+
+commit 8cbd9d6b2b4f00677b742b417b020944c16e29ef
+Merge: 13a1aa74e 9c9683275
+Author: Jason Moore <jmoore@austwa.com>
+Date:   Tue Jun 29 13:25:23 2021 +0800
+
+    Merge pull request #74 from sharpeez/master
+    
+    HOT FIX 14-day grace period for Return Running Sheets.
+
+commit 9c9683275e24dff0c08d1c9062096d9ef8038ee1
+Merge: e099e88f1 fdb06fb65
+Author: Shayne Sharpe <42994306+sharpeez@users.noreply.github.com>
+Date:   Mon Jun 28 16:57:50 2021 +0800
+
+    Merge pull request #15 from sharpeez/wc_sprint17
+    
+    WLC #1153.FIX 14-day grace period for Return Running Sheets.
+
+commit fdb06fb656e2fa3b8303a679f6d84866cf9387d5
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Mon Jun 28 16:54:54 2021 +0800
+
+    WLC #1153.FIX 14-day grace period for Return Running Sheets.
+
+commit 13a1aa74efd3609963253b0cc192a23a45cec136
+Merge: 68b6c9bbf e099e88f1
+Author: Jason Moore <jmoore@austwa.com>
+Date:   Mon Jun 28 13:55:46 2021 +0800
+
+    Merge pull request #73 from sharpeez/master
+    
+    wc_sprint16
+
+commit e099e88f1301eb035936808889f8ecc983b905f1
+Merge: e9fc039ab 2928ac8e5
+Author: Shayne Sharpe <42994306+sharpeez@users.noreply.github.com>
+Date:   Fri Jun 25 12:13:45 2021 +0800
+
+    Merge pull request #14 from sharpeez/wc_sprint16
+    
+    Wc sprint16
+
+commit 2928ac8e5905663f323e9260759fa11c2613b83d
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Fri Jun 25 12:04:04 2021 +0800
+
+    WLC static artificts build_tag=2.10.0
+
+commit 0922f18a891ae868f34857794abd31ab0ab9c172
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Fri Jun 25 12:01:06 2021 +0800
+
+    WLC #1152.FIX to include previously overdue Returns.
+
+commit 3d068e2c5a6c9d59778db248e4929fb557721ee0
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 24 16:56:19 2021 +0800
+
+    WLC #1152.FIX set Running Sheet Returns to Expired for overdue.
+
+commit 8962d94805c19efb08039b6aeb52b215fbe6146a
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 24 15:02:08 2021 +0800
+
+    WLC #1151.FIX licence pdf display of issue date.
+
+commit 0393e4dac88e36d1a3ebf084befb30b64e92c232
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 24 14:58:03 2021 +0800
+
+    WLC #565.FIX error when saving a return.
+
+commit a8f8082ec4633fec6c313955331b5553682ff642
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Wed Jun 23 15:25:22 2021 +0800
+
+    WLC #1150.FIX filtering of Approved applications.
+
+commit 31e1087d8f2e9da625a2220ca5da536e3114efb4
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Wed Jun 23 15:04:45 2021 +0800
+
+    WLC #1151.FIX issue date timestamp containing incorrect time.
+
+commit c6e32b5da37adc9691729ff17eeecaa2875d98c1
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Tue Jun 22 17:11:52 2021 +0800
+
+    WLC #1148.FIX performance issue with Assessment and Conditions button.
+
+commit 68b6c9bbfdfdcf30a056a460cfe85930af869a35
+Merge: 43f4b306a e9fc039ab
+Author: jawaidm <jawaid.mushtaq@dpaw.wa.gov.au>
+Date:   Mon Jun 21 09:04:33 2021 +0800
+
+    Merge pull request #72 from sharpeez/master
+    
+    wc_sprint15
+
+commit 0931eb4dd1db66c6f0b01aeb0c5bea8aeb9c0e86
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Fri Jun 18 10:19:55 2021 +0800
+
+    WLC #1147.FIX deleting row function for headers/expanders/options
+
+commit c8d7454418296a21b3bfac823a78f1ac40e6826c
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 17 15:57:14 2021 +0800
+
+    WLC #529.UPDATE removing Additional Info field from Standard Conditions.
+
+commit 85357606b716790c7023e00d70f3685997528be0
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 17 15:51:49 2021 +0800
+
+    WLC #1026.FIX render error with application dashboard.
+
+commit 29e3b654e75d5f88acc06cb465818c4cfad702da
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 17 15:03:03 2021 +0800
+
+    WLC #1147.ADD deleting row function for headers/expanders/options.
+
+commit cb83a0462b4f7b49a799d8948434fa4ed75cb94d
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Thu Jun 17 10:08:37 2021 +0800
+
+    WLC #1147.FIX error with masterlist caching.
+
+commit 8709aff7869f4e585f26580728d0e209e5ebeb39
+Author: sharpeez <shaynejmsharpe@gmail.com>
+Date:   Tue Jun 15 16:54:44 2021 +0800
+
+    WLC #1026.ADD filtering by Activity with Applications Dashboard.

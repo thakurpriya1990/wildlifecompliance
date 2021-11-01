@@ -127,7 +127,8 @@ if env('EMAIL_INSTANCE') is not None and env('EMAIL_INSTANCE','') != 'PROD':
     REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] += ('rest_framework.renderers.BrowsableAPIRenderer',)
 
 MIDDLEWARE_CLASSES += [
-    'wildlifecompliance.middleware.FirstTimeNagScreenMiddleware'
+    'wildlifecompliance.middleware.FirstTimeNagScreenMiddleware',
+    'wildlifecompliance.middleware.CacheControlMiddleware',
 ]
 
 LATEX_GRAPHIC_FOLDER = os.path.join(BASE_DIR,"templates","latex","images")
