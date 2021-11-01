@@ -54,7 +54,7 @@ class InternalView(UserPassesTestMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -66,7 +66,7 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -118,7 +118,7 @@ def first_time(request):
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
     context['app_build_url'] = settings.DEV_APP_BUILD_URL
-    context['build_tag'] = settings.BUILD_TAG
+    #context['build_tag'] = settings.BUILD_TAG
     return render(request, 'wildlifecompliance/dash/index.html', context)
 
 

@@ -226,7 +226,16 @@ STATICFILES_DIRS.append(
 DEV_STATIC = env('DEV_STATIC', False)
 DEV_STATIC_URL = env('DEV_STATIC_URL')
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
-BUILD_TAG = env('BUILD_TAG', '0.0.0')  # URL of the Dev app.js served by webpack & express
+#BUILD_TAG = env('BUILD_TAG', '0.0.0')  # URL of the Dev app.js served by webpack & express
+
+RAND_HASH = ''
+if os.path.isdir(BASE_DIR+'/.git/') is True:
+    RAND_HASH = os.popen('cd  '+BASE_DIR+' ; git log -1 --format=%H').read()
+if not len(RAND_HASH):
+    RAND_HASH = os.popen('cat /app/rand_hash').read()
+if len(RAND_HASH) == 0:
+    print ("ERROR: No rand hash provided")
+
 if DEV_STATIC and not DEV_STATIC_URL:
     raise ImproperlyConfigured(
         'If running in DEV_STATIC, DEV_STATIC_URL has to be set')
