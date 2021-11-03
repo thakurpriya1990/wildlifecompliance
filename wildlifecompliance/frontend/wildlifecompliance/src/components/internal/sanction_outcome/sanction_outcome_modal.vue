@@ -347,12 +347,14 @@ export default {
             {
                 visible: false,
                 data: 'id',
+                name: 'id',
                 render: function(data, type, full){
                     return full.id;
                 }
             },
             {
                 data: 'id',
+                name: 'id',
                 render: function(data, type, full){
                     let ret = full.section_regulation.act;
                     if (full.removed){
@@ -363,6 +365,7 @@ export default {
             },
             {
                 data: 'id',
+                name: 'id',
                 render: function(data, type, full){
                     let ret = full.section_regulation.name;
                     if (full.removed){
@@ -373,6 +376,7 @@ export default {
             },
             {
                 data: 'id',
+                name: 'id',
                 render: function(data, type, full){
                     let ret = full.section_regulation.offence_text;
                     if (full.removed){
@@ -383,6 +387,7 @@ export default {
             },
             {
                 data: 'id',
+                name: 'id',
                 render: function(data, type, full) {
                     console.log('full: ')
                     console.log(full)
@@ -441,16 +446,20 @@ export default {
           columns: [
             {
               data: "id",
+              name: 'id',
               visible: false
             },
             {
-              data: "due_date"
+              data: "due_date",
+              name: 'id',
             },
             {
-              data: "action_text"
+              data: "action_text",
+              name: 'id',
             },
             {
-              data: "action",
+              data: "id",
+              name: 'id',
               render: function(data, type, row) {
                 return (
                   '<a href="#" class="remove_button" data-remediation-action-id="' +
