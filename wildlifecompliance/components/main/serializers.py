@@ -114,16 +114,17 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         try:
             options = self.initial_data.get('options', None)
             for o in options:
-                option_labels.append(o)
-                qo = QuestionOption.objects.filter(label=o['label'])
-                if qo.exists():
-                    o['value'] = qo[0].id
-                    continue
-                option_serializer = SchemaOptionSerializer(data=o)
-                option_serializer.is_valid(raise_exception=True)
-                option_serializer.save()
-                opt_id = option_serializer.data['id']
-                o['value'] = opt_id
+                if not o['label'] == '':
+                    option_labels.append(o)
+                    qo = QuestionOption.objects.filter(label=o['label'])
+                    if qo.exists():
+                        o['value'] = qo[0].id
+                        continue
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
             obj.set_property_cache_options(option_labels)
 
         except Exception:
