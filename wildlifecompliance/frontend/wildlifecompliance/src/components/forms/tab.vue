@@ -1,47 +1,49 @@
 <template lang="html">
-	<!-- <div>
-		<ul>
-			<div class="nav nav-tabs" >
-	            <li><a data-toggle="tab" :href="'#'+tab_id">{{label}}</a></li>
-		    </div>
-		</ul> -->
-	    
-            <div class="tab-pane fade" :id="id">
-                
-	    	      <slot></slot>
-            </div>
-	    	
-	    
-	<!-- </div> -->
+    <div id="pill-tabs">
+
+    <div id="tabs" class="tab-header">
+        <ul class="nav nav-pills mb-3" id="tab-section" data-tabs="tabs" >
+            <li class="nav-item" v-for="(tab, idx) in tabs" :key="idx" v-bind:class="{'nav-item active': activeTab === Object.keys(tab)[0]}">
+                <a :id=idx class="nav-link" data-toggle="pill" v-on:click="switchTab(Object.keys(tab)[0])">
+                    <slot :name="tabHeadSlotName(Object.keys(tab)[0])">{{ Object.values(tab)[0] }}</slot>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content"><slot :name="tabPanelSlotName"></slot></div>
+
+    </div>
 </template>
 <script>
 export default {
-    name:"tab",
-    props:["label","id"],
+    name:"tabs",
+  /* Example tabs array property
+     Note: Each tab requires key/value pair.
+     [{"tab1": "Tab Label 1"}, {"tab2": "Tab Label 2"}]
+  */
+    props: {
+        initialTab: String,
+        tabs: Array,
+    },
     data:function () {
         return {
-            title:"Tab title",
-            eventInitialised: false
-        }
+            activeTab: this.initialTab
+        };
     },
     computed:{
-        tab_id:function () {
-            return "tab_"+this.Key
+        tabPanelSlotName() {
+            return `tab-panel-${this.activeTab}`;
         }
     },
-    updated:function () {
-        // let vm = this;
-        // vm.$nextTick(()=>{
-        //     if (!vm.eventInitialised){
-        //         $('.panelClicker[data-toggle="collapse"]').on('click',function () {
-        //             var chev = $(this).children()[0];
-        //             window.setTimeout(function () {
-        //                 $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
-        //             },100);
-        //         });
-        //         this.eventInitialised = true;
-        //     }
-        // });
-    }
+    methods: {
+        tabHeadSlotName(tabName) {
+            return `tab-head-${tabName}`;
+        },
+
+        switchTab(tabName) {
+            this.activeTab = tabName;
+        }
+    },
 }
 </script>

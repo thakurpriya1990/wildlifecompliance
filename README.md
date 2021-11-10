@@ -7,8 +7,8 @@ It provides authentication, address and online payments functionality.
 
 # Requirements
 
-- Python (2.7.x)
-- PostgreSQL (>=9.3)
+- Python (3.7.x)
+- PostgreSQL (11.0)
 
 Python library requirements should be installed using `pip`:
 
@@ -47,6 +47,10 @@ required environment variables at run time. Example content:
 # Wildlife Licensing
 
 This section contains information specific to the Wildlife Licensing projects.
+
+# Compliance Management 
+
+This section contains information specific to the Compliance Management project.
 
 ## Creating Licence Types
 

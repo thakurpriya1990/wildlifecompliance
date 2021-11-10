@@ -10,7 +10,7 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <strong>Submitted by</strong><br/>
-                        {{ returns.submitter.first_name}} {{ returns.submitter.last_name}}
+                        {{ showSubmitter }}
                     </div>
                     <div class="col-sm-12"><br/></div>
                     <div class="col-sm-12 top-buffer-s">
@@ -53,8 +53,8 @@
                         </div>
                     </div>
                     <div v-show="!showAssignToList" class="col-sm-12 top-buffer-s">
-                        <strong>Assigned Officer</strong><br/>
-                        <div class="form-group"> {{ returns.assigned_to }} </div>
+                        <!-- <strong>Assigned Officer</strong><br/>
+                        <div class="form-group"> {{ returns.assigned_to }} </div> -->
                     </div>
 
                     <!-- Workflow Actions -->
@@ -132,7 +132,17 @@ export default {
             return this.returns.can_be_processed && this.returns.user_in_officers
         },
         showAssignToList: function(){
+            if (this.returns.condition==null){
+                return false
+            }
             return this.canAssignOfficerFor(this.returns.condition.licence_activity_id) && !this.returns.is_accepted && !this.returns.is_draft
+        },
+        showSubmitter: function(){
+            let submitter = ''
+            if (this.returns.submitter != null) {
+                submitter = this.returns.submitter.first_name + ' ' + this.returns.submitter.last_name;
+            }
+            return submitter
         },
     },
     methods: {
@@ -270,7 +280,7 @@ export default {
         },
         save_wo: async function(props = { showNotification: true }) {
             const { showNotification } = props;
-            this.form=document.forms.external_returns_form;
+            this.form=document.forms.internal_returns_form;
             var data = new FormData(this.form);
 
             this.$http.post(helpers.add_endpoint_json(api_endpoints.returns,this.returns.id+'/officer_comments'),data,{

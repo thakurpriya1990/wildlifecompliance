@@ -107,7 +107,7 @@
                                         <div class="col-sm-4">
                                             <div v-if="call_email.email_user"><div v-if="call_email.email_user.residential_address">
                                                 <select :disabled="!isEditable" class="form-control" name="country" v-model="call_email.email_user.residential_address.country" v-bind:key="call_email.email_user.residential_address.id">
-                                                    <option v-for="c in countries" :value="c.alpha2Code">{{ c.name }}</option>
+                                                    <option v-for="c in countries" :value="c.code">{{ c.name }}</option>
                                                 </select>
                                             </div></div>
                                         </div>
@@ -287,10 +287,11 @@ export default {
             return api_endpoints.licences_paginated+'internal_datatable_list';
         },
         returns_url: function(){
+            console.log('returns_url')
             if (this.call_email.email_user && this.call_email.email_user.id){
-                return api_endpoints.returns_paginated+'?user_id=' + this.call_email.email_user.id;
+                return api_endpoints.returns_paginated+'user_datatable_list?user_id=' + this.call_email.email_user.id;
             }
-            return api_endpoints.returns_paginated;
+            return api_endpoints.returns_paginated+'user_datatable_list';
         }
     },
     mounted: function(){

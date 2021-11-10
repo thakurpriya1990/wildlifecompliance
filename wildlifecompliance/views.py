@@ -54,7 +54,7 @@ class InternalView(UserPassesTestMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -66,7 +66,7 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -118,7 +118,7 @@ def first_time(request):
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
     context['app_build_url'] = settings.DEV_APP_BUILD_URL
-    context['build_tag'] = settings.BUILD_TAG
+    #context['build_tag'] = settings.BUILD_TAG
     return render(request, 'wildlifecompliance/dash/index.html', context)
 
 
@@ -157,3 +157,14 @@ class ManagementCommandsView(LoginRequiredMixin, TemplateView):
             data.update({command_script: 'true'})
 
         return render(request, self.template_name, data)
+
+class SecureBaseView(View):
+    '''
+    A generic view that applies the securebase policy to a post request. 
+    '''
+    def post(self, request, *args, **kwargs):
+        from wildlifecompliance.management.securebase_manager import SecurePipe
+
+        securebase_view = SecurePipe(request)
+
+        return securebase_view.get_http_response()

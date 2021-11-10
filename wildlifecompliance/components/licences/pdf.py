@@ -19,6 +19,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 
+from django.utils import timezone
 from django.core.files import File
 from django.conf import settings
 
@@ -337,8 +338,11 @@ def _create_licence(licence_buffer, licence, application):
                 'Date of Issue', styles['BoldLeft']), Paragraph(
                 'Date Valid From', styles['BoldLeft']), Paragraph(
                 'Date of Expiry', styles['BoldLeft'])]
+
+        ltz = timezone.get_current_timezone()
+        issue_date = ltz.normalize(issued_purpose.issue_date.astimezone(ltz))
         date_values = [
-            Paragraph(issued_purpose.issue_date.strftime('%d/%m/%Y'),
+            Paragraph(issue_date.strftime('%d/%m/%Y'),
                       styles['Left']),
             Paragraph(issued_purpose.start_date.strftime('%d/%m/%Y'),
                       styles['Left']),
@@ -495,27 +499,6 @@ def _create_licence(licence_buffer, licence, application):
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
 
         # additional information
-        # 'is_additional_info' Section from Purposespecies
-#        for s in purpose.purpose_species_json:
-#            if s.has_key('is_additional_info') and s['is_additional_info'] and s['details']:
-#                parser = HtmlParser(s['details'])
-#
-#                # Get and Display Purpose Species Header
-#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#                elements.append(
-#                    Paragraph(
-#                        s['header'],
-#                        styles['BoldLeft']
-#                    )
-#                )
-#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#
-#                purposeSpeciesInfoList = add_parsed_details(parser, list_flowable=False)
-#                #elements.append(purposeSpeciesInfoList)
-#                for info_item in purposeSpeciesInfoList:
-#                    elements.append(KeepTogether(info_item))
-
-        # additional information
         for s in purpose.purpose_species_json:
             if 'is_additional_info' in s and s['is_additional_info'] and s['details']:
                 # Get and Display Purpose Species Header
@@ -525,42 +508,6 @@ def _create_licence(licence_buffer, licence, application):
                 for info_item in purposeSpeciesInfoList:
                     elements.append(KeepTogether(info_item))
         # End PurposeSpecies Section
-
-        if licence.has_additional_information_for(selected_activity):
-            elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-            elements.append(Paragraph(
-                'ADDITIONAL INFORMATION', styles['BoldLeft']))
-            #elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-
-            conditions = activity_conditions
-            infos = []
-            c_num = 0
-            for c_id, condition in enumerate(conditions.order_by('order')):
-                info = None
-                if condition.standard_condition:
-                    info = condition.standard_condition.additional_information
-                    c_num = c_id + 1
-                if info:
-                    infos.append('{0} (related to condition no.{1})'.format(
-                        info.encode('utf8'), c_num))
-
-            # Conditions Section
-#            for s in infos:
-#                parser = HtmlParser(s)
-#                infoList = add_parsed_details(parser)
-#                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-#                elements.append(infoList)
-
-            for s in infos:
-                infoList, listcounter = html_to_rl(s, styles)
-                elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
-
-                #elements.append(infoList)
-                for info_item in infoList:
-                    elements.append(KeepTogether(info_item))
-
-            # End Conditions Section
-
 
         elements.append(PageBreak())
 
@@ -617,7 +564,7 @@ def _create_licence(licence_buffer, licence, application):
 
     licence_purposes = [
         p for p in licence.get_purposes_in_sequence()
-        if p.purpose_status in include and p.is_issued
+        if p.purpose_status in include and p.is_issued and p.expiry_date
     ]
 
     purposeList = ListFlowable(

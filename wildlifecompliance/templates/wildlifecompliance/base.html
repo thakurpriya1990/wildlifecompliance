@@ -13,6 +13,7 @@
 {% prefer_compliance_management as prefer_compliance_management %}
 {% is_compliance_management_readonly_user as is_compliance_management_readonly_user %}
 {% system_maintenance_due as system_maintenance_due %}
+{% RAND_HASH as RAND_HASH %}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +23,7 @@
             {% bootstrap_css %}
                 <link type="text/css" href="{% static 'wildlifecompliance/css/base.css' %}" rel="stylesheet">
             {% if not dev %}
-	    <link rel="stylesheet" href="{% static 'wildlifecompliance_vue/css/app.css' %}?v={{build_tag}}">
+	    <link rel="stylesheet" href="{% static 'wildlifecompliance_vue/css/app.css' %}?v={{RAND_HASH}}">
             {% endif %}
             {% block extra_css %}
             {% endblock %}
@@ -130,6 +131,7 @@
                                                 {% endif %}
                                                 {% if is_wildlifecompliance_admin_login %}
                                                     <li><a href="{% url 'admin:index' %}">Admin</a></li>
+                                                    <li><a href="/internal/schema">Manage Licence Schema</a></li>
                                                     {% if request.user.is_superuser %}
                                                         <li><a href="{% url 'mgt-commands' %}">Management Commands</a></li>
                                                     {% endif %}
@@ -204,13 +206,13 @@
 
         {% if not dev %}
             <script type="text/javascript" src="https://static.dbca.wa.gov.au/static/libs/jquery/3.3.1/jquery.min.js"></script>
-	    <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/manifest.js' %}?v={{build_tag}}"></script>
-	    <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/vendor.js' %}?v={{build_tag}}"></script>
+	    <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/manifest.js' %}?v={{RAND_HASH}}"></script>
+	    <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/vendor.js' %}?v={{RAND_HASH}}"></script>
             {% if app_build_url %}
-	        <script type="text/javascript" src="{{ app_build_url }}?v={{build_tag}}"></script>
+	        <script type="text/javascript" src="{{ app_build_url }}?v={{RAND_HASH}}"></script>
             {% else %}
                 <!--script type="text/javascript" charset="utf-8" src="{% static 'wildlifecompliance_vue/js/app.js' %}"></script-->
-	        <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/app.js' %}?v={{build_tag}}"></script>
+	        <script type="text/javascript" src="{% static 'wildlifecompliance_vue/js/app.js' %}?v={{RAND_HASH}}"></script>
             {% endif %}
         {% else %}
             <!--script type="text/javascript" charset="utf-8" src="{{ dev_url }}"></script-->

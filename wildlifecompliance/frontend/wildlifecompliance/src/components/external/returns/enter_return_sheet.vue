@@ -93,7 +93,7 @@ export default {
         sheetTitle: null,
         sheet_total: 0,
         sheet_activity_type: [],
-        sheet_headers:["order","Date","Activity","Qty","Total","Action","Supplier","Comments"],
+        sheet_headers:["order","Entry Date","Activity","Date","Qty","Total","Action","Supplier","Comments"],
         sheet_options:{
             language: {
                 processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -110,7 +110,7 @@ export default {
                 },
             },
             columnDefs: [
-              { visible: false, targets: [0, 6, 7] } // hide order column.
+              { visible: false, targets: [0, 7, 8] } // hide order column.
             ],
             columns: [
               { data: "date" },
@@ -126,11 +126,12 @@ export default {
                    return vm.returns.sheet_activity_list[data]['label']
                 }
               },
+              { data: "doa" },
               { data: "qty" },
               { data: "total" },
               { data: "transfer",
                 mRender: function(data, type, full) {
-                   if (full.activity && vm.is_external
+                   if (full.activity && vm.returns.can_current_user_edit
                                 && !vm.isTrue(vm.returns.sheet_activity_list[full.activity]['auto'])
                                 && (full.transfer === 'Notified' || full.transfer === '')) {
                       var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
@@ -165,7 +166,7 @@ export default {
             },
             footerCallback: function(row, data, start, end, display) {
               var api = this.api(), data;
-              vm.sheet_total = api.column(4).data()[0]
+              vm.sheet_total = api.column(5).data()[0]
             },
             processing: true,
             ordering: true,
@@ -250,6 +251,7 @@ export default {
       self.$refs.sheet_entry.entryComment = '';
       self.$refs.sheet_entry.entryLicence = '';
       self.$refs.sheet_entry.entryDateTime = '';
+      self.$refs.sheet_entry.entryActivityDate = '';
       self.$refs.sheet_entry.entrySupplier = '';
       self.$refs.sheet_entry.isSubmitable = true;
       self.$refs.sheet_entry.isModalOpen = true;
@@ -267,6 +269,7 @@ export default {
         vm.$refs.sheet_entry.entrySpecies = vm.sheetTitle;
         vm.$refs.sheet_entry.entryDateTime = vm.$refs.sheet_entry.row_of_data.data().date;
         vm.$refs.sheet_entry.entryActivity = vm.$refs.sheet_entry.row_of_data.data().activity;
+        vm.$refs.sheet_entry.entryActivityDate = vm.$refs.sheet_entry.row_of_data.data().doa;
         vm.$refs.sheet_entry.entryQty = vm.$refs.sheet_entry.row_of_data.data().qty;
         vm.$refs.sheet_entry.initialQty = vm.$refs.sheet_entry.row_of_data.data().qty;
         vm.$refs.sheet_entry.entryTotal = vm.$refs.sheet_entry.row_of_data.data().total;

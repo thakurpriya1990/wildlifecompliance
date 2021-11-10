@@ -18,7 +18,7 @@ ENV BPAY_ALLOWED=False
 
 # For app.js, manifest.js, vendor.js versioning (default value set to 0.0.0)
 ARG build_tag=0.0.0
-ENV BUILD_TAG=$build_tag
+#ENV BUILD_TAG=$build_tag
 RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
 
 # Install Python libs from base environment.
@@ -49,8 +49,8 @@ RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update
 RUN apt-get install --no-install-recommends -y python3.7 python3.7-dev
 
-RUN ln -s /usr/bin/python3.7 /usr/bin/python && \
-    ln -s /usr/bin/pip3 /usr/bin/pip
+RUN ln -s /usr/bin/python3.7 /usr/bin/python 
+    # ln -s /usr/bin/pip3 /usr/bin/pip
 RUN python3.7 -m pip install --upgrade pip
 RUN apt-get install -yq vim
 
@@ -58,6 +58,8 @@ RUN apt-get install -yq vim
 FROM builder_base_wls as python_libs_wls
 WORKDIR /app
 COPY requirements.txt ./
+COPY wlc_git_history ./
+RUN touch /app/rand_hash
 RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
   # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py
   # Reference: https://stackoverflow.com/questions/18643998/geodjango-geosexception-error

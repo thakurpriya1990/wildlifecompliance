@@ -28,6 +28,7 @@ from wildlifecompliance.components.licences.models import (
     LicenceActivity,
     PurposeSpecies,
     LicenceCategory,
+    LicencePurpose,
 )
 from wildlifecompliance.components.main.serializers import (
     CommunicationLogEntrySerializer
@@ -37,7 +38,7 @@ from wildlifecompliance.components.organisations.serializers import (
     ExternalOrganisationSerializer
 )
 from wildlifecompliance.components.users.serializers import (
-    UserAddressSerializer, DocumentSerializer
+    UserAddressSerializer, IdentificationSerializer
 )
 from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.management.permissions_manager import PermissionUser
@@ -72,12 +73,14 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
     '''
     all_category = serializers.SerializerMethodField(read_only=True)
     all_status = serializers.SerializerMethodField(read_only=True)
+    all_activity = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Application
         fields = (
             'all_category',
             'all_status',
+            'all_activity',
         )
 
     def get_all_category(self, obj):
@@ -94,6 +97,7 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
         returns all status types available for either internal or external
         application.
         '''
+        is_internal = self.context['is_internal']
         # Displayable text for drop-down.
         N1 = 'Draft'
         N2 = 'Under Review'
@@ -117,13 +121,25 @@ class DTApplicationSelectSerializer(serializers.ModelSerializer):
                 {'id': Application.PROCESSING_STATUS_DRAFT, 'name': N1},
                 {'id': Application.PROCESSING_STATUS_UNDER_REVIEW, 'name': N2},
                 {'id': Application.PROCESSING_STATUS_AWAITING_PAYMENT, 'name': N3},
-                {'id': Application.PROCESSING_STATUS_APPROVED, 'name': N4},
+                {'id': Application.CUSTOMER_STATUS_ACCEPTED, 'name': N4},
                 {'id': Application.PROCESSING_STATUS_PARTIALLY_APPROVED, 'name': N5},
                 {'id': Application.PROCESSING_STATUS_DECLINED, 'name': N6},
                 {'id': Application.PROCESSING_STATUS_DISCARDED, 'name': N7},
             ],
 
         return data[0]
+
+    def get_all_activity(self, obj):
+        '''
+        Returns all licence activities available for applications.
+        '''
+        activities = LicencePurpose.objects.all()
+
+        all_activity = [
+            { 'label': a.short_name, 'value': a.id } for a in activities
+        ]
+
+        return all_activity
 
 
 class ApplicationSelectedActivityCanActionSerializer(serializers.Serializer):
@@ -263,6 +279,7 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
     proposed_purposes = ApplicationSelectedActivityPurposeSerializer(
         many=True)
     has_inspection = serializers.SerializerMethodField(read_only=True)
+    can_propose_purposes = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ApplicationSelectedActivity
@@ -365,6 +382,9 @@ class ApplicationSelectedActivitySerializer(serializers.ModelSerializer):
         logger.debug('SelectedActivitySerializer.has_inspection() - end')
 
         return has_inspection
+
+    def get_can_propose_purposes(self, obj):
+        return obj.can_propose_purposes()
 
 
 class ExternalApplicationSelectedActivitySerializer(serializers.ModelSerializer):
@@ -505,7 +525,6 @@ class DTExternalApplicationSelectedActivitySerializer(
         return obj.get_property_cache_key('payment_status')['payment_status']
 
     def get_invoice_url(self, obj):
-        print('get_invoice_url')
         url = None
         if obj.application.get_property_cache_key(
                 'latest_invoice_ref')['latest_invoice_ref']:
@@ -516,7 +535,7 @@ class DTExternalApplicationSelectedActivitySerializer(
                      'latest_invoice_ref'
                 )['latest_invoice_ref']
             )
-        print(url)
+
         return url
 
 
@@ -675,9 +694,8 @@ class ExternalApplicationSelectedActivityMergedSerializer(serializers.Serializer
 
 class EmailUserAppViewSerializer(serializers.ModelSerializer):
     residential_address = UserAddressSerializer()
-    # identification = DocumentSerializer()
+    identification = IdentificationSerializer()
     dob = serializers.SerializerMethodField(read_only=True)
-    identification = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = EmailUser
@@ -693,15 +711,6 @@ class EmailUserAppViewSerializer(serializers.ModelSerializer):
                   'email',
                   'phone_number',
                   'mobile_number',)
-
-    def get_identification(self, obj):
-        uid = None
-        if obj.identification:
-            id_file = 'media/' + str(obj.identification.file)
-            if os.path.exists(id_file):
-                uid = DocumentSerializer(obj.identification).data
-
-        return uid
 
     def get_dob(self, obj):
 
@@ -947,7 +956,7 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             'invoice_url',
             'total_paid_amount',
             'payment_url',
-            'requires_refund',
+            # 'requires_refund',
             'all_payments_url',
             'adjusted_paid_amount',
             'is_reception_paper',
@@ -1158,15 +1167,20 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             for invoice in invoices:
                 invoice_str += '&invoice={}'.format(invoice.invoice_reference)
 
-            if app.requires_refund:
-                if app.application_type == \
-                        Application.APPLICATION_TYPE_AMENDMENT:
-                    previous = Application.objects.get(
-                        id=app.previous_application.id)
-                    invoices = previous.invoices.all()
-                    for invoice in invoices:
-                        invoice_str += '&invoice={}'.format(
-                            invoice.invoice_reference)
+            url = '{0}payment?invoice={1}'.format(
+                settings.WC_PAYMENT_SYSTEM_URL_INV,
+                invoice_str,
+            )
+
+        elif app.requires_refund_amendment():
+            # build url for refunding 
+            invoice_str = ''
+            previous = Application.objects.get(
+                id=app.previous_application.id)
+            invoices = previous.invoices.all()
+            for invoice in invoices:
+                invoice_str += '&invoice={}'.format(
+                    invoice.invoice_reference)
 
             url = '{0}payment?invoice={1}'.format(
                 settings.WC_PAYMENT_SYSTEM_URL_INV,
