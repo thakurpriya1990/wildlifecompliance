@@ -45,12 +45,12 @@ class ExternalReturnView(DetailView):
     template_name = 'wildlifecompliance/dash/index.html'
 
 
-#class InternalView(UserPassesTestMixin, TemplateView):
-class InternalView(TemplateView):
+class InternalView(UserPassesTestMixin, TemplateView):
+#class InternalView(TemplateView):
     template_name = 'wildlifecompliance/dash/index.html'
 
     def test_func(self):
-        return is_internal(self.request)
+        return is_internal(self.request) or is_compliance_management_callemail_readonly_user(self.request)
 
     def get_context_data(self, **kwargs):
         context = super(InternalView, self).get_context_data(**kwargs)
@@ -86,11 +86,9 @@ class WildlifeComplianceRoutingView(TemplateView):
             print('is_compliance_internal_user: {}'.format(is_compliance_internal_user(self.request)))
             print('is_wildlifecompliance_admin: {}'.format(is_wildlifecompliance_admin(self.request)))
             print('prefer compliance management: {}'.format(prefer_compliance_management(self.request)))
-            compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
-            #return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
             if (
-                    (is_internal(self.request) and prefer_compliance_management(self.request)) or 
-                    belongs_to(self.request.user, compliance_group.name)
+                    (is_internal(self.request) and prefer_compliance_management(self.request)) or
+                    is_compliance_management_callemail_readonly_user(self.request)
                     ):
                 return redirect('internal')
             elif is_internal(self.request):
