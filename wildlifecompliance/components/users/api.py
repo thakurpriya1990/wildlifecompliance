@@ -566,7 +566,7 @@ class UserViewSet(viewsets.ModelViewSet):
             try:
                 prefer_compliance_management = request.data.get('prefer_compliance_management', False)
                 user_instance = self.get_object()
-                system_preference_instance, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user_id=user_instance.id)
+                system_preference_instance = ComplianceManagementUserPreferences.objects.get(email_user_id=user_instance.id)
                 serializer = UpdateComplianceManagementUserPreferencesSerializer(
                         system_preference_instance,
                         data={
