@@ -191,7 +191,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
         try:
 
             excl_choices = [
-                # None
+                'group2'
             ]
 
             answer_types = [
