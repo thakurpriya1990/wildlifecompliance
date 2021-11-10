@@ -26,24 +26,24 @@ from wildlifecompliance.components.users.models import (
         #CompliancePermissionGroup, 
         ComplianceManagementUserPreferences,
         )
-from wildlifecompliance.helpers import is_compliance_management_readonly_user, is_compliance_management_callemail_readonly_user
+from wildlifecompliance.helpers import (
+        is_compliance_management_readonly_user, 
+        is_compliance_management_callemail_readonly_user,
+        prefer_compliance_management,
+        )
+
 
 class GeocodingAddressSearchTokenView(views.APIView):
     def get(self, request, format=None):
         return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
 
 
-
 class SystemPreferenceView(views.APIView):
     def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
         res = { "system": "wildlife_licensing" }
-        preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
-        if request.user.is_authenticated():
-            if preference_qs and (
-                    (preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request)) or
-                    (is_compliance_management_callemail_readonly_user(request))
-                    ):
-                res = { "system": "compliance_management" }
+        if prefer_compliance_management(request):
+            res = { "system": "compliance_management" }
         return Response(res)
 
 

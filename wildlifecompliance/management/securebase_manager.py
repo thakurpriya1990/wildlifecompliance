@@ -10,6 +10,7 @@ from django.utils.http import urlquote_plus
 
 from wildlifecompliance import settings
 from wildlifecompliance.exceptions import SecureBaseException
+from wildlifecompliance.helpers import prefer_compliance_management
 
 logger = logging.getLogger('securebase_manager')
 # logger = logging
