@@ -88,7 +88,7 @@ class WildlifeComplianceRoutingView(TemplateView):
             print('prefer compliance management: {}'.format(prefer_compliance_management(self.request)))
             compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
             #return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
-            elif (
+            if (
                     (is_internal(self.request) and prefer_compliance_management(self.request)) or 
                     belongs_to(self.request.user, compliance_group.name)
                     ):
