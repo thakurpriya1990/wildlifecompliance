@@ -79,6 +79,7 @@ export default {
                 checked.isDisplay = is_display;
                 if (typeof c.value === 'boolean') {
                     c.value = checked.isChecked ? true : false;
+                    checked.value = checked.isChecked ? true : false;
                 } 
 
             } else {
