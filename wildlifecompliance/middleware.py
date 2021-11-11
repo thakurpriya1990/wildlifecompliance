@@ -8,6 +8,8 @@ from wildlifecompliance.management.securebase_manager import (
     SecureBaseUtils,
     SecureAuthorisationEnforcer,
 )
+from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences
+from wildlifecompliance.helpers import is_compliance_management_callemail_readonly_user
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -18,6 +20,12 @@ class FirstTimeNagScreenMiddleware(object):
     Generic FirstTimeNagScreenMiddleware.
     '''
     def process_request(self, request):
+        if request.method == 'GET' and request.user.is_authenticated(
+        ) and 'api' not in request.path and 'admin' not in request.path:
+            preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
+            if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:
+                preference.prefer_compliance_management = True
+                preference.save()
 
         if SecureBaseUtils.is_wildlifelicensing_request(request):
             # Apply WildifeLicensing first-time checks.
@@ -44,7 +52,6 @@ class FirstTimeDefaultNag(object):
                     (not (
                         request.user.phone_number or request.user.mobile_number
                     )):
-
                 path_ft = reverse('first_time')
                 path_logout = reverse('accounts:logout')
                 request.session['new_to_wildlifecompliance'] = True
