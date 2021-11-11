@@ -32,6 +32,16 @@ class DocumentSerializer(serializers.ModelSerializer):
         fields = ('id', 'description', 'file', 'name', 'uploaded_date')
 
 
+class IdentificationSerializer(DocumentSerializer):
+    '''
+    Serializer to obfuscate the file name and description from identification.
+    '''
+
+    class Meta:
+        model = Document
+        fields = ('id', 'uploaded_date')
+
+
 class UpdateComplianceManagementUserPreferencesSerializer(serializers.ModelSerializer):
     email_user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
@@ -254,7 +264,7 @@ class UserSerializer(serializers.ModelSerializer):
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
     wildlifecompliance_organisations = serializers.SerializerMethodField()
-    identification = DocumentSerializer()
+    identification = IdentificationSerializer()
     dob = serializers.SerializerMethodField()
 
     class Meta:
@@ -386,13 +396,12 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
     address_details = serializers.SerializerMethodField()
     contact_details = serializers.SerializerMethodField()
     wildlifecompliance_organisations = serializers.SerializerMethodField()
-    # identification = DocumentSerializer()
+    identification = IdentificationSerializer()
     is_customer = serializers.SerializerMethodField()
     is_internal = serializers.SerializerMethodField()
     prefer_compliance_management = serializers.SerializerMethodField()
     is_reception = serializers.SerializerMethodField()
     dob = serializers.SerializerMethodField(read_only=True)
-    identification = serializers.SerializerMethodField(read_only=True)
     is_payment_officer = serializers.SerializerMethodField(read_only=True)
     has_complete_first_time = serializers.SerializerMethodField(read_only=True)
 
@@ -443,15 +452,6 @@ class MyUserDetailsSerializer(serializers.ModelSerializer):
             self.context.get('request')
         )
         return is_officer
-
-    def get_identification(self, obj):
-        uid = None
-        if obj.identification:
-            id_file = 'media/' + str(obj.identification.file)
-            if os.path.exists(id_file):
-                uid = DocumentSerializer(obj.identification).data
-
-        return uid
 
     def get_dob(self, obj):
         formatted_date = obj.dob.strftime(

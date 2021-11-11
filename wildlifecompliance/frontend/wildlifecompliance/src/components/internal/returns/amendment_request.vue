@@ -151,7 +151,10 @@ export default {
                              'An email has been sent to the Licensee with the request to amend this Return.',
                              'success'
                         );
-                        self.close();
+                        // self.close();
+                        // Return to dashboard.
+                        this.$router.push({name:"internal-dash"});
+
                     },(error)=>{
                         console.log(error);
                         vm.errors = true;

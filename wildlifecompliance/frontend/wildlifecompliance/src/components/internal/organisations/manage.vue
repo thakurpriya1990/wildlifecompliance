@@ -123,7 +123,7 @@
                                             <label for="" class="col-sm-3 control-label" >Country</label>
                                             <div class="col-sm-4">
                                                 <select class="form-control" name="country" v-model="org.address.country">
-                                                    <option v-for="c in countries" :value="c.alpha2Code" v-bind:key="`code_${c.alpha2Code}`">{{ c.name }}</option>
+                                                    <option v-for="c in countries" :value="c.code" v-bind:key="`code_${c.code}`">{{ c.name }}</option>
                                                 </select>
                                             </div>
                                           </div>
@@ -281,7 +281,7 @@ export default {
             contacts_headers_ref:["Name","Role","Email","Status"],
             applications_url: api_endpoints.applications_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
             licences_url: api_endpoints.licences_paginated+'internal_datatable_list?org_id='+vm.$route.params.org_id,
-            returns_url: api_endpoints.returns_paginated+'?org_id='+vm.$route.params.org_id,
+            returns_url: api_endpoints.returns_paginated+'user_datatable_list?org_id='+vm.$route.params.org_id,
             contacts_options:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"

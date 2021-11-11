@@ -70,6 +70,12 @@ export const rendererStore = {
             })[0];
             let is_assigned = activity.assigned_officer == null ? false : activity.assigned_officer === getters.current_user.id ? false : true
              // function to enforce editable rendered components for officer.
+            if (!['with_officer'].includes(activity.processing_status.id)){
+                return false;
+            }
+            if (activity.decision_action === 'reissue'){
+                return false;
+            }
             return !is_assigned && rootGetters.canAssignOfficerFor(rootGetters.selected_activity_tab_id); // check permissions.
         },
         allCurrentActivitiesWithAssessor: (state, getters, rootState, rootGetters) => {
@@ -141,9 +147,9 @@ export const rendererStore = {
                 commit(REMOVE_FORM_FIELD, key);
             }
         },
-        saveFormData({ dispatch, commit, getters, rootGetters }, { url, draft }) {
+        saveFormData({ dispatch, commit, getters, rootGetters }, { url, draft, submit }) {
             return new Promise((resolve, reject) => {
-                const post_data = Object.assign({'__draft': draft, '__update_fee': rootGetters.application.update_fee}, getters.renderer_form_data);
+                const post_data = Object.assign({'__draft': draft, '__update_fee': rootGetters.application.update_fee, '__submit': submit}, getters.renderer_form_data);
                 Vue.http.post(url, post_data).then(res => {
                     resolve(res);
                 },
@@ -167,9 +173,17 @@ export const rendererStore = {
         },
         assessmentData({ dispatch, commit, getters, rootGetters }, { url, draft }) {
             return new Promise((resolve, reject) => {
-                const post_data = Object.assign({'__draft': draft, '__assess': rootGetters.application.assess}, getters.renderer_form_data);
+                const post_data = Object.assign({'__draft': draft, '__update_fee': rootGetters.application.update_fee, '__assess': rootGetters.application.assess, '__licence_activity': rootGetters.selected_activity_tab_id}, getters.renderer_form_data);
                 Vue.http.post(url, post_data).then(res => {
                     resolve(res);
+                    dispatch('setApplication', res.body);
+                    dispatch('setApplication', {
+                        ...rootGetters.application,
+                        application_fee: res.body.adjusted_paid_amount.application_fee,
+                        licence_fee: res.body.adjusted_paid_amount.licence_fee,
+                        update_fee: false,
+                        assess: false,
+                    });
                 },
                 err => {
                     console.log(err);

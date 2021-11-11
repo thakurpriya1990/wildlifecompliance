@@ -10,6 +10,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser, Address, Profile, EmailIdentity, EmailUserAction
 from django.contrib.auth.models import Permission, ContentType
 from datetime import datetime
+from django_countries import countries
 from wildlifecompliance.components.applications.models import Application
 from wildlifecompliance.components.applications.email import send_id_updated_notification
 from wildlifecompliance.components.call_email.serializers import SaveEmailUserSerializer, SaveUserAddressSerializer
@@ -70,6 +71,15 @@ def generate_dummy_email(first_name, last_name):
     email_address = re.sub(r'\.+', '.', email_address)
     email_address = re.sub(r'\s+', '_', email_address)
     return email_address
+
+
+class GetCountries(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        country_list = []
+        for country in list(countries):
+            country_list.append({"name": country.name, "code": country.code})
+        return Response(country_list)
 
 
 class DepartmentUserList(views.APIView):
@@ -368,15 +378,17 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = UserAddressSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             address, created = Address.objects.get_or_create(
-                line1=serializer.validated_data['line1'],
+                # line1=serializer.validated_data['line1'],
                 locality=serializer.validated_data['locality'],
                 state=serializer.validated_data['state'],
                 country=serializer.validated_data['country'],
                 postcode=serializer.validated_data['postcode'],
                 user=instance
             )
+            address.line1 = serializer.validated_data['line1']
             instance.residential_address = address
             with transaction.atomic():
+                address.save()
                 instance.save()
                 instance.log_user_action(
                     EmailUserAction.ACTION_POSTAL_ADDRESS_UPDATE.format(
@@ -401,8 +413,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @detail_route(methods=['POST', ])
     def upload_id(self, request, *args, **kwargs):
+        from wildlifecompliance.management.securebase_manager import (
+            SecureBaseUtils
+        )
         try:
             instance = self.get_object()
+            SecureBaseUtils.timestamp_id_request(request)
             instance.upload_identification(request)
             with transaction.atomic():
                 instance.save()
@@ -550,7 +566,7 @@ class UserViewSet(viewsets.ModelViewSet):
             try:
                 prefer_compliance_management = request.data.get('prefer_compliance_management', False)
                 user_instance = self.get_object()
-                system_preference_instance, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user_id=user_instance.id)
+                system_preference_instance = ComplianceManagementUserPreferences.objects.get(email_user_id=user_instance.id)
                 serializer = UpdateComplianceManagementUserPreferencesSerializer(
                         system_preference_instance,
                         data={

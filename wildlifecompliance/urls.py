@@ -120,11 +120,33 @@ router.register(r'artifact_paginated', artifact_api.ArtifactPaginatedViewSet)
 router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
 router.register(r'physical_artifact_types', artifact_api.PhysicalArtifactTypeViewSet)
 router.register(r'disposal_methods', artifact_api.PhysicalArtifactDisposalMethodViewSet)
-#router.register(r'document_artifact_types', artifact_api.DocumentArtifactTypeViewSet)
+#router.register(r'document_artifact_types', artifact_api.DocumentAtrtifactTypeViewSet)
+
+router.register(
+    r'schema_masterlist',
+    main_api.SchemaMasterlistViewSet
+)
+router.register(
+    r'schema_masterlist_paginated', main_api.SchemaMasterlistPaginatedViewSet)
+router.register(
+    r'schema_purpose', main_api.SchemaPurposeViewSet)
+router.register(
+    r'schema_purpose_paginated', main_api.SchemaPurposePaginatedViewSet)
+router.register(
+    r'schema_group', main_api.SchemaGroupViewSet)
+router.register(
+    r'schema_group_paginated', main_api.SchemaGroupPaginatedViewSet)
+router.register(
+    r'schema_question', main_api.SchemaQuestionViewSet)
+router.register(
+    r'schema_question_paginated', main_api.SchemaQuestionPaginatedViewSet)
 
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
                     name='get-my-user-details'),
+                url(r'^api/countries$', 
+                    users_api.GetCountries.as_view(), 
+                    name='get-countries'),
                 url(r'^api/department_users$',
                     users_api.DepartmentUserList.as_view(),
                     name='department-users-list'),
@@ -268,6 +290,8 @@ urlpatterns = [
         name='application-history'),
 
     url(r'^preview/licence-pdf/(?P<application_pk>\d+)',application_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
+
+    url(r'^securebase-view/',views.SecureBaseView.as_view(), name='securebase-view'),
 
 ] + ledger_patterns
 

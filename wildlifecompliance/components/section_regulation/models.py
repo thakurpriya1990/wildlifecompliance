@@ -8,6 +8,12 @@ class Act(RevisionedMixin):
     NAME_CHOICES =  (
             ('BCA', 'Biodiversity Conservation Act 2016'),
             ('CALM', 'Conservation and Land Management Act 1984'),
+            ('BCR', 'Biodiversity Conservation Regulations 2018'),
+            ('CLMR', 'Conservation and Land Management Regulations 2002'),
+            ('FMR', 'Forest Management Regulations 1993'),
+            ('CIIPA', 'Criminal Investigation (Identifying People) Act 2006'),
+            ('SCMRA', 'Swan and Canning Rivers Management Act 2006'),
+            ('SCRMR', 'Swan and Canning Rivers Management Regulations 2007'),
             )
 
     name = models.CharField(max_length=50, choices=NAME_CHOICES)

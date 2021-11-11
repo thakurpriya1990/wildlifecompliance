@@ -19,21 +19,24 @@
                     <form class="form-horizontal" name="return_form">
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Licence Activity</label>
-                            <div class="col-sm-6">
+                            <div class="col-sm-6" v-if='returns.condition'>
                                 {{returns.condition.licence_activity.name}}
                             </div>                         
+                            <div class="col-sm-6" v-else> &nbsp;</div>                        
                         </div>
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Condition</label>
-                            <div class="col-sm-6">
+                            <div class="col-sm-6" v-if='returns.condition'>
                                 <textarea disabled class="form-control" name="details" placeholder="" v-model="returns.condition.condition"></textarea>
                             </div>
+                            <div class="col-sm-6" v-else> &nbsp;</div>
                         </div>
                         <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Due Date</label>
-                            <div class="col-sm-6">
+                            <div class="col-sm-6" v-if='returns.condition'>
                                 {{returns.condition.due_date}}
                             </div>
+                            <div class="col-sm-6" v-else> &nbsp;</div>
                         </div>
                     </form>
                 </div>
