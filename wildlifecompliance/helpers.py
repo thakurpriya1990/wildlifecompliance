@@ -215,6 +215,10 @@ def is_compliance_management_approved_external_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_approved_external_users')
     return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
 
+def is_compliance_management_volunteer(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
         permissions__codename__in=['officer',
