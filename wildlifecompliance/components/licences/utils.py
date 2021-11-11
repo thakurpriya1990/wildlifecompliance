@@ -666,6 +666,14 @@ class LicenceSchemaUtility(LicenceUtility):
                 #         }
                 #         options.append(op_dict)
 
+                #PA code begin
+                qo_children = self.get_checkbox_option_children2(
+                            q, q.question, section, question_name
+                        )
+                child['children'] = qo_children
+                child['type'] = 'group'
+                #PA code end
+
                 for o in options:
                     q_checkbox_children = SectionQuestion.objects.filter(
                         section=question.section,
