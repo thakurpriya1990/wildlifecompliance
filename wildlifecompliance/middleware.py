@@ -9,7 +9,11 @@ from wildlifecompliance.management.securebase_manager import (
     SecureAuthorisationEnforcer,
 )
 from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences, CompliancePermissionGroup
-from wildlifecompliance.helpers import is_compliance_management_callemail_readonly_user, is_compliance_management_approved_external_user
+from wildlifecompliance.helpers import (
+        is_compliance_management_callemail_readonly_user, 
+        is_compliance_management_approved_external_user,
+        is_compliance_management_volunteer,
+        )
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -22,10 +26,14 @@ class FirstTimeNagScreenMiddleware(object):
     def process_request(self, request):
         if request.method == 'GET' and request.user.is_authenticated(
         ) and 'api' not in request.path and 'admin' not in request.path:
-            # add CM Approved External users to CallEmail RO group
-            if is_compliance_management_approved_external_user(request) and not is_compliance_management_callemail_readonly_user(request):
-                compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
-                compliance_group.user_set.add(request.user)
+            # add CM Approved External users to CallEmail RO and volunteer groups
+            if is_compliance_management_approved_external_user(request):
+                if not is_compliance_management_callemail_readonly_user(request):
+                    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
+                    compliance_group.user_set.add(request.user)
+                if not is_compliance_management_volunteer(request):
+                    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
+                    compliance_group.user_set.add(request.user)
             # Ensure CallEmail RO group users have prefer_compliance_management=True
             preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
             if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:
