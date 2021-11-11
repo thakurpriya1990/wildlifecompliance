@@ -11,7 +11,8 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from datetime import datetime, timedelta
 
 from wildlifecompliance.helpers import is_internal, prefer_compliance_management, is_model_backend, in_dbca_domain, \
-    is_compliance_internal_user, is_wildlifecompliance_admin, is_compliance_management_callemail_readonly_user, belongs_to
+    is_compliance_internal_user, is_wildlifecompliance_admin, is_compliance_management_callemail_readonly_user, belongs_to, \
+    is_compliance_management_approved_external_user
 from wildlifecompliance.forms import *
 from wildlifecompliance.components.applications.models import Application
 from wildlifecompliance.components.call_email.models import CallEmail
@@ -88,7 +89,7 @@ class WildlifeComplianceRoutingView(TemplateView):
             print('prefer compliance management: {}'.format(prefer_compliance_management(self.request)))
             if (
                     (is_internal(self.request) and prefer_compliance_management(self.request)) or
-                    is_compliance_management_callemail_readonly_user(self.request)
+                    is_compliance_management_approved_external_user(self.request)
                     ):
                 return redirect('internal')
             elif is_internal(self.request):
