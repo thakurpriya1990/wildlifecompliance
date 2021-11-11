@@ -41,6 +41,9 @@ export const offenceStore = {
         updateOffenders(state, offenders) {
             Vue.set(state.offence, 'offenders', offenders);
         },
+        updateTemporaryDocumentCollectionId(state, id){
+            state.offence.call_email_id = id;
+        },
         updateCallEmailId(state, id) {
             state.offence.call_email_id = id;
         },
@@ -245,6 +248,9 @@ export const offenceStore = {
             console.log('createOffence');
             let fetchUrl = '/api/offence/';
 
+            console.log('this: ')
+            console.log(this)
+
             let payload = new Object();
             Object.assign(payload, state.offence);
 
@@ -297,6 +303,9 @@ export const offenceStore = {
         },
         setCallEmailId({ commit, }, id){
             commit("updateCallEmailId", id);
+        },
+        setTemporaryDocumentCollectionId({ commit, }, id){
+            commit("updateTemporaryDocumentCollectionId", id);
         },
         setLegalCaseId({ commit, }, id){
             commit("updateLegalCaseId", id);
