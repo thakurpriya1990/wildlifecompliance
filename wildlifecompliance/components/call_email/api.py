@@ -47,7 +47,7 @@ from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
     ComplianceUserDetailsSerializer,
 )
-from wildlifecompliance.helpers import is_customer, is_internal
+from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_internal_user
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
@@ -201,8 +201,9 @@ class CallEmailPaginatedViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         # import ipdb; ipdb.set_trace()
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return CallEmail.objects.all()
         return CallEmail.objects.none()
 
@@ -224,8 +225,9 @@ class CallEmailViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # import ipdb; ipdb.set_trace()
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return CallEmail.objects.all()
         return CallEmail.objects.none()
 
@@ -791,8 +793,9 @@ class ClassificationViewSet(viewsets.ModelViewSet):
     serializer_class = ClassificationSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return Classification.objects.all()
         return Classification.objects.none()
 
@@ -812,8 +815,9 @@ class ReferrerViewSet(viewsets.ModelViewSet):
     serializer_class = ReferrerSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return Referrer.objects.all()
         return Referrer.objects.none()
 
@@ -823,8 +827,9 @@ class ReportTypeViewSet(viewsets.ModelViewSet):
     serializer_class = ReportTypeSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return ReportType.objects.all()
         return ReportType.objects.none()
 
@@ -833,7 +838,8 @@ class ReportTypeViewSet(viewsets.ModelViewSet):
     def get_distinct_queryset(self, request, *args, **kwargs):
         user = self.request.user
         return_list = []
-        if is_internal(self.request):
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             valid_records = ReportType.objects.values('report_type').annotate(Max('version'))
             for record in valid_records:
                 qs_record = ReportType.objects \
@@ -872,8 +878,9 @@ class LocationViewSet(viewsets.ModelViewSet):
     serializer_class = LocationSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return Location.objects.all()
         return Location.objects.none()
 
@@ -917,7 +924,8 @@ class EmailUserViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         exclude_staff = self.request.GET.get('exclude_staff')
-        if is_internal(self.request):
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             if exclude_staff == 'true':
                 return EmailUser.objects.filter(is_staff=False)
             else:
@@ -930,8 +938,9 @@ class MapLayerViewSet(viewsets.ModelViewSet):
     serializer_class =  MapLayerSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
+        #user = self.request.user
+        #if is_internal(self.request):
+        if is_internal(self.request) or is_compliance_internal_user(self.request):
             return MapLayer.objects.filter(availability__exact=True)
         return MapLayer.objects.none()
 
