@@ -119,8 +119,10 @@ def in_dbca_domain(request):
 
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and (is_model_backend(
-        request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)
+    return request.user.is_authenticated() and (
+            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) or
+            is_compliance_management_approved_external_user(request)
+            )
 
 
 def is_reception(request):
@@ -203,12 +205,14 @@ def is_compliance_internal_user(request):
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    #return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
     return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
 
 def is_compliance_management_callemail_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
-    #return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+
+def is_compliance_management_approved_external_user(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_approved_external_users')
     return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
 
 def is_able_to_view_sanction_outcome_pdf(user):
