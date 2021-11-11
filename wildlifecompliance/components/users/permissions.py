@@ -128,6 +128,11 @@ COMPLIANCE_PERMISSION_GROUPS = [
         'permissions': ['compliance_management_callemail_readonly']
     },
     {
+        'name': 'Compliance Management Approved External Users',
+        'per_district': False,
+        'permissions': ['compliance_management_approved_external_users']
+    },
+    {
         'name': 'Wildlife Compliance Admin - Compliance',
         'per_district': False,
         'permissions': ['wildlife_compliance_admin_compliance']
@@ -187,6 +192,11 @@ COMPLIANCE_GROUP_PERMISSIONS = {
     },
     'compliance_management_callemail_readonly': {
         'name': 'Compliance Management Call/Email Read-Only',
+        'app_label': 'wildlifecompliance',
+        'model': 'compliancepermissiongroup',
+    },
+    'compliance_management_approved_external_users': {
+        'name': 'Compliance Management Approved External Users',
         'app_label': 'wildlifecompliance',
         'model': 'compliancepermissiongroup',
     },
