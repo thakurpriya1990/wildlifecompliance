@@ -120,8 +120,8 @@ def in_dbca_domain(request):
 
 def is_departmentUser(request):
     return request.user.is_authenticated() and (
-            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) or
-            is_compliance_management_approved_external_user(request)
+            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) #or
+            #is_compliance_management_approved_external_user(request)
             )
 
 
