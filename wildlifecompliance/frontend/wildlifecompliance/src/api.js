@@ -21,6 +21,7 @@ module.exports = {
     user_profile_completed: '/api/user_profile_completed/',
     //countries: "https://restcountries.eu/rest/v1/?fullText=true/",
     countries: '/api/countries',
+    is_compliance_management_callemail_readonly_user: '/api/is_compliance_management_callemail_readonly_user',
     application_type:"/api/application_type/",
     applications:"/api/application/",
     application_selected_activity:"/api/application_selected_activity/",
