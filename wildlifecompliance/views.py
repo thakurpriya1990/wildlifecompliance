@@ -51,7 +51,7 @@ class InternalView(UserPassesTestMixin, TemplateView):
     template_name = 'wildlifecompliance/dash/index.html'
 
     def test_func(self):
-        return is_internal(self.request)
+        return is_internal(self.request) or is_compliance_management_approved_external_user(self.request)
 
     def get_context_data(self, **kwargs):
         context = super(InternalView, self).get_context_data(**kwargs)

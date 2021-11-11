@@ -22,7 +22,7 @@ from wildlifecompliance.components.users.models import (
         RegionDistrict, 
         ComplianceManagementUserPreferences,
         )
-from wildlifecompliance.helpers import is_customer, is_internal
+from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_management_callemail_readonly_user
 from wildlifecompliance.components.users.serializers import (
     UserSerializer,
     DTUserSerializer,
@@ -71,6 +71,15 @@ def generate_dummy_email(first_name, last_name):
     email_address = re.sub(r'\.+', '.', email_address)
     email_address = re.sub(r'\s+', '_', email_address)
     return email_address
+
+
+class IsComplianceManagementCallEmailReadonlyUser(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        user = False
+        if is_compliance_management_callemail_readonly_user(request):
+            user = True
+        return Response({"compliance_management_callemail_readonly_user": user})
 
 
 class GetCountries(views.APIView):
