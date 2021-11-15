@@ -2,7 +2,7 @@
 <div class="container" id="internalSearch">
     <UserDashTable level="internal" :url="users_url" />
     <OrganisationDashTable />
-    <div class="row">
+    <div v-if="showSearchKeywords" class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
@@ -91,6 +91,13 @@
                             <li>Endorsement Applications (e.g. E000001)</li>
                             <li>Lawful Authority Applications (e.g. LAA000001)</li>
                             <li>Lawful Authorities (e.g. LA000001)</li>
+
+                            <li>Calls/Emails (e.g. C000001)</li>
+                            <li>Offences (e.g. OF000001)</li>
+                            <li>Inspections (e.g. IN000001)</li>
+                            <li>Sanction Outcomes (e.g. IF000001)</li>
+                            <li>Legal Cases (e.g. CS000001)</li>
+                            <li>Objects (e.g. OB000001)</li>
                         </ul>
                     </div>
                     <div class="row">
@@ -130,6 +137,7 @@ export default {
     data() {
         let vm = this;
         return {
+            preferredSystem: null,
             showSpinner: false,
             users_url: helpers.add_endpoint_join(api_endpoints.users_paginated,'datatable_list/?format=datatables'),
             rBody: 'rBody' + vm._uid,
@@ -224,7 +232,14 @@ export default {
         },
         showError: function() {
             return this.errors;
-        }
+        },
+        showSearchKeywords: function() {
+            let show = true;
+            if (this.preferredSystem === 'compliance_management') {
+                show = false;
+            }
+            return show;
+        },
     },
     methods: {
         addListeners: function(){
@@ -326,6 +341,9 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         } );
+    },
+    created: async function() {
+        this.preferredSystem = await helpers.getPreferredDashboard();
     },
     updated: function(){
         let vm = this;
