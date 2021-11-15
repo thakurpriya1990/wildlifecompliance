@@ -1,4 +1,5 @@
 import traceback
+import logging
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers, views, status
@@ -32,6 +33,7 @@ from wildlifecompliance.helpers import (
         prefer_compliance_management,
         )
 
+logger = logging.getLogger(__name__)
 
 class GeocodingAddressSearchTokenView(views.APIView):
     def get(self, request, format=None):
@@ -259,12 +261,13 @@ class SearchReferenceView(views.APIView):
 
     def post(self, request, format=None):
         try:
-            qs = []
+            #qs = []
             reference_number = request.data.get('reference_number')
             if reference_number:
-                qs = search_reference(reference_number)
-            serializer = SearchReferenceSerializer(qs)
-            return Response(serializer.data)
+                result = search_reference(reference_number)
+            #serializer = SearchReferenceSerializer(qs)
+            #return Response(serializer.data)
+            return Response(result)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -278,3 +281,4 @@ class SearchReferenceView(views.APIView):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+

@@ -98,7 +98,10 @@
                           <div class="col-md-8">
                               <input type="search"  class="form-control input-sm" name="referenceWord" placeholder="" v-model="referenceWord"></input>
                           </div>
-                          <div >
+                          <div v-if="showSpinner">
+                            <i class='fa fa-2x fa-spinner fa-spin'></i>
+                          </div>
+                          <div v-else>
                             <input type="button" @click.prevent="search_reference" class="btn btn-primary" style="margin-bottom: 5px" value="Search"/>
                         </div>
                         <alert :show.sync="showError" type="danger"><strong>{{errorString}}</strong></alert>
@@ -127,6 +130,7 @@ export default {
     data() {
         let vm = this;
         return {
+            showSpinner: false,
             users_url: helpers.add_endpoint_join(api_endpoints.users_paginated,'datatable_list/?format=datatables'),
             rBody: 'rBody' + vm._uid,
             oBody: 'oBody' + vm._uid,
@@ -240,24 +244,29 @@ export default {
                 vm.selected_organisation = selected.val();
             });
         },
-        search_reference: function() {
+        search_reference: async function() {
           let vm = this;
           if(vm.referenceWord)
           {
-            vm.$http.post('/api/search_reference.json',{
-              reference_number: vm.referenceWord,
-
-            }).then(res => {
+            vm.showSpinner = true;
+            vm.errors = false;
+            vm.errorString = '';
+            try {
+              const res = await vm.$http.post('/api/search_reference.json',{"reference_number": vm.referenceWord,});
               console.log(res)
-              vm.errors = false;
-              vm.errorString = '';
-              window.location.href = res.body.url_string;
-              },
-            error => {
-              console.log(error);
+              if (res.body.url_string) {
+                  window.location.href = res.body.url_string;
+              } else if (res.body.error) {
+                  console.log(res.body.error)
+                  vm.errors = true;
+                  vm.errorString = res.body.error;
+              }
+            } catch(error) {
+              //console.log(error);
               vm.errors = true;
               vm.errorString = helpers.apiVueResourceError(error);
-            });
+            }
+            vm.showSpinner = false;
           }
         },
         addKeyword: function() {
