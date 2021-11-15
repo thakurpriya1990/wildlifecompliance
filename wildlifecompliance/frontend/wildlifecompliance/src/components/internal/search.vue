@@ -1,7 +1,43 @@
 <template>
 <div class="container" id="internalSearch">
-    <UserDashTable level="internal" :url="users_url" />
-    <OrganisationDashTable />
+    <!--UserDashTable level="internal" :url="users_url" />
+    <OrganisationDashTable /-->
+    <div class="row">
+        <div class="col-sm-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Person and Organisation Search
+                        <a :href="'#'+rBody" data-toggle="collapse"  data-parent="#personOrgSearch" expanded="true" :aria-controls="rBody">
+                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                        </a>
+                    </h3>
+                </div>
+                <div class="panel-body collapse in" :id="kBody">
+                    <div class="row">
+                        <div class="form-group">
+                            <!--label for="person_lookup" class="col-sm-3 control-label">Search</label-->
+                            <div class="col-sm-6">
+                                <select 
+                                    id="person_lookup"  
+                                    name="person_lookup"  
+                                    ref="person_lookup" 
+                                    class="form-control" 
+                                />
+                            </div>
+                            <div class="col-sm-3">
+                                <input 
+                                type="button" 
+                                @click.prevent="personOrganisationSearch" 
+                                class="btn btn-primary" 
+                                value="View Details"
+                                />
+                            </div>
+                        </div>
+                      </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div v-if="showSearchKeywords" class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
@@ -137,6 +173,7 @@ export default {
     data() {
         let vm = this;
         return {
+            personOrgEntity: {},
             preferredSystem: null,
             showSpinner: false,
             users_url: helpers.add_endpoint_join(api_endpoints.users_paginated,'datatable_list/?format=datatables'),
@@ -242,6 +279,56 @@ export default {
         },
     },
     methods: {
+        personOrganisationSearch: function() {
+            this.$nextTick(() => {
+                //users
+                //organisations
+                if (this.personOrgEntity && this.personOrgEntity.entity_type === 'user') {
+                    window.location.replace("/internal/users/" + this.personOrgEntity.id);
+                } else if (this.personOrgEntity && this.personOrgEntity.entity_type === 'org') {
+                    window.location.replace("/internal/organisations/" + this.personOrgEntity.id);
+                }
+            });
+
+        },
+        initialisePersonLookup: function(){
+            let vm = this;
+            $(vm.$refs.person_lookup).select2({
+                minimumInputLength: 2,
+                "theme": "bootstrap",
+                allowClear: true,
+                placeholder:"Select Person",
+                ajax: {
+                    url: api_endpoints.person_org_lookup,
+                    //url: api_endpoints.vessel_rego_nos,
+                    dataType: 'json',
+                    data: function(params) {
+                        console.log(params)
+                        var query = {
+                            term: params.term,
+                            type: 'public',
+                        }
+                        return query;
+                    },
+                },
+            }).
+            on("select2:select", function (e) {
+                var selected = $(e.currentTarget);
+                vm.personOrgEntity = Object.assign({}, e.params.data);
+            }).
+            on("select2:unselect",function (e) {
+                var selected = $(e.currentTarget);
+                vm.personOrgEntity = {};
+                //vm.approval_id = null;
+            }).
+            on("select2:open",function (e) {
+                //const searchField = $(".select2-search__field")
+                const searchField = $('[aria-controls="select2-person_lookup-results"]')
+                // move focus to select2 field
+                searchField[0].focus();
+            });
+        },
+
         addListeners: function(){
             let vm = this;
             // Initialise select2 for organisation
@@ -341,6 +428,7 @@ export default {
                 $( chev ).toggleClass( "glyphicon-chevron-down glyphicon-chevron-up" );
             }, 100 );
         } );
+        this.initialisePersonLookup();
     },
     created: async function() {
         this.preferredSystem = await helpers.getPreferredDashboard();
