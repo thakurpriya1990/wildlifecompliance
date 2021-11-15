@@ -417,6 +417,7 @@ def save_comms_log_document_obj(instance, comms_instance, temp_document):
     document._file = path
     document.save()
 
+
 # For transferring files from temp doc objs to default doc objs
 def save_default_document_obj(instance, temp_document):
     document = instance.documents.get_or_create(
@@ -432,6 +433,7 @@ def save_default_document_obj(instance, temp_document):
 
     document._file = path
     document.save()
+
 
 # For transferring files from temp doc objs to issuance doc objs
 def save_issuance_document_obj(instance, temp_document):

@@ -42,7 +42,7 @@ export const offenceStore = {
             Vue.set(state.offence, 'offenders', offenders);
         },
         updateTemporaryDocumentCollectionId(state, id){
-            state.offence.call_email_id = id;
+            state.offence.temporary_document_collection_id = id;
         },
         updateCallEmailId(state, id) {
             state.offence.call_email_id = id;
@@ -304,7 +304,7 @@ export const offenceStore = {
         setCallEmailId({ commit, }, id){
             commit("updateCallEmailId", id);
         },
-        setTemporaryDocumentCollectionId({ commit, }, id){
+        setTempDocumentCollectionId({ commit, }, id){
             commit("updateTemporaryDocumentCollectionId", id);
         },
         setLegalCaseId({ commit, }, id){

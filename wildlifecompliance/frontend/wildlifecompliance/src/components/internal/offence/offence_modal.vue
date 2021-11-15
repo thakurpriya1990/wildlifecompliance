@@ -512,6 +512,7 @@ export default {
       setLegalCaseId: "setLegalCaseId",
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty",
+      setTempDocumentCollectionId: "setTempDocumentCollectionId",
     }),
     ...mapActions('inspectionStore', {
       loadInspection: "loadInspection",
@@ -841,7 +842,7 @@ export default {
         }
 
         if (this.temporary_document_collection_id){
-            vm.setTempraryDocumentCollectionId(this.temporary_document_collection_id)
+            vm.setTempDocumentCollectionId(this.temporary_document_collection_id)
         }
 
         // Collect offenders data from the datatable, and set them to the vuex
