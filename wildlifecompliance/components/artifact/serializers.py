@@ -146,12 +146,15 @@ class ArtifactPaginatedSerializer(serializers.ModelSerializer):
         return display_name
 
     def get_user_action(self, obj):
-        url_list = []
-        view_url = '<a href=/internal/object/' + str(obj.id) + '>View</a>'
-        url_list.append(view_url)
+        #url_list = []
+        #view_url = '<a href=/internal/object/' + str(obj.id) + '>View</a>'
+        #url_list.append(view_url)
 
-        urls = '<br />'.join(url_list)
-        return urls
+        #urls = '<br />'.join(url_list)
+        url = '<a href=/internal/object/' + str(obj.id) + '>View</a>'
+        if hasattr(obj, "physicalartifact") and obj.status == 'active':
+            url = '<a href=/internal/object/' + str(obj.id) + '>Edit</a>'
+        return url
 
     def get_entity(self, obj):
         entity = {
