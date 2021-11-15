@@ -295,6 +295,7 @@ urlpatterns = [
     url(r'^preview/licence-pdf/(?P<application_pk>\d+)',application_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     url(r'^securebase-view/',views.SecureBaseView.as_view(), name='securebase-view'),
+    url(r'^api/person_org_lookup$', users_api.GetPersonOrg.as_view(), name='get-person-org'),
 
 ] + ledger_patterns
 
