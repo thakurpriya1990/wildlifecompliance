@@ -103,7 +103,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentArtifactSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return DocumentArtifact.objects.all()
@@ -225,7 +224,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                         if email_user_instance:
                             saved_instance.officer_interviewer = email_user_instance
                             saved_instance.save()
-                    #import ipdb; ipdb.set_trace()
                     #if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
                     if saved_instance.document_type == 'record_of_interview' and not saved_instance.offender:
                         raise serializers.ValidationError('Record of Interview must have an associated Offender')
@@ -348,7 +346,6 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalArtifactSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return PhysicalArtifact.objects.all()

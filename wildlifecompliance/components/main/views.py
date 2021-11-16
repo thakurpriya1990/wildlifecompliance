@@ -8,7 +8,7 @@ from rest_framework.renderers import JSONRenderer
 from wildlifecompliance.components.main.utils import (
     search_keywords,
     search_reference,
-    retrieve_department_users,
+    #retrieve_department_users,
 )
 from wildlifecompliance.components.main.serializers import (
     SearchKeywordSerializer,
@@ -49,17 +49,17 @@ class SystemPreferenceView(views.APIView):
         return Response(res)
 
 
-class DepartmentUserView(views.APIView):
-    renderer_classes = [JSONRenderer]
-
-    def get(self, request, format=None):
-        qs = []
-        #if request.data.get('searchText'): # modify as appropriate
-         #   qs = search_weak_links(request.data)
-        qs = retrieve_department_users()
-        #return_qs = qs[:10]
-        #return Response(return_qs)
-        return Response(qs)
+#class DepartmentUserView(views.APIView):
+#    renderer_classes = [JSONRenderer]
+#
+#    def get(self, request, format=None):
+#        qs = []
+#        #if request.data.get('searchText'): # modify as appropriate
+#         #   qs = search_weak_links(request.data)
+#        qs = retrieve_department_users()
+#        #return_qs = qs[:10]
+#        #return Response(return_qs)
+#        return Response(qs)
 
 
 class SearchKeywordsView(views.APIView):

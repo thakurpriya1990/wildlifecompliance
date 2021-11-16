@@ -878,9 +878,23 @@ export default {
             });
             // department_users
             $(vm.$refs.physical_artifact_department_users).select2({
+                    minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:""
+                    placeholder:"",
+                    ajax: {
+                        url: api_endpoints.staff_member_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            console.log(params)
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
                 }).
                 on("select2:select",function (e) {
                     let selected = $(e.currentTarget);
@@ -895,7 +909,21 @@ export default {
             $(vm.$refs.physical_artifact_department_users_custodian).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:""
+                    placeholder:"",
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: api_endpoints.staff_member_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            console.log(params)
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
                 }).
                 on("select2:select",function (e) {
                     let selected = $(e.currentTarget);
@@ -1018,6 +1046,7 @@ export default {
             disposal_method: "",
             description: "",
           });
+        /*
         // retrieve department_users from backend cache
         let returned_department_users = await this.$http.get(api_endpoints.department_users)
         Object.assign(this.departmentStaffList, returned_department_users.body)
@@ -1026,6 +1055,7 @@ export default {
             pk: "",
             name: "",
           });
+          */
         this.$nextTick(async() => {
           // special processing for PhysicalArtifactLegalCases link
           if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {
