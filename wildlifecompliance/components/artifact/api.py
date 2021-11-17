@@ -45,8 +45,6 @@ from wildlifecompliance.components.main.process_document import (
         save_comms_log_document_obj,
         save_default_document_obj,
         save_renderer_document_obj,
-        #save_details_document_obj,
-        #save_storage_document_obj,
         )
 from wildlifecompliance.components.main.email import prepare_mail
 from wildlifecompliance.components.users.serializers import (
@@ -72,7 +70,6 @@ from wildlifecompliance.components.artifact.serializers import (
         SaveDocumentArtifactSerializer,
         SavePhysicalArtifactSerializer,
         PhysicalArtifactSerializer,
-        #DocumentArtifactTypeSerializer,
         PhysicalArtifactTypeSerializer,
         PhysicalArtifactTypeSchemaSerializer,
         PhysicalArtifactDisposalMethodSerializer,
@@ -85,7 +82,6 @@ from wildlifecompliance.components.users.models import (
     CompliancePermissionGroup,
 )
 from django.contrib.auth.models import Permission, ContentType
-#from utils import SchemaParser
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -95,7 +91,6 @@ from wildlifecompliance.components.legal_case.email import (
     send_mail)
 from wildlifecompliance.components.legal_case.models import LegalCase
 from reversion.models import Version
-#import unicodedata
 
 
 class DocumentArtifactViewSet(viewsets.ModelViewSet):
@@ -103,7 +98,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentArtifactSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return DocumentArtifact.objects.all()
@@ -131,7 +125,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
             else:
-                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
                 raise serializers.ValidationError(repr(e[0]))
         except Exception as e:
             print(traceback.print_exc())
@@ -146,7 +139,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
         return HttpResponse(res_json, content_type='application/json')
 
     @renderer_classes((JSONRenderer,))
-    #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
         try:
             with transaction.atomic():
@@ -225,7 +217,6 @@ class DocumentArtifactViewSet(viewsets.ModelViewSet):
                         if email_user_instance:
                             saved_instance.officer_interviewer = email_user_instance
                             saved_instance.save()
-                    #import ipdb; ipdb.set_trace()
                     #if not (saved_instance.officer_interviewer or saved_instance.person_providing_statement):
                     if saved_instance.document_type == 'record_of_interview' and not saved_instance.offender:
                         raise serializers.ValidationError('Record of Interview must have an associated Offender')
@@ -348,7 +339,6 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
     serializer_class = PhysicalArtifactSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
         user = self.request.user
         if is_internal(self.request):
             return PhysicalArtifact.objects.all()
@@ -385,9 +375,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @renderer_classes((JSONRenderer,))
-    #def inspection_save(self, request, workflow=False, *args, **kwargs):
     def update(self, request, workflow=False, *args, **kwargs):
-        #print(request.data)
         try:
             with transaction.atomic():
                 instance = self.get_object()
@@ -476,12 +464,6 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
         print(request_data)
         try:
             with transaction.atomic():
-                #physical_artifact_type = request_data.get('physical_artifact_type')
-                #physical_artifact_type_id = None
-                #if physical_artifact_type:
-                #    physical_artifact_type_id = physical_artifact_type.get('id')
-                #    request_data['physical_artifact_type_id'] = physical_artifact_type_id
-
                 disposal_method = request_data.get('disposal_method')
                 disposal_method_id = None
                 if disposal_method:
@@ -511,9 +493,7 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                             'used_within_case' in request_data.keys() else None)
                     sensitive_non_disclosable = (request_data.get('sensitive_non_disclosable') if
                             'sensitive_non_disclosable' in request_data.keys() else None)
-                    #reason_sensitive_non_disclosable = request_data.get('reason_sensitive_non_disclosable')
                     if legal_case_id:
-                        #instance.add_legal_case(legal_case_id)
                         try:
                             legal_case_id_int = int(legal_case_id)
                         except Exception as e:
@@ -539,8 +519,6 @@ class PhysicalArtifactViewSet(viewsets.ModelViewSet):
                                 link.used_within_case = used_within_case
                             if sensitive_non_disclosable is not None:
                                 link.sensitive_non_disclosable = sensitive_non_disclosable
-                            #if reason_sensitive_non_disclosable:
-                             #   link.reason_sensitive_non_disclosable = reason_sensitive_non_disclosable
                             link.save()
 
                     # save temp doc if exists

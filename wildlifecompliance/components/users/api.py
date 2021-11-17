@@ -63,7 +63,7 @@ from rest_framework.decorators import (
     api_view
 )
 from django.core.cache import cache
-from wildlifecompliance.components.main.utils import retrieve_department_users
+#from wildlifecompliance.components.main.utils import retrieve_department_users
 
 
 def generate_dummy_email(first_name, last_name):
@@ -92,16 +92,16 @@ class GetCountries(views.APIView):
         return Response(country_list)
 
 
-class DepartmentUserList(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
-        data = cache.get('department_users')
-        if not data:
-            retrieve_department_users()
-            data = cache.get('department_users')
-        return Response(data)
-
-        #serializer  = UserSerializer(request.user)
+#class DepartmentUserList(views.APIView):
+#    renderer_classes = [JSONRenderer,]
+#    def get(self, request, format=None):
+#        data = cache.get('department_users')
+#        if not data:
+#            retrieve_department_users()
+#            data = cache.get('department_users')
+#        return Response(data)
+#
+#        #serializer  = UserSerializer(request.user)
 
 
 class GetMyUserDetails(views.APIView):
@@ -956,6 +956,32 @@ class GetPersonOrg(views.APIView):
                 data_transform.append(data)
             ## order results
             data_transform.sort(key=lambda item: item.get("id"))
+            return Response({"results": data_transform})
+        return Response()
+
+
+class StaffMemberLookup(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data_transform = []
+            user_data = EmailUser.objects.filter(is_staff=True).filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            for email_user in user_data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                email_user_data = {}
+                email_user_data['text'] = text
+                email_user_data['id'] = email_user.id
+                data_transform.append(email_user_data)
             return Response({"results": data_transform})
         return Response()
 
