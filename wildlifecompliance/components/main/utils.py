@@ -55,34 +55,34 @@ class DecimalEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def retrieve_department_users():
-    print(settings.CMS_URL)
-    try:
-        #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        #res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
-        res = requests.get('{}/api/v3/departmentuser/'.format(settings.EXT_USER_API_ROOT_URL), 
-                auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res.raise_for_status()
-        cache.set('department_users',json.loads(res.content).get('objects'),10800)
-    except:
-        raise
-
-def get_department_user(email):
-    try:
-        res = requests.get(
-            '{}/api/users?email={}'.format(
-                settings.EXT_USER_API_ROOT_URL, email),
-            auth=(settings.LEDGER_USER, settings.LEDGER_PASS),
-            verify=False)
-        res.raise_for_status()
-        data = json.loads(res.content).get('objects')
-        if len(data) > 0:
-            return data[0]
-        else:
-            return None
-    except BaseException:
-        raise
+#def retrieve_department_users():
+#    print(settings.CMS_URL)
+#    try:
+#        #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        #res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
+#        res = requests.get('{}/api/v3/departmentuser/'.format(settings.EXT_USER_API_ROOT_URL), 
+#                auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res.raise_for_status()
+#        cache.set('department_users',json.loads(res.content).get('objects'),10800)
+#    except:
+#        raise
+#
+#def get_department_user(email):
+#    try:
+#        res = requests.get(
+#            '{}/api/users?email={}'.format(
+#                settings.EXT_USER_API_ROOT_URL, email),
+#            auth=(settings.LEDGER_USER, settings.LEDGER_PASS),
+#            verify=False)
+#        res.raise_for_status()
+#        data = json.loads(res.content).get('objects')
+#        if len(data) > 0:
+#            return data[0]
+#        else:
+#            return None
+#    except BaseException:
+#        raise
 
 def checkout(
         request,

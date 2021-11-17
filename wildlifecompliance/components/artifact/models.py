@@ -13,7 +13,6 @@ from wildlifecompliance.components.main.models import (
         UserAction, 
         Document,
         )
-#from wildlifecompliance.components.main.related_item import can_close_artifact
 from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import (
@@ -39,8 +38,6 @@ class Artifact(RevisionedMixin):
             (STATUS_WAITING_FOR_DISPOSAL, 'Waiting For Disposal'),
             (STATUS_CLOSED,  'Closed'),
             )
-    # _file - document or seizure notice
-    #_file = models.FileField(max_length=255, null=True)
     identifier = models.CharField(max_length=255, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, null=False, blank=False)
@@ -60,7 +57,6 @@ class Artifact(RevisionedMixin):
 
     # Prefix "OB" char to DocumentArtifact number.
     def save(self, *args, **kwargs):
-        
         super(Artifact, self).save(*args,**kwargs)
         if self.number is None:
             new_number_id = 'OB{0:06d}'.format(self.pk)
@@ -85,8 +81,6 @@ class Artifact(RevisionedMixin):
             return pa.first().physical_artifact_type.artifact_type
 
         da = DocumentArtifact.objects.filter(artifact_ptr_id=self.id)
-        #if da and da.first().document_type and da.first().document_type.artifact_type:
-         #   return da.first().document_type.artifact_type
         if da and da.first().document_type:
             document_type = da.first().document_type
             display_name = ''
@@ -102,7 +96,6 @@ class Artifact(RevisionedMixin):
 
     @property
     def get_related_items_descriptor(self):
-        #return '{0}, {1}'.format(self.title, self.details)
         return self.identifier
 
     def log_user_action(self, action, request=None):
@@ -111,25 +104,6 @@ class Artifact(RevisionedMixin):
             return ArtifactUserAction.log_action(self, action)
         else:
             return ArtifactUserAction.log_action(self, action, request.user)
-
-    #def close(self, request=None):
-    #    close_record, parents = can_close_artifact(self, request)
-    #    if close_record:
-    #        self.status = self.STATUS_CLOSED
-    #        self.log_user_action(
-    #                ArtifactUserAction.ACTION_CLOSE.format(self.number), 
-    #                request)
-    #    else:
-    #        self.status = self.STATUS_PENDING_CLOSURE
-    #        self.log_user_action(
-    #                ArtifactUserAction.ACTION_PENDING_CLOSURE.format(self.number), 
-    #                request)
-    #    self.save()
-    #    # Call close() on any parent with pending_closure status
-    #    if parents and self.status == 'closed':
-    #        for parent in parents:
-    #            if parent.status == 'pending_closure':
-    #                parent.close(request)
 
 
 # TODO - no longer required
@@ -226,31 +200,12 @@ class DocumentArtifact(Artifact):
             max_length=30,
             choices=DOCUMENT_TYPE_CHOICES,
             )
-    #legal_case = models.ForeignKey(
-    #        LegalCase,
-    #        related_name='legal_case_document_artifacts_primary',
-    #        on_delete=models.PROTECT,
-    #        blank=True,
-    #        null=True
-    #        )
     legal_cases = models.ManyToManyField(
             LegalCase,
             through='DocumentArtifactLegalCases',
             through_fields=('document_artifact', 'legal_case'),
             related_name='legal_case_document_artifacts',
             )
-    #brief_of_evidence_legal_cases = models.ManyToManyField(
-    #        LegalCase,
-    #        through='BriefOfEvidenceDocumentArtifacts',
-    #        through_fields=('document_artifact', 'legal_case'),
-    #        related_name='legal_case_document_artifacts_brief_of_evidence',
-    #        )
-    #prosecution_brief_legal_cases = models.ManyToManyField(
-    #        LegalCase,
-    #        through='ProsecutionBriefDocumentArtifacts',
-    #        through_fields=('document_artifact', 'legal_case'),
-    #        related_name='legal_case_document_artifacts_prosecution_brief',
-    #        )
 
     statement = models.ForeignKey(
         'self', 
@@ -259,20 +214,11 @@ class DocumentArtifact(Artifact):
         blank=True,
         null=True
         )
-    #custodian = models.ForeignKey(
-    #        EmailUser,
-    #        related_name='document_artifact_custodian',
-    #        null=True,
-    #        )
-    #document_created_date = models.DateField(null=True)
-    #document_created_time = models.TimeField(blank=True, null=True)
-    # can be witness, expert, etc
     person_providing_statement = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_person_providing_statement',
             null=True,
             )
-    officer_interviewer_email = models.CharField(max_length=255, blank=True, null=True)
     officer_interviewer = models.ForeignKey(
             EmailUser,
             related_name='document_artifact_officer_interviewer',
@@ -292,29 +238,10 @@ class DocumentArtifact(Artifact):
             related_name='document_artifact_offender',
             null=True,
             )
-    
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_DocumentArtifact'
         verbose_name_plural = 'CM_DocumentArtifacts'
-
-    #def log_user_action(self, action, request):
-     #   return ArtifactUserAction.log_action(self, action, request.user)
-
-    # def add_legal_case(self, legal_case_id):
-    #     #legal_case_id = request.data.get('legal_case_id')
-    #     try:
-    #         legal_case_id_int = int(legal_case_id)
-    #     except Exception as e:
-    #         raise e
-    #     legal_case = LegalCase.objects.get(id=legal_case_id_int)
-    #     if legal_case:
-    #         if not self.legal_case:
-    #             self.legal_case = legal_case
-    #             self.save()
-    #         elif self.legal_case != legal_case:
-    #             self.associated_legal_cases.add(legal_case)
-
 
 
     @property
@@ -344,27 +271,14 @@ class DocumentArtifact(Artifact):
                 request)
         self.save()
 
-#class DocumentArtifactLegalCasesManager(models.Manager):
-#    def create_check_primary(self, document_artifact_id, legal_case_id):
-#        qs = DocumentArtifactLegalCases.objects.filter(document_artifact_id=document_artifact_id)
-#        set_primary = True
-#        for doc in qs:
-#            if doc.primary:
-#                set_primary = False
-#        doc_legal_case_instance = self.create(document_artifact_id=document_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-#        return doc_legal_case_instance
-
 
 class DocumentArtifactLegalCasesManager(models.Manager):
     def create_with_primary(self, legal_case_id, document_artifact_id):
-        #super(DocumentArtifactLegalCases, self).save(*args,**kwargs)
         qs = DocumentArtifactLegalCases.objects.filter(document_artifact_id=document_artifact_id)
         set_primary = True
         for doc in qs:
             if doc.primary:
                 set_primary = False
-        #physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-        #self.primary = set_primary
         link = self.create(legal_case_id=legal_case_id, document_artifact_id=document_artifact_id, primary=set_primary)
         return link
 
@@ -388,11 +302,9 @@ class DocumentArtifactLegalCases(models.Model):
 class BriefOfEvidenceDocumentArtifacts(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
-            #related_name='legal_case_boe_document_artifacts'
             )
     document_artifact = models.ForeignKey(
             DocumentArtifact, 
-            #related_name='document_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
 
@@ -421,11 +333,9 @@ class BriefOfEvidenceDocumentArtifacts(models.Model):
 class ProsecutionBriefDocumentArtifacts(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
-            #related_name='legal_case_boe_document_artifacts'
             )
     document_artifact = models.ForeignKey(
             DocumentArtifact, 
-            #related_name='document_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
 
@@ -456,39 +366,12 @@ class PhysicalArtifact(Artifact):
             PhysicalArtifactType,
             null=True
             )
-    #legal_case = models.ForeignKey(
-    #        LegalCase,
-    #        related_name='legal_case_physical_artifacts_primary',
-    #        on_delete=models.PROTECT,
-    #        blank=True,
-    #        null=True
-    #        )
-    #associated_legal_cases = models.ManyToManyField(
-    #        LegalCase,
-    #        related_name='legal_case_physical_artifacts',
-    #        )
     legal_cases = models.ManyToManyField(
             LegalCase,
             through='PhysicalArtifactLegalCases',
             through_fields=('physical_artifact', 'legal_case'),
             related_name='legal_case_physical_artifacts',
             )
-    #brief_of_evidence_legal_cases = models.ManyToManyField(
-    #        LegalCase,
-    #        through='BriefOfEvidencePhysicalArtifacts',
-    #        through_fields=('physical_artifact', 'legal_case'),
-    #        related_name='legal_case_physical_artifacts_brief_of_evidence',
-    #        )
-    #prosecution_brief_legal_cases = models.ManyToManyField(
-    #        LegalCase,
-    #        through='ProsecutionBriefPhysicalArtifacts',
-    #        through_fields=('physical_artifact', 'legal_case'),
-    #        related_name='legal_case_physical_artifacts_prosecution_brief',
-    #        )
-    #_file = models.FileField(max_length=255)
-    #identifier = models.CharField(max_length=255, blank=True, null=True)
-    #description = models.TextField(blank=True, null=True)
-    officer_email = models.CharField(max_length=255, blank=True, null=True)
     officer = models.ForeignKey(
             EmailUser,
             related_name='physical_artifact_officer',
@@ -501,31 +384,24 @@ class PhysicalArtifact(Artifact):
         blank=True, 
         null=True
         )
-    custodian_email = models.CharField(max_length=255, blank=True, null=True)
-    #custodian = models.ForeignKey(
-    #        EmailUser,
-    #        related_name='physical_artifact_custodian',
-    #        null=True,
-    #        )
-    #artifact_created_date = models.DateField(null=True)
-    #artifact_created_time = models.TimeField(blank=True, null=True)
+    custodian = models.ForeignKey(
+            EmailUser,
+            related_name='physical_artifact_custodian',
+            null=True,
+            )
     disposal_date = models.DateField(null=True)
     disposal_details = models.TextField(blank=True, null=True)
     disposal_method = models.ForeignKey(
             PhysicalArtifactDisposalMethod,
             null=True
             )
-    
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_PhysicalArtifact'
         verbose_name_plural = 'CM_PhysicalArtifacts'
 
-    #def log_user_action(self, action, request):
-     #   return ArtifactUserAction.log_action(self, action, request.user)
-
     def add_legal_case(self, legal_case_id):
-        #legal_case_id = request.data.get('legal_case_id')
         try:
             legal_case_id_int = int(legal_case_id)
         except Exception as e:
@@ -538,21 +414,6 @@ class PhysicalArtifact(Artifact):
             elif self.legal_case != legal_case:
                 self.associated_legal_cases.add(legal_case)
 
-    #def close(self, request=None):
-    #    close_record, parents = can_close_artifact(self, request)
-    #    # TODO: add logic to check for disposal date
-    #    if close_record:
-    #        self.status = self.STATUS_CLOSED
-    #        self.log_user_action(
-    #                ArtifactUserAction.ACTION_CLOSE.format(self.number),
-    #                request)
-    #        self.save()
-    #    # Call close() on any parent with pending_closure status
-    #    if parents and self.status == 'closed':
-    #        for parent in parents:
-    #            if parent.status == 'pending_closure':
-    #                parent.close(request)
-
     def dispose(self, request=None):
         print("dispose")
         disposal_date = request.data.get('disposal_date')
@@ -561,25 +422,13 @@ class PhysicalArtifact(Artifact):
         self.disposal_date = disposal_date
         self.disposal_method_id = disposal_method_id
         self.disposal_details = disposal_details
-        #self.save()
         self.close(request)
 
-    #def close(self, request=None):
     def close(self, request):
         # TODO: add logic to check for disposal date
         # NOTE: close_record logic moved to can_close_legal_case
         if not self.disposal_date:
             self.status = self.STATUS_WAITING_FOR_DISPOSAL
-            # send mail
-            #request_data = None
-            #if not request:
-             #   request_data = FakeRequest(data={
-              #          'assigned_to_id': self.custodian_email
-               #         })
-            #else:
-
-            #if self.custodian_email:
-             #   request.data['recipient_address'] = self.custodian_email
             email_data = prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail, recipient_address=self.custodian_email)
             #prepare_mail(request=request, instance=self, workflow_entry=None, send_mail=send_mail)
             # write comms log based on email_data
@@ -588,7 +437,6 @@ class PhysicalArtifact(Artifact):
             to = email_data.get('to', '')
             fromm = email_data.get('fromm', '')
             cc = email_data.get('cc', '')
-            #log_type = email_data.get('log_type')
             log_type = 'email'
             reference = email_data.get('reference', '')
             subject = email_data.get('subject', '')
@@ -632,27 +480,13 @@ class PhysicalArtifact(Artifact):
             return self.physical_artifact_type.storage_schema
 
 
-# class PhysicalArtifactLegalCasesManager(models.Manager):
-#     def create_check_primary(self, physical_artifact_id, legal_case_id):
-#         qs = PhysicalArtifactLegalCases.objects.filter(physical_artifact_id=physical_artifact_id)
-#         set_primary = True
-#         for doc in qs:
-#             if doc.primary:
-#                 set_primary = False
-#         physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-#         return doc_legal_case_instance
-
-
 class PhysicalArtifactLegalCasesManager(models.Manager):
     def create_with_primary(self, legal_case_id, physical_artifact_id):
-        #super(DocumentArtifactLegalCases, self).save(*args,**kwargs)
         qs = PhysicalArtifactLegalCases.objects.filter(physical_artifact_id=physical_artifact_id)
         set_primary = True
         for doc in qs:
             if doc.primary:
                 set_primary = False
-        #physical_legal_case_instance = self.create(physical_artifact_id=physical_artifact_id, legal_case_id=legal_case_id, primary=set_primary)
-        #self.primary = set_primary
         link = self.create(legal_case_id=legal_case_id, physical_artifact_id=physical_artifact_id, primary=set_primary)
         return link
 
@@ -667,7 +501,6 @@ class PhysicalArtifactLegalCases(models.Model):
     primary = models.BooleanField(default=False)
     used_within_case = models.BooleanField(default=False)
     sensitive_non_disclosable = models.BooleanField(default=False)
-    #reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
     objects = PhysicalArtifactLegalCasesManager()
 
     class Meta:
@@ -679,11 +512,9 @@ class PhysicalArtifactLegalCases(models.Model):
 class BriefOfEvidencePhysicalArtifacts(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
-            #related_name='legal_case_boe_physical_artifacts'
             )
     physical_artifact = models.ForeignKey(
             PhysicalArtifact, 
-            #related_name='physical_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
     reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
@@ -713,11 +544,9 @@ class BriefOfEvidencePhysicalArtifacts(models.Model):
 class ProsecutionBriefPhysicalArtifacts(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
-            #related_name='legal_case_boe_physical_artifacts'
             )
     physical_artifact = models.ForeignKey(
             PhysicalArtifact, 
-            #related_name='physical_artifacts_boe'
             )
     ticked = models.BooleanField(default=False)
     reason_sensitive_non_disclosable = models.TextField(blank=True, null=True)
@@ -736,7 +565,6 @@ class ProsecutionBriefPhysicalArtifacts(models.Model):
             label_text = self.physical_artifact.identifier
         else:
             label_text = self.physical_artifact.number
-            #label_text = '<a href=/internal/object/' + self.physical_artifact.number + ' target="_blank">Open</a>'
         return label_text
 
     @property
@@ -814,22 +642,12 @@ class PhysicalArtifactFormDataRecord(models.Model):
         unique_together = ('physical_artifact', 'field_name',)
 
     @staticmethod
-    #def process_form(request, PhysicalArtifact, form_data, action=ACTION_TYPE_ASSIGN_VALUE):
     def process_form(PhysicalArtifact, form_data, action=ACTION_TYPE_ASSIGN_VALUE):
-        #can_edit_comments = request.user.has_perm(
-        #    'wildlifecompliance.licensing_officer'
-        #) or request.user.has_perm(
-        #    'wildlifecompliance.assessor'
-        #)
-        #can_edit_deficiencies = request.user.has_perm(
-        #    'wildlifecompliance.licensing_officer'
-        #)
 
         if action == PhysicalArtifactFormDataRecord.ACTION_TYPE_ASSIGN_COMMENT and\
                 not can_edit_comments and not can_edit_deficiencies:
             raise Exception(
                 'You are not authorised to perform this action!')
-        
         for field_name, field_data in form_data.items():
             schema_name = field_data.get('schema_name', '')
             component_type = field_data.get('component_type', '')
@@ -882,22 +700,10 @@ class ArtifactCommsLogDocument(Document):
 class ArtifactUserAction(models.Model):
     ACTION_CREATE_ARTIFACT = "Create object {}"
     ACTION_SAVE_ARTIFACT = "Save object {}"
-    #ACTION_OFFENCE = "Create Offence {}"
-    #ACTION_SANCTION_OUTCOME = "Create Sanction Outcome {}"
-    #ACTION_SEND_TO_MANAGER = "Send Inspection {} to Manager"
     ACTION_CLOSE = "Close object {}"
     ACTION_WAITING_FOR_DISPOSAL = "Mark object {} as waiting for disposal"
-    #ACTION_PENDING_CLOSURE = "Mark Inspection {} as pending closure"
-    #ACTION_REQUEST_AMENDMENT = "Request amendment for {}"
-    #ACTION_ENDORSEMENT = "Inspection {} has been endorsed by {}"
     ACTION_ADD_WEAK_LINK = "Create manual link between {}: {} and {}: {}"
     ACTION_REMOVE_WEAK_LINK = "Remove manual link between {}: {} and {}: {}"
-    #ACTION_MAKE_TEAM_LEAD = "Make {} team lead"
-    #ACTION_ADD_TEAM_MEMBER = "Add {} to team"
-    #ACTION_REMOVE_TEAM_MEMBER = "Remove {} from team"
-    #ACTION_UPLOAD_INSPECTION_REPORT = "Upload Inspection Report '{}'"
-    #ACTION_CHANGE_INDIVIDUAL_INSPECTED = "Change individual inspected from {} to {}"
-    #ACTION_CHANGE_ORGANISATION_INSPECTED = "Change organisation inspected from {} to {}"
     who = models.ForeignKey(EmailUser, null=True, blank=True)
     when = models.DateTimeField(null=False, blank=False, auto_now_add=True)
     what = models.TextField(blank=False)
@@ -956,7 +762,6 @@ class BriefOfEvidenceOtherStatements(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
             related_name='legal_case_boe_other_statements')
-    #person = models.CharField(max_length=255, null=True, blank=True)
     person = models.ForeignKey(
             EmailUser,
             related_name='email_user_boe_other_statements',
@@ -1021,7 +826,6 @@ class BriefOfEvidenceOtherStatements(models.Model):
             full_name = self.person.get_full_name()
             label_text = 'Person: ' + full_name
         elif not self.associated_doc_artifact:
-            # label_text = self.statement.document_type + ': ' + self.statement.number
             if self.statement.identifier:
                 label_text = self.statement.artifact_type + ': ' + self.statement.identifier
             else:
@@ -1133,7 +937,6 @@ class ProsecutionBriefOtherStatements(models.Model):
     legal_case = models.ForeignKey(
             LegalCase, 
             related_name='legal_case_pb_other_statements')
-    #person = models.CharField(max_length=255, null=True, blank=True)
     person = models.ForeignKey(
             EmailUser,
             related_name='email_user_pb_other_statements',
@@ -1287,14 +1090,12 @@ class ProsecutionBriefRecordOfInterview(models.Model):
     def __str__(self):
         label_text = ''
         if not self.offender and not self.record_of_interview and not self.associated_doc_artifact:
-            #label_text = 'Offence: ' + self.offence.lodgement_number
             if self.offence.identifier:
                 label_text = 'Offence: ' + self.offence.identifier
             else:
                 label_text = 'Offence: ' + self.offence.lodgement_number
         elif not self.record_of_interview and not self.associated_doc_artifact:
             label_text = 'Offender: ' + str(self.offender)
-            #label_text = 'Offender: ' + self.offender.__str__()
         elif not self.associated_doc_artifact:
             if self.record_of_interview.identifier:
                 label_text = 'Record of Interview: ' + self.record_of_interview.identifier
