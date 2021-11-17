@@ -1,4 +1,5 @@
 import traceback
+import logging
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from rest_framework import serializers, views, status
@@ -7,7 +8,7 @@ from rest_framework.renderers import JSONRenderer
 from wildlifecompliance.components.main.utils import (
     search_keywords,
     search_reference,
-    retrieve_department_users,
+    #retrieve_department_users,
 )
 from wildlifecompliance.components.main.serializers import (
     SearchKeywordSerializer,
@@ -26,35 +27,39 @@ from wildlifecompliance.components.users.models import (
         #CompliancePermissionGroup, 
         ComplianceManagementUserPreferences,
         )
-from wildlifecompliance.helpers import is_compliance_management_readonly_user
+from wildlifecompliance.helpers import (
+        is_compliance_management_readonly_user, 
+        is_compliance_management_callemail_readonly_user,
+        prefer_compliance_management,
+        )
+
+logger = logging.getLogger(__name__)
 
 class GeocodingAddressSearchTokenView(views.APIView):
     def get(self, request, format=None):
         return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
 
 
-
 class SystemPreferenceView(views.APIView):
     def get(self, request, format=None):
+        #import ipdb; ipdb.set_trace()
         res = { "system": "wildlife_licensing" }
-        # if request.user.is_authenticated():
-        #     preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
-        #     if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
-        #         res = { "system": "compliance_management" }
+        if prefer_compliance_management(request):
+            res = { "system": "compliance_management" }
         return Response(res)
 
 
-class DepartmentUserView(views.APIView):
-    renderer_classes = [JSONRenderer]
-
-    def get(self, request, format=None):
-        qs = []
-        #if request.data.get('searchText'): # modify as appropriate
-         #   qs = search_weak_links(request.data)
-        qs = retrieve_department_users()
-        #return_qs = qs[:10]
-        #return Response(return_qs)
-        return Response(qs)
+#class DepartmentUserView(views.APIView):
+#    renderer_classes = [JSONRenderer]
+#
+#    def get(self, request, format=None):
+#        qs = []
+#        #if request.data.get('searchText'): # modify as appropriate
+#         #   qs = search_weak_links(request.data)
+#        qs = retrieve_department_users()
+#        #return_qs = qs[:10]
+#        #return Response(return_qs)
+#        return Response(qs)
 
 
 class SearchKeywordsView(views.APIView):
@@ -256,12 +261,13 @@ class SearchReferenceView(views.APIView):
 
     def post(self, request, format=None):
         try:
-            qs = []
+            #qs = []
             reference_number = request.data.get('reference_number')
             if reference_number:
-                qs = search_reference(reference_number)
-            serializer = SearchReferenceSerializer(qs)
-            return Response(serializer.data)
+                result = search_reference(reference_number)
+            #serializer = SearchReferenceSerializer(qs)
+            #return Response(serializer.data)
+            return Response(result)
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
@@ -275,3 +281,4 @@ class SearchReferenceView(views.APIView):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+

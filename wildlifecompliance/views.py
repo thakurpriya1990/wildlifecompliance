@@ -11,7 +11,8 @@ from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
 from datetime import datetime, timedelta
 
 from wildlifecompliance.helpers import is_internal, prefer_compliance_management, is_model_backend, in_dbca_domain, \
-    is_compliance_internal_user, is_wildlifecompliance_admin
+    is_compliance_internal_user, is_wildlifecompliance_admin, is_compliance_management_callemail_readonly_user, belongs_to, \
+    is_compliance_management_approved_external_user
 from wildlifecompliance.forms import *
 from wildlifecompliance.components.applications.models import Application
 from wildlifecompliance.components.call_email.models import CallEmail
@@ -19,6 +20,8 @@ from wildlifecompliance.components.returns.models import Return
 from wildlifecompliance.components.main import utils
 from wildlifecompliance.exceptions import BindApplicationException
 from django.core.management import call_command
+from wildlifecompliance.components.users.models import CompliancePermissionGroup
+
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -44,17 +47,18 @@ class ExternalReturnView(DetailView):
 
 
 class InternalView(UserPassesTestMixin, TemplateView):
+#class InternalView(TemplateView):
     template_name = 'wildlifecompliance/dash/index.html'
 
     def test_func(self):
-        return is_internal(self.request)
+        return is_internal(self.request) or is_compliance_management_approved_external_user(self.request)
 
     def get_context_data(self, **kwargs):
         context = super(InternalView, self).get_context_data(**kwargs)
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -66,7 +70,7 @@ class ExternalView(LoginRequiredMixin, TemplateView):
         context['dev'] = settings.DEV_STATIC
         context['dev_url'] = settings.DEV_STATIC_URL
         context['app_build_url'] = settings.DEV_APP_BUILD_URL
-        context['build_tag'] = settings.BUILD_TAG
+        #context['build_tag'] = settings.BUILD_TAG
         return context
 
 
@@ -83,8 +87,11 @@ class WildlifeComplianceRoutingView(TemplateView):
             print('is_compliance_internal_user: {}'.format(is_compliance_internal_user(self.request)))
             print('is_wildlifecompliance_admin: {}'.format(is_wildlifecompliance_admin(self.request)))
             print('prefer compliance management: {}'.format(prefer_compliance_management(self.request)))
-            if is_internal(self.request) and prefer_compliance_management(self.request):
-                return redirect('internal/call_email/')
+            if (
+                    (is_internal(self.request) and prefer_compliance_management(self.request)) or
+                    is_compliance_management_approved_external_user(self.request)
+                    ):
+                return redirect('internal')
             elif is_internal(self.request):
                 return redirect('internal')
             return redirect('external')
@@ -118,7 +125,7 @@ def first_time(request):
     context['dev'] = settings.DEV_STATIC
     context['dev_url'] = settings.DEV_STATIC_URL
     context['app_build_url'] = settings.DEV_APP_BUILD_URL
-    context['build_tag'] = settings.BUILD_TAG
+    #context['build_tag'] = settings.BUILD_TAG
     return render(request, 'wildlifecompliance/dash/index.html', context)
 
 

@@ -233,7 +233,6 @@ class OffenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
     @list_route(methods=['GET', ])
     def can_user_create(self, request, *args, **kwargs):
         # Determine permissions which allow the holder to create new offence
@@ -247,7 +246,6 @@ class OffenceViewSet(viewsets.ModelViewSet):
             if request.user in allowed_group.members:
                 return Response(True)
         return Response(False)
-
 
     @list_route(methods=['GET', ])
     def optimised(self, request, *args, **kwargs):
@@ -515,6 +513,8 @@ class OffenceViewSet(viewsets.ModelViewSet):
 
                 # 2. Create Offence
                 request_data['status'] = 'open'
+                request_data['region_id'] = int(request_data['region_id']) if request_data['region_id'] else None
+                request_data['district_id'] = int(request_data['district_id']) if request_data['district_id'] else None
                 serializer = SaveOffenceSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 saved_offence_instance = serializer.save()  # Here, relations between this offence and location, and this offence and call_email/inspection are created
@@ -684,7 +684,7 @@ class SearchSectionRegulation(viewsets.ModelViewSet):
     queryset = SectionRegulation.objects.all()
     serializer_class = SectionRegulationSerializer
     filter_backends = (filters.SearchFilter,)
-    search_fields = ('act', 'name', 'offence_text',)
+    search_fields = ('act__name', 'name', 'offence_text',)
 
 
 class SearchOrganisation(viewsets.ModelViewSet):

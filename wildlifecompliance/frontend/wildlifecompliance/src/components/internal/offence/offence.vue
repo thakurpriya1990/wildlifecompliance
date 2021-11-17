@@ -218,13 +218,13 @@
                             </div>
                             <div :id="locationTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Location" Index="3">
-                                    <MapLocation 
-                                        v-if="offence.location" 
-                                        :key="locationTab" 
-                                        ref="mapLocationComponent" 
-                                        :readonly="readonlyForm" 
-                                        :marker_longitude="offence.location.geometry.coordinates[0]" 
-                                        :marker_latitude="offence.location.geometry.coordinates[1]" 
+                                    <MapLocation
+                                        v-if="offence.location"
+                                        :key="locationTab"
+                                        ref="mapLocationComponent"
+                                        :readonly="readonlyForm"
+                                        :marker_longitude="offence.location.geometry.coordinates[0]"
+                                        :marker_latitude="offence.location.geometry.coordinates[1]"
                                         @location-updated="locationUpdated"
                                     />
                                     <div :id="idLocationFieldsAddress" v-if="offence.location">
@@ -423,12 +423,14 @@ export default {
                 columns: [
                     {
                         visible: false,
-                        mRender: function(data, type, row) {
+                        data: 'offender',
+                        render: function(data, type, row) {
                             return row.offender.id;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'offender',
+                        render: function(data, type, row) {
                             let data_type = '';
                             if (row.offender.person){
                                 data_type = 'individual';
@@ -443,7 +445,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'offender',
+                        render: function(data, type, row) {
                             if (row.offender.person) {
                                 let full_name = [row.offender.person.first_name, row.offender.person.last_name].filter(Boolean).join(" ");
                                 let email = row.offender.person.email ? "E:" + row.offender.person.email : "";
@@ -467,7 +470,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'offender',
+                        render: function(data, type, row) {
                             //let ret_str = row.offender.number_linked_sanction_outcomes_active + '(' + row.offender.number_linked_sanction_outcomes_total + ')';
                             let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
@@ -484,7 +488,8 @@ export default {
                     },
 
                     {
-                        mRender: function(data, type, row) {
+                        data: 'offender',
+                        render: function(data, type, row) {
                             let ret_str = '';
                             if (row.offender.removed){
                                 if(row.offender.reason_for_removal){
@@ -503,12 +508,14 @@ export default {
                 columns: [
                     {
                         visible: false,
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             return row.allegedOffence.id;
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.act;
                             if (row.allegedOffence.removed) {
                                 ret_str = '<strike>' + ret_str + '</strike>';
@@ -517,7 +524,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.name;
                             if (row.allegedOffence.removed) {
                                 ret_str = '<strike>' + ret_str + '</strike>';
@@ -526,7 +534,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = row.allegedOffence.section_regulation.offence_text;
                             if (row.allegedOffence.removed) {
                                 ret_str = '<strike>' + ret_str + '</strike>';
@@ -535,7 +544,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             //let ret_str = row.allegedOffence.number_linked_sanction_outcomes_active + '/' + row.allegedOffence.number_linked_sanction_outcomes_total;
                             let ret_str = '';
                             if (row.offence.in_editable_status && row.offence.can_user_action){
@@ -552,7 +562,8 @@ export default {
                         }
                     },
                     {
-                        mRender: function(data, type, row) {
+                        data: 'allegedOffence',
+                        render: function(data, type, row) {
                             let ret_str = '';
 
                             let num_chars = 1000;
@@ -767,6 +778,7 @@ export default {
                 this.constructAllegedOffencesTable();
                 this.updateObjectHash();
             } catch (err) {
+                console.log('aho')
                 this.processError(err);
             }
         },
@@ -783,7 +795,8 @@ export default {
         },
         saveExit: async function() {
             try {
-                await this.saveOffence();
+                //await this.saveOffence();
+                await this.saveOffence({'fr_date': this.date_from, 'fr_time': this.time_from, 'to_date': this.date_to, 'to_time': this.time_to});
                 await swal("Saved", "The record has been saved", "success");
 
                 // remove redundant eventListeners
@@ -848,7 +861,8 @@ export default {
             try {
                 if (this.formChanged()){
                     // Save changes implicitly
-                    await this.saveOffence();
+                    //await this.saveOffence();
+                    await this.saveOffence({'fr_date': this.date_from, 'fr_time': this.time_from, 'to_date': this.date_to, 'to_time': this.time_to});
                     this.updateObjectHash();
                 }
                 this.sanctionOutcomeInitialised = true;
@@ -871,7 +885,8 @@ export default {
             try {
                 if (this.formChanged()){
                     // Save changes implicitly
-                    await this.saveOffence();
+                    //await this.saveOffence();
+                    await this.saveOffence({'fr_date': this.date_from, 'fr_time': this.time_from, 'to_date': this.date_to, 'to_time': this.time_to});
                     this.updateObjectHash();
                 }
                 this.workflow_type = workflow_type;

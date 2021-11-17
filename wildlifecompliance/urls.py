@@ -144,12 +144,18 @@ router.register(
 api_patterns = [url(r'^api/my_user_details/$',
                     users_api.GetMyUserDetails.as_view(),
                     name='get-my-user-details'),
+                url(r'^api/is_compliance_management_callemail_readonly_user$', 
+                    users_api.IsComplianceManagementCallEmailReadonlyUser.as_view(), 
+                    name='is-compliance-manegement-callemail-readonly-user'),
                 url(r'^api/countries$', 
                     users_api.GetCountries.as_view(), 
                     name='get-countries'),
-                url(r'^api/department_users$',
-                    users_api.DepartmentUserList.as_view(),
-                    name='department-users-list'),
+                url(r'^api/staff_member_lookup$', 
+                    users_api.StaffMemberLookup.as_view(), 
+                    name='staff-member-lookup'),
+                #url(r'^api/department_users$',
+                 #   users_api.DepartmentUserList.as_view(),
+                  #  name='department-users-list'),
                 url(r'^api/my_compliance_user_details/$',
                     users_api.GetComplianceUserDetails.as_view(),
                     name='get-my-compliance-user-details'),
@@ -292,6 +298,7 @@ urlpatterns = [
     url(r'^preview/licence-pdf/(?P<application_pk>\d+)',application_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
 
     url(r'^securebase-view/',views.SecureBaseView.as_view(), name='securebase-view'),
+    url(r'^api/person_org_lookup$', users_api.GetPersonOrg.as_view(), name='get-person-org'),
 
 ] + ledger_patterns
 

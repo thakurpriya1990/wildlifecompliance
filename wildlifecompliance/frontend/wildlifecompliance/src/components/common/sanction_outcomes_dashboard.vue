@@ -192,6 +192,7 @@ export default {
                         searchable: true,
                         orderable: false,
                         mRender: function (data, type, row){
+                            console.log(row)
                             return data;
                         }
                     },

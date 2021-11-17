@@ -35,10 +35,12 @@ from wildlifecompliance.components.sanction_outcome.email import send_infringeme
     send_caution_notice, send_letter_of_advice, send_parking_infringement_without_offenders, \
     send_remediation_action_submitted_notice, send_remediation_action_accepted_notice, \
     send_remediation_action_request_amendment_mail, send_infringement_notice_issued_on_paper, \
-    send_remediation_notice_issued_on_paper
+    send_remediation_notice_issued_on_paper, create_infringement_notice_ybw
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, RemediationAction, \
     SanctionOutcomeCommsLogEntry, AllegedCommittedOffence, SanctionOutcomeUserAction, SanctionOutcomeCommsLogDocument, \
     AmendmentRequestReason, SanctionOutcomeDocument, SanctionOutcomeDocumentAccessLog
+from wildlifecompliance.components.sanction_outcome.pdf import create_remediation_notice_pdf, create_caution_notice_pdf, \
+    create_letter_of_advice_pdf
 from wildlifecompliance.components.sanction_outcome.serializers import SanctionOutcomeSerializer, \
     SaveSanctionOutcomeSerializer, SaveRemediationActionSerializer, SanctionOutcomeDatatableSerializer, \
     UpdateAssignedToIdSerializer, SanctionOutcomeCommsLogEntrySerializer, SanctionOutcomeUserActionSerializer, \
@@ -50,6 +52,8 @@ from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
+from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_REMEDIATION_NOTICE, SO_TYPE_INFRINGEMENT_NOTICE, \
+    SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_CAUTION_NOTICE
 
 logger = logging.getLogger('compliancemanagement')
 
@@ -533,7 +537,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET', ])
     def types(self, request, *args, **kwargs):
         res_obj = []
-        for choice in SanctionOutcome.TYPE_CHOICES:
+        for choice in SO_TYPE_CHOICES:
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
@@ -775,7 +779,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 request_data = request.data
 
-                if request_data['type'] == SanctionOutcome.TYPE_REMEDIATION_NOTICE:
+                if request_data['type'] == SO_TYPE_REMEDIATION_NOTICE:
                     if not len(request_data['remediation_actions']):
                         # Type is remediation action but no remediation actions defined
                         raise serializers.ValidationError(['You must define at least one remediation action.'])
@@ -843,7 +847,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 # Validate if alleged offences are selected
                 if count_alleged_offences == 0:
-                    if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
+                    if instance.type == SO_TYPE_INFRINGEMENT_NOTICE:
                         raise serializers.ValidationError(['You must select an alleged committed offence.'])
                     else:
                         raise serializers.ValidationError(['You must select at least one alleged committed offence.'])
@@ -1027,27 +1031,43 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
     def send_parking_infringement(self, request, instance=None, *args, **kwargs):
         try:
             with transaction.atomic():
-                instance = self.get_object() if not instance else instance
-                instance.endorse_parking_infringement()
 
-                workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                instance = self.get_object() if not instance else instance
+                # instance.endorse_parking_infringement()
+
+                comms_log_id = request.data.get('comms_log_id')
+                if comms_log_id and comms_log_id is not 'null':
+                    workflow_entry = instance.comms_logs.get(id=comms_log_id)
+                # else:
+                #     workflow_entry = self.add_comms_log(request, instance, workflow=True)
+                if workflow_entry:
+                    workflow_entry.delete()
+
+                # workflow_entry = self.add_comms_log(request, instance, workflow=True)  # We don't send email, therefore we don't need comms log here
+                instance.endorse()
+                if not instance.issued_on_paper:
+                    # attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                    attachments = create_infringement_notice_ybw(instance)
+
+                    # Log action
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
 
                 # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
-                inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                inc_emails = [member.email for member in inc_group.members]
-                to_address = [instance.get_offender()[0].email, ]
-                cc = None
-                bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                # inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                # inc_emails = [member.email for member in inc_group.members]
+                # to_address = [instance.get_offender()[0].email, ]
+                # cc = None
+                # bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
+                # email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
 
                 # Log the above email as a communication log entry
-                if email_data:
-                    email_data['sanction_outcome'] = instance.id
-                    serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
-                    serializer.is_valid(raise_exception=True)
-                    serializer.save()
+                # if email_data:
+                #     email_data['sanction_outcome'] = instance.id
+                #     serializer = SanctionOutcomeCommsLogEntrySerializer(instance=workflow_entry, data=email_data, partial=True)
+                #     serializer.is_valid(raise_exception=True)
+                #     serializer.save()
 
-                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number, ', '.join(to_address)), request)
+                # instance.log_user_action(SanctionOutcomeUserAction.ACTION_ISSUE_PARKING_INFRINGEMENT.format(instance.lodgement_number, ', '.join(to_address)), request)
 
                 return Response(
                     # return_serializer.data,
@@ -1119,7 +1139,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     workflow_entry = instance.comms_logs.get(id=comms_log_id)
                 else:
                     workflow_entry = self.add_comms_log(request, instance, workflow=True)
-                workflow_entry.text = 'test katsu'
+                # workflow_entry.text = 'test katsu'
                 workflow_entry.save()
 
                 new_due_date = request.data.get('new_due_date', None)
@@ -1214,74 +1234,80 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     email_data = send_decline_email(to_address, instance, workflow_entry, request, cc, bcc)
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-                    if instance.type in (SanctionOutcome.TYPE_LETTER_OF_ADVICE, SanctionOutcome.TYPE_CAUTION_NOTICE):
-                        instance.endorse(request)
+                    if instance.type == SO_TYPE_LETTER_OF_ADVICE:
+                        instance.endorse()
                         if not instance.issued_on_paper:
-                            to_address = [instance.get_offender()[0].email, ]
-                            cc = None
-                            bcc = [member.email for member in instance.allocated_group.members]
-                            if instance.type == SanctionOutcome.TYPE_CAUTION_NOTICE:
-                                email_data = send_caution_notice(to_address, instance, workflow_entry, request, cc, bcc)
-                            else:
-                                email_data = send_letter_of_advice(to_address, instance, workflow_entry, request, cc, bcc)
+                            pdf_file_name = 'letter_of_advice_{}_{}.pdf'.format(instance.lodgement_number, datetime.now().strftime("%Y%m%d%H%M%S"))
+                            document = create_letter_of_advice_pdf(pdf_file_name, instance)
 
                             # Action log for endorsement and issuance
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
+                            instance.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
+                            instance.save()
                         else:
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                            instance.status = SanctionOutcome.STATUS_CLOSED
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(instance.lodgement_number), request)
+                            instance.save()
 
-                        # close letter_of_advice/caution_notice
-                        instance.status = SanctionOutcome.STATUS_CLOSED
-                        instance.save()
-
-                        # Action log for closure of this instance
-                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(instance.lodgement_number),
-                                             request)
-                    elif not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
-                        instance.endorse(request)
-
+                    elif instance.type == SO_TYPE_CAUTION_NOTICE:
+                        instance.endorse()
                         if not instance.issued_on_paper:
-                            # Email to the offender, and bcc to the respoinsible officer, manager and infringement notice coordinators
-                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                            inc_emails = [member.email for member in inc_group.members]
-                            to_address = [instance.get_offender()[0].email, ]
-                            cc = None
-                            bcc = [instance.responsible_officer.email, request.user.email] + inc_emails
-                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                                email_data = send_infringement_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            pdf_file_name = 'caution_notice_{}_{}.pdf'.format(instance.lodgement_number, datetime.now().strftime("%Y%m%d%H%M%S"))
+                            document = create_caution_notice_pdf(pdf_file_name, instance)
+
+                            # Action log for endorsement and issuance
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
+                            instance.status = SanctionOutcome.STATUS_AWAITING_PRINT_AND_POST
+                            instance.save()
+                        else:
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                            instance.status = SanctionOutcome.STATUS_CLOSED
+                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_CLOSE.format(instance.lodgement_number), request)
+                            instance.save()
+
+                    elif instance.type == SO_TYPE_REMEDIATION_NOTICE:
+                        instance.endorse()
+                        if not instance.issued_on_paper:
+                            # email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                            pdf_file_name = 'remediation_notice_{}_{}.pdf'.format(instance.lodgement_number, datetime.now().strftime( "%Y%m%d%H%M%S"))
+                            document = create_remediation_notice_pdf(pdf_file_name, instance)
+                        else:
+                            # Nothing to do here.  All done in the instance.endorse() method
+                            pass
+                    elif instance.type == SO_TYPE_INFRINGEMENT_NOTICE:
+                        # This is Infringement Notice
+                        workflow_entry.delete()  # Now we don't send an email.  Therefore we don't need this object created above to store comms log.
+                        if not instance.is_parking_offence or (instance.is_parking_offence and instance.offender):
+                            instance.endorse()
+                            if not instance.issued_on_paper:
+                                # attachments = create_infringement_notice_ybw(instance, workflow_entry)
+                                attachments = create_infringement_notice_ybw(instance)
+
+                                # Log action
+                                instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
                             else:
-                                email_data = send_remediation_notice(to_address, instance, workflow_entry, request, cc, bcc)
+                                # Nothing to do here.  All done in the instance.endorse() method
+                                pass
+                        else:
+                            # This is a parking infringement but no offenders are set
+                            instance.send_to_inc()
+
+                            # Because we send emails by cron job anyway, we don't send emails here
+                            # inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
+                            # inc_emails = [member.email for member in inc_group.members]
+                            # to_address = inc_emails
+                            # cc = [instance.responsible_officer.email, request.user.email]
+                            # bcc = []
+
+                            # Email to infringement notice coordinators
+                            # email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
 
                             # Log action
-                            instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE_AND_ISSUE.format(instance.lodgement_number), request)
-                        else:
-                            # Email
-                            inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                            inc_emails = [member.email for member in inc_group.members]
-                            to_address = inc_emails
-                            cc = [instance.responsible_officer.email,]
-                            bcc = None
-                            if instance.type == SanctionOutcome.TYPE_INFRINGEMENT_NOTICE:
-                                email_data = send_infringement_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
-                            else:
-                                email_data = send_remediation_notice_issued_on_paper(to_address, instance, workflow_entry, request, cc, bcc)
-
                             instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
                     else:
-                        # This is a parking infringement but no offenders are set
-                        instance.send_to_inc()
-
-                        inc_group = SanctionOutcome.get_compliance_permission_group(None, SanctionOutcome.WORKFLOW_ENDORSE)
-                        inc_emails = [member.email for member in inc_group.members]
-                        to_address = inc_emails
-                        cc = [instance.responsible_officer.email, request.user.email]
-                        bcc = []
-
-                        # Email to infringement notice coordinators
-                        email_data = send_parking_infringement_without_offenders(to_address, instance, workflow_entry, request, cc, bcc)
-
-                        # Log action
-                        instance.log_user_action(SanctionOutcomeUserAction.ACTION_ENDORSE.format(instance.lodgement_number), request)
+                        # Should not reach here
+                        pass
 
                 elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
                     if not reason:
@@ -1337,6 +1363,11 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
                     cc = [instance.responsible_officer.email, request.user.email]
                     bcc = None
                     email_data = send_return_to_infringement_notice_coordinator_email(to_address, instance, workflow_entry, request, cc, bcc)
+
+                elif workflow_type == SanctionOutcome.WORKFLOW_MARK_DOCUMENT_POSTED:
+                    workflow_entry.delete()
+                    instance.mark_document_posted(request)
+                    instance.log_user_action(SanctionOutcomeUserAction.ACTION_MARK_AS_POSTED.format(instance.lodgement_number), request)
 
                 else:
                     # Should not reach here

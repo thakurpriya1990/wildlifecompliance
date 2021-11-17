@@ -29,3 +29,8 @@ class ReferrerAdmin(admin.ModelAdmin):
 class CallEmailAdmin(admin.ModelAdmin):
     pass
 
+
+@admin.register(models.Classification)
+class ClassificationAdmin(admin.ModelAdmin):
+    pass
+

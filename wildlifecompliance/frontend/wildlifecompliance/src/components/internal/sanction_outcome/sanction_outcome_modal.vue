@@ -9,7 +9,7 @@
                         <!-- <select class="form-control" v-on:change="typeSelected($event)" v-bind:value="sanction_outcome.type"> -->
                         <select class="form-control" v-model="sanction_outcome.type" @change="typeChanged()">
                             <option v-for="option in options_for_types" v-bind:value="option.id" v-bind:key="option.id">
-                                {{ option.display }} 
+                                {{ option.display }}
                             </option>
                         </select>
                     </div>
@@ -26,12 +26,23 @@
 
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-3">
+                                    <label class="control-label pull-left" for="identifier">Identifier</label>
+                                </div>
+                                <div class="col-sm-7">
+                                    <div v-show="sanction_outcome">
+                                        <input type="text" class="form-control" name="identifier" placeholder="" v-model="sanction_outcome.identifier" >
+                                    </div>
+                                </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                                <div class="col-sm-3">
                                     <label class="control-label pull-left">Region</label>
                                 </div>
                                 <div class="col-sm-7">
                                   <select class="form-control col-sm-9" v-on:change.prevent="sanction_outcome.region_id=$event.target.value; updateDistricts('updatefromUI')" v-bind:value="sanction_outcome.region_id">
                                     <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select>
                                 </div>
@@ -44,20 +55,9 @@
                                 <div class="col-sm-7">
                                   <select class="form-control" v-model="sanction_outcome.district_id">
                                     <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
-                                      {{ option.display_name }} 
+                                      {{ option.display_name }}
                                     </option>
                                   </select>
-                                </div>
-                            </div></div>
-
-                            <div class="col-sm-12 form-group"><div class="row">
-                                <div class="col-sm-3">
-                                    <label class="control-label pull-left" for="identifier">Identifier</label>
-                                </div>
-                                <div class="col-sm-7">
-                                    <div v-show="sanction_outcome">
-                                        <input type="text" class="form-control" name="identifier" placeholder="" v-model="sanction_outcome.identifier" >
-                                    </div>
                                 </div>
                             </div></div>
 
@@ -70,7 +70,7 @@
                                         <select :disabled="offenceReadonly" class="form-control" v-on:change="currentOffenceChanged()" v-model="sanction_outcome.current_offence">
                                             <option value=""></option>
                                             <option v-for="option in options_for_offences" v-bind:value="option" v-bind:key="option.id">
-                                                {{ option.lodgement_number + ': ' + option.identifier }} 
+                                                {{ option.lodgement_number + ': ' + option.identifier }}
                                             </option>
                                         </select>
                                     </div>
@@ -88,14 +88,14 @@
                                         -->
                                         <select class="form-control" v-model="sanction_outcome.current_offender" @change="currentOffenderChanged()">
                                             <option value=""></option>
-                                            <option v-for="offender in sanction_outcome.current_offence.offenders" 
-                                                :value="offender" 
+                                            <option v-for="offender in sanction_outcome.current_offence.offenders"
+                                                :value="offender"
                                                 :key="offender.id">
                                                 <span v-if="offender.person">
-                                                    {{ offender.person.first_name + ' ' + offender.person.last_name + ', DOB:' + offender.person.dob }} 
+                                                    {{ offender.person.first_name + ' ' + offender.person.last_name + ', DOB:' + offender.person.dob }}
                                                 </span>
                                                 <span v-else-if="offender.organisation">
-                                                    {{ offender.organisation.name + ', ABN: ' + offender.organisation.abn }} 
+                                                    {{ offender.organisation.name + ', ABN: ' + offender.organisation.abn }}
                                                 </span>
                                             </option>
                                         </select>
@@ -105,7 +105,7 @@
 
                             <div class="col-sm-12 form-group"><div class="row">
                                 <div class="col-sm-3">
-                                    <label class="control-label pull-left">Registration Number</label>
+                                    <label class="control-label pull-left">Vehicle Registration Number</label>
                                 </div>
                                 <div class="col-sm-7">
                                     <input :disabled="!is_parking_offence" type="text" class="form-control" name="registration_number" placeholder="" v-model="sanction_outcome.registration_number" >
@@ -141,7 +141,7 @@
                                     <label class="control-label pull-left">Paper ID</label>
                                 </div>
                                 <div class="col-sm-7">
-                                    <input type="text" class="form-control" name="paper_id" placeholder="" v-model="sanction_outcome.paper_id" :disabled="!sanction_outcome.issued_on_paper" /> 
+                                    <input type="text" class="form-control" name="paper_id" placeholder="" v-model="sanction_outcome.paper_id" :disabled="!sanction_outcome.issued_on_paper" />
                                 </div>
                             </div></div>
 
@@ -151,12 +151,12 @@
                                 </div>
                                 <div id="paper_id_notice">
                                     <div v-if="sanction_outcome.issued_on_paper" class="col-sm-7">
-                                        <filefield 
-                                        ref="sanction_outcome_file" 
-                                        name="sanction-outcome-file" 
-                                        documentActionUrl="temporary_document" 
+                                        <filefield
+                                        ref="sanction_outcome_file"
+                                        name="sanction-outcome-file"
+                                        documentActionUrl="temporary_document"
                                         @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"
-                                        :isRepeatable="true" 
+                                        :isRepeatable="true"
                                         :disabled="!sanction_outcome.issued_on_paper"/>
                                     </div>
                                 </div>
@@ -285,7 +285,7 @@ export default {
     name: "SanctionOutcome",
     data: function() {
       let vm = this;
-  
+
     return {
         temporary_document_collection_id: null,
         nTab: "nTab" + vm._uid,
@@ -293,7 +293,7 @@ export default {
         dTab: "dTab" + vm._uid,
         isModalOpen: false,
         processingDetails: false,
-  
+
         regionDistricts: [],
         regions: [], // this is the list of options
         availableDistricts: [], // this is generated from the regionDistricts[] above
@@ -305,7 +305,7 @@ export default {
         aco_ids_included: [],
         aco_ids_excluded: [],
         is_parking_offence: false,
-  
+
         // This is the object to be sent to the server when saving
         sanction_outcome: {
             type: "",
@@ -327,11 +327,14 @@ export default {
           action: "",
           due_date: null
         },
-  
+
+        act_name_of_selected_ao: '',  // when the user ticks the first one, only other alleged offences from the same Act will be available.
+                                      // No mixing of BCA and CALM
+
         // List for dropdown
         options_for_types: [],
         options_for_offences: [],
-  
+
         dtHeadersAllegedOffence: [
           "id",
           "Act",
@@ -343,12 +346,16 @@ export default {
           columns: [
             {
                 visible: false,
-                mRender: function(data, type, full){
+                data: 'id',
+                name: 'id',
+                render: function(data, type, full){
                     return full.id;
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                name: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.act;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -357,7 +364,9 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                name: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.name;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -366,7 +375,9 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full){
+                data: 'id',
+                name: 'id',
+                render: function(data, type, full){
                     let ret = full.section_regulation.offence_text;
                     if (full.removed){
                         ret = '<strike>' + ret + '</strike>';
@@ -375,16 +386,30 @@ export default {
                 }
             },
             {
-                mRender: function(data, type, full) {
+                data: 'id',
+                name: 'id',
+                render: function(data, type, full) {
+                    console.log('full: ')
+                    console.log(full)
                     let ret_line = '';
 
                     // Chenck if this alleged offence has already a connection to the current offender selected
                     let current_offender_has_connection = false;
 
-                    if (full.connected || full.removed){
+                    // CALM and BCA should not be both included in a sanction outcome at the same time.
+                    let unselectable = true
+                    if (vm.sanction_outcome.type == 'infringement_notice'){
+                        unselectable = false
+                    } else if (!vm.act_name_of_selected_ao || vm.act_name_of_selected_ao == full.section_regulation.act){
+                        unselectable = false
+                    }
+                    let selected_str = ''
+                    if (vm.aco_ids_included.includes(full.id.toString())){
+                        selected_str = 'checked="checked"'
+                    }
 
+                    if (full.connected || full.removed || unselectable){
                         // Disabled
-
                         if (vm.sanction_outcome.type == 'infringement_notice'){
                             ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
@@ -394,16 +419,20 @@ export default {
                             ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" disabled></input>';
                         }
                     } else {
-
                         // Enabled
-
                         if (vm.sanction_outcome.type == 'infringement_notice'){
-                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"></input>';
+                            ret_line += '<input type="radio" name="infringement_radio_button" class="alleged_offence_include" value="' + full.id + '"' + selected_str + '></input>';
                         } else if (vm.sanction_outcome.type == '' || vm.sanction_outcome.type == null) {
                             // Should not reach here
                             ret_line += '';
                         } else {
-                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
+                            let disabled_str = ''
+                            if (full.section_regulation.is_parking_offence){
+                                disabled_str = ' disabled '
+                                selected_str = ''
+                            }
+                            //ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '" checked="checked"></input>';
+                            ret_line += '<input type="checkbox" class="alleged_offence_include" value="' + full.id + '"' + selected_str + disabled_str + '></input>';
                         }
                     }
 
@@ -417,17 +446,21 @@ export default {
           columns: [
             {
               data: "id",
+              name: 'id',
               visible: false
             },
             {
-              data: "due_date"
+              data: "due_date",
+              name: 'id',
             },
             {
-              data: "action_text"
+              data: "action_text",
+              name: 'id',
             },
             {
-              data: "action",
-              mRender: function(data, type, row) {
+              data: "id",
+              name: 'id',
+              render: function(data, type, row) {
                 return (
                   '<a href="#" class="remove_button" data-remediation-action-id="' +
                   row.id +
@@ -560,18 +593,33 @@ export default {
             loadOffence: 'loadOffence',
         }),
         aco_include_clicked: function() {
+            console.log('in aco_include_clicked')
             let vm = this;
             vm.aco_ids_included = [];
             vm.aco_ids_excluded = [];
             let checkboxes = $(".alleged_offence_include");
+            console.log(checkboxes)
             for (let i = 0; i < checkboxes.length; i++) {
                 if (checkboxes[i].checked) {
                     vm.aco_ids_included.push(checkboxes[i].value);
+
                 } else {
                     vm.aco_ids_excluded.push(checkboxes[i].value);
                 }
             }
+            if (vm.aco_ids_included.length){
+                for (let alleged_offence of vm.sanction_outcome.current_offence.alleged_offences){
+                    if (alleged_offence.id == vm.aco_ids_included[0]){
+                        vm.act_name_of_selected_ao = alleged_offence.section_regulation.act
+                    }
+                }
+            } else {
+                // No alleged offences selected
+                vm.act_name_of_selected_ao = ''
+            }
+            console.log('act_name_of_selected_ao: ' + vm.act_name_of_selected_ao)
             vm.check_if_is_parking_offence();
+            vm.constructAllegedOffencesTable();
         },
         check_if_is_parking_offence: function() {
             this.is_parking_offence = false;
@@ -667,12 +715,12 @@ export default {
                 this.sanction_outcome.region_id = this.$parent.call_email.region_id;
                 this.sanction_outcome.district_id = this.$parent.call_email.district_id;
             }
-  
+
             if (this.$parent.inspection) {
                 this.sanction_outcome.region_id = this.$parent.inspection.region_id;
                 this.sanction_outcome.district_id = this.$parent.inspection.district_id;
             }
-  
+
             if (this.$parent.offence) {
                 this.sanction_outcome.region_id = this.$parent.offence.region_id;
                 this.sanction_outcome.district_id = this.$parent.offence.district_id;
@@ -683,7 +731,7 @@ export default {
                     }
                 }
             }
-  
+
             this.clearTableRemediationActions();
         },
         currentRegionIdChanged: function() {
@@ -708,7 +756,7 @@ export default {
             // We don't want to clear the default district selection when initially loaded, which derived from the call_email
             this.sanction_outcome.district_id = null;
           }
-  
+
           this.availableDistricts = []; // This is a list of options for district
           for (let record of this.regionDistricts) {
             if (this.sanction_outcome.region_id == record.id) {
@@ -721,7 +769,7 @@ export default {
               }
             }
           }
-  
+
           this.availableDistricts.splice(0, 0, {
             id: "",
             display_name: "",
@@ -855,9 +903,9 @@ export default {
                     alleged_offence_ids_excluded.push(checkboxes[i].value);
                 }
             }
-  
+
             let postUrl = api_endpoints.sanction_outcome;
-  
+
             let payload = new Object();
             Object.assign(payload, vm.sanction_outcome);
             if (payload.date_of_issue) {
@@ -874,7 +922,7 @@ export default {
             } else {
                 payload.temporary_document_collection_id = null;
             }
-  
+
             // Retrieve remediation actions and set them to the payload
             let remediation_actions_rows = vm.$refs.tbl_remediation_actions.vmDataTable.rows() //.data().toArray();
             let remediation_actions_data = remediation_actions_rows.data()
@@ -883,7 +931,7 @@ export default {
             for (let i = 0; i < payload.remediation_actions.length; i++) {
                 payload.remediation_actions[i].due_date = moment(payload.remediation_actions[i].due_date, "DD/MM/YYYY").format("YYYY-MM-DD");
             }
-  
+
             payload.call_email_id = this.$parent.call_email ? this.$parent.call_email.id : null;
             payload.inspection_id = this.$parent.inspection ? this.$parent.inspection.id : null;
             payload.workflow_type = 'send_to_manager'  // Because this modal is used only when creating new sanction outcome to send to manager
@@ -903,7 +951,7 @@ export default {
         },
         currentOffenceChanged: function() {
             this.sanction_outcome.current_offender = {};
-  
+
             // The dropdown list of the offenders are directly linked to the vm.sanction_outcome.offence.offenders.
             // That's why the dropdown list is updated automatically whenever vm.sanction_outcome.offence is chanaged.
             this.constructAllegedOffencesTable();
@@ -956,7 +1004,7 @@ export default {
                     params: { legal_case_id: this.$parent.legal_case.id }
                 });
                 this.options_for_offences = returned.body;
-            } 
+            }
         },
         createDocumentActionUrl: async function() {
             // create sanction outcome and get id

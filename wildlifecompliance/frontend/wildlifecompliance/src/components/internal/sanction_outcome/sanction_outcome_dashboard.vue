@@ -203,6 +203,7 @@ export default {
                         searchable: true,
                         orderable: true,
                         mRender: function(data, type, full){
+                            console.log(full)
                             if (full.type.id == 'remediation_notice'){
                                 console.log(full);
                                 let num_total = 0;

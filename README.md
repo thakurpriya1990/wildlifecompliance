@@ -48,6 +48,10 @@ required environment variables at run time. Example content:
 
 This section contains information specific to the Wildlife Licensing projects.
 
+# Compliance Management 
+
+This section contains information specific to the Compliance Management project.
+
 ## Creating Licence Types
 
 Each wildlife licence type, whether free or paid, needs an equivalent product in the Django Oscar payments system. These
