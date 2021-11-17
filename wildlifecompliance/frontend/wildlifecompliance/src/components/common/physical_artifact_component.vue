@@ -74,11 +74,17 @@
                                                         <label>Officer</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
+                                                        <select 
+                                                            id="physical_artifact_officers"  
+                                                            name="physical_artifact_officers"  
+                                                            ref="physical_artifact_officers" 
+                                                            class="form-control" 
+                                                        />
+                                                        <!--select :disabled="readonlyForm" ref="physical_artifact_department_users" class="form-control" v-model="physical_artifact.officer_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
-                                                        </select>
+                                                        </select-->
                                                     </div>
                                                 </div>
                                             </div>
@@ -119,11 +125,17 @@
                                                         <label>Custodian</label>
                                                     </div>
                                                     <div class="col-sm-9">
-                                                        <select :disabled="readonlyForm" ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
+                                                        <select 
+                                                            id="physical_artifact_custodians"  
+                                                            name="physical_artifact_custodians"  
+                                                            ref="physical_artifact_custodians" 
+                                                            class="form-control" 
+                                                        />
+                                                        <!--select :disabled="readonlyForm" ref="physical_artifact_department_users_custodian" class="form-control" v-model="physical_artifact.custodian_email">
                                                             <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                             {{ option.name }}
                                                             </option>
-                                                        </select>
+                                                        </select-->
                                                     </div>
                                                 </div>
                                             </div>
@@ -768,8 +780,8 @@ export default {
             loadPhysicalArtifact: 'loadPhysicalArtifact',
             setPhysicalArtifact: 'setPhysicalArtifact',
             setRelatedItems: 'setRelatedItems',
-            setOfficerEmail: 'setOfficerEmail',
-            setCustodianEmail: 'setCustodianEmail',
+            setOfficerId: 'setOfficerId',
+            setCustodianId: 'setCustodianId',
             //setTemporaryDocumentCollectionId: 'setTemporaryDocumentCollectionId',
             addToTemporaryDocumentCollectionList: 'addToTemporaryDocumentCollectionList',
             setStatementId: 'setStatementId',
@@ -877,34 +889,63 @@ export default {
                 }
             });
             // department_users
-            $(vm.$refs.physical_artifact_department_users).select2({
+            $(vm.$refs.physical_artifact_officers).select2({
+                    minimumInputLength: 2,
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:""
+                    placeholder:"",
+                    ajax: {
+                        url: api_endpoints.staff_member_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            console.log(params)
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
                 }).
                 on("select2:select",function (e) {
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setOfficerEmail(selectedData);
+                    console.log(selectedData);
+                    vm.setOfficerId(selectedData);
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.setOfficerEmail('');
+                    vm.setOfficerId(null);
                 });
             // department_users_custodian
-            $(vm.$refs.physical_artifact_department_users_custodian).select2({
+            $(vm.$refs.physical_artifact_custodians).select2({
                     "theme": "bootstrap",
                     allowClear: true,
-                    placeholder:""
+                    placeholder:"",
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: api_endpoints.staff_member_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            console.log(params)
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
                 }).
                 on("select2:select",function (e) {
                     let selected = $(e.currentTarget);
                     let selectedData = selected.val();
-                    vm.setCustodianEmail(selectedData);
+                    vm.setCustodianId(selectedData);
                 }).
                 on("select2:unselect",function (e) {
                     var selected = $(e.currentTarget);
-                    vm.setCustodianEmail('');
+                    vm.setCustodianId(null);
                 });
 
             let existingArtifactTable = $('#existing-artifact-table');
@@ -1018,14 +1059,28 @@ export default {
             disposal_method: "",
             description: "",
           });
-        // retrieve department_users from backend cache
-        let returned_department_users = await this.$http.get(api_endpoints.department_users)
-        Object.assign(this.departmentStaffList, returned_department_users.body)
-        this.departmentStaffList.splice(0, 0,
-          {
-            pk: "",
-            name: "",
-          });
+        // Trigger Officer and Custodian select2 controls
+        let vm=this;
+        if (this.physical_artifact.officer && this.physical_artifact.officer.id) {
+            console.log(this.physical_artifact.officer.id);
+            var option = new Option(
+                this.physical_artifact.officer.full_name, 
+                this.physical_artifact.officer.full_name, 
+                true, 
+                true
+            );
+            $(vm.$refs.physical_artifact_officers).append(option).trigger('change');
+        }
+        if (this.physical_artifact.custodian && this.physical_artifact.custodian.id) {
+            var option = new Option(
+                this.physical_artifact.custodian.full_name, 
+                this.physical_artifact.custodian.full_name, 
+                true, 
+                true
+            );
+            $(vm.$refs.physical_artifact_custodians).append(option).trigger('change');
+        }
+
         this.$nextTick(async() => {
           // special processing for PhysicalArtifactLegalCases link
           if (this.legalCaseId && this.physical_artifact.legal_case_links && this.physical_artifact.legal_case_links.length > 0) {

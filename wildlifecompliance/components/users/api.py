@@ -1,5 +1,6 @@
 import re
 import traceback
+from django.db.models import Q
 from django.db import transaction
 from django.http import HttpResponse
 from django.core.exceptions import ValidationError
@@ -15,14 +16,14 @@ from wildlifecompliance.components.applications.models import Application
 from wildlifecompliance.components.applications.email import send_id_updated_notification
 from wildlifecompliance.components.call_email.serializers import SaveEmailUserSerializer, SaveUserAddressSerializer
 from wildlifecompliance.components.organisations.models import (
-    OrganisationRequest,
+    OrganisationRequest, Organisation
 )
 from wildlifecompliance.components.users.models import (
         CompliancePermissionGroup, 
         RegionDistrict, 
         ComplianceManagementUserPreferences,
         )
-from wildlifecompliance.helpers import is_customer, is_internal
+from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_management_callemail_readonly_user
 from wildlifecompliance.components.users.serializers import (
     UserSerializer,
     DTUserSerializer,
@@ -62,7 +63,7 @@ from rest_framework.decorators import (
     api_view
 )
 from django.core.cache import cache
-from wildlifecompliance.components.main.utils import retrieve_department_users
+#from wildlifecompliance.components.main.utils import retrieve_department_users
 
 
 def generate_dummy_email(first_name, last_name):
@@ -71,6 +72,15 @@ def generate_dummy_email(first_name, last_name):
     email_address = re.sub(r'\.+', '.', email_address)
     email_address = re.sub(r'\s+', '_', email_address)
     return email_address
+
+
+class IsComplianceManagementCallEmailReadonlyUser(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def get(self, request, format=None):
+        user = False
+        if is_compliance_management_callemail_readonly_user(request):
+            user = True
+        return Response({"compliance_management_callemail_readonly_user": user})
 
 
 class GetCountries(views.APIView):
@@ -82,16 +92,16 @@ class GetCountries(views.APIView):
         return Response(country_list)
 
 
-class DepartmentUserList(views.APIView):
-    renderer_classes = [JSONRenderer,]
-    def get(self, request, format=None):
-        data = cache.get('department_users')
-        if not data:
-            retrieve_department_users()
-            data = cache.get('department_users')
-        return Response(data)
-
-        #serializer  = UserSerializer(request.user)
+#class DepartmentUserList(views.APIView):
+#    renderer_classes = [JSONRenderer,]
+#    def get(self, request, format=None):
+#        data = cache.get('department_users')
+#        if not data:
+#            retrieve_department_users()
+#            data = cache.get('department_users')
+#        return Response(data)
+#
+#        #serializer  = UserSerializer(request.user)
 
 
 class GetMyUserDetails(views.APIView):
@@ -566,7 +576,7 @@ class UserViewSet(viewsets.ModelViewSet):
             try:
                 prefer_compliance_management = request.data.get('prefer_compliance_management', False)
                 user_instance = self.get_object()
-                system_preference_instance, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user_id=user_instance.id)
+                system_preference_instance = ComplianceManagementUserPreferences.objects.get(email_user_id=user_instance.id)
                 serializer = UpdateComplianceManagementUserPreferencesSerializer(
                         system_preference_instance,
                         data={
@@ -906,4 +916,72 @@ class RegionDistrictViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+class GetPersonOrg(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data_transform = []
+            user_data = EmailUser.objects.filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            for email_user in user_data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                #serializer = EmailUserAppViewSerializer(email_user)
+                #email_user_data = serializer.data
+                email_user_data = {}
+                email_user_data['text'] = text
+                email_user_data['entity_type'] = 'user'
+                email_user_data['id'] = email_user.id
+                data_transform.append(email_user_data)
+            org_data = Organisation.objects.filter(
+                Q(organisation__name__icontains=search_term) |
+                Q(organisation__abn__icontains=search_term) |
+                Q(organisation__trading_name__icontains=search_term)
+            )[:10]
+            for org in org_data:
+                text = '{} (ABN: {})'.format(org.name, org.abn)
+                data = {}
+                data['text'] = text
+                data['entity_type'] = 'org'
+                data['id'] = org.id
+                data_transform.append(data)
+            ## order results
+            data_transform.sort(key=lambda item: item.get("id"))
+            return Response({"results": data_transform})
+        return Response()
+
+
+class StaffMemberLookup(views.APIView):
+    renderer_classes = [JSONRenderer,]
+
+    def get(self, request, format=None):
+        search_term = request.GET.get('term', '')
+        if search_term:
+            data_transform = []
+            user_data = EmailUser.objects.filter(is_staff=True).filter(
+                Q(first_name__icontains=search_term) |
+                Q(last_name__icontains=search_term) |
+                Q(email__icontains=search_term)
+            )[:10]
+            for email_user in user_data:
+                if email_user.dob:
+                    text = '{} {} (DOB: {})'.format(email_user.first_name, email_user.last_name, email_user.dob)
+                else:
+                    text = '{} {}'.format(email_user.first_name, email_user.last_name)
+
+                email_user_data = {}
+                email_user_data['text'] = text
+                email_user_data['id'] = email_user.id
+                data_transform.append(email_user_data)
+            return Response({"results": data_transform})
+        return Response()
 

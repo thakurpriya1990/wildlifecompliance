@@ -65,11 +65,11 @@ export const physicalArtifactStore = {
         updateRelatedItems(state, related_items) {
             Vue.set(state.physical_artifact, 'related_items', related_items);
         },
-        updateOfficerEmail(state, email) {
-            Vue.set(state.physical_artifact, 'officer_email', email);
+        updateOfficerId(state, id) {
+            Vue.set(state.physical_artifact, 'officer_id', id);
         },
-        updateCustodianEmail(state, email) {
-            Vue.set(state.physical_artifact, 'custodian_email', email);
+        updateCustodianId(state, id) {
+            Vue.set(state.physical_artifact, 'custodian_id', id);
         },
         /*
         updateTemporaryDocumentCollectionId(state, temp_doc_id) {
@@ -213,11 +213,11 @@ export const physicalArtifactStore = {
         setRelatedItems({ commit }, related_items ) {
             commit("updateRelatedItems", related_items);
         },
-        setOfficerEmail({ commit }, email ) {
-            commit("updateOfficerEmail", email);
+        setOfficerId({ commit }, id ) {
+            commit("updateOfficerId", id);
         },
-        setCustodianEmail({ commit }, email ) {
-            commit("updateCustodianEmail", email);
+        setCustodianId({ commit }, id ) {
+            commit("updateCustodianId", id);
         },
         /*
         setTemporaryDocumentCollectionId({ commit }, temp_doc_id) {

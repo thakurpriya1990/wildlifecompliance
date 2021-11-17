@@ -55,34 +55,34 @@ class DecimalEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def retrieve_department_users():
-    print(settings.CMS_URL)
-    try:
-        #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        #res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
-        res = requests.get('{}/api/v3/departmentuser/'.format(settings.EXT_USER_API_ROOT_URL), 
-                auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res.raise_for_status()
-        cache.set('department_users',json.loads(res.content).get('objects'),10800)
-    except:
-        raise
-
-def get_department_user(email):
-    try:
-        res = requests.get(
-            '{}/api/users?email={}'.format(
-                settings.EXT_USER_API_ROOT_URL, email),
-            auth=(settings.LEDGER_USER, settings.LEDGER_PASS),
-            verify=False)
-        res.raise_for_status()
-        data = json.loads(res.content).get('objects')
-        if len(data) > 0:
-            return data[0]
-        else:
-            return None
-    except BaseException:
-        raise
+#def retrieve_department_users():
+#    print(settings.CMS_URL)
+#    try:
+#        #res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        #res = requests.get('{}/api/users?minimal'.format(settings.EXT_USER_API_ROOT_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        #res = requests.get('{}/api/users/fast?/compact'.format(settings.EXT_USER_API_ROOT_URL), 
+#        res = requests.get('{}/api/v3/departmentuser/'.format(settings.EXT_USER_API_ROOT_URL), 
+#                auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res.raise_for_status()
+#        cache.set('department_users',json.loads(res.content).get('objects'),10800)
+#    except:
+#        raise
+#
+#def get_department_user(email):
+#    try:
+#        res = requests.get(
+#            '{}/api/users?email={}'.format(
+#                settings.EXT_USER_API_ROOT_URL, email),
+#            auth=(settings.LEDGER_USER, settings.LEDGER_PASS),
+#            verify=False)
+#        res.raise_for_status()
+#        data = json.loads(res.content).get('objects')
+#        if len(data) > 0:
+#            return data[0]
+#        else:
+#            return None
+#    except BaseException:
+#        raise
 
 def checkout(
         request,
@@ -524,33 +524,66 @@ def search_reference(reference_number):
     from wildlifecompliance.components.organisations.models import OrganisationRequest
     from wildlifecompliance.components.licences.models import WildlifeLicence
     from wildlifecompliance.components.returns.models import Return
+    from wildlifecompliance.components.call_email.models import CallEmail
+    from wildlifecompliance.components.offence.models import Offence
+    from wildlifecompliance.components.legal_case.models import LegalCase
+    from wildlifecompliance.components.inspection.models import Inspection
+    from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome
+    from wildlifecompliance.components.artifact.models import Artifact
     application_list = Application.objects.all().computed_exclude(processing_status__in=[
         Application.PROCESSING_STATUS_DISCARDED])
     licence_list = WildlifeLicence.objects.all().order_by('licence_number').distinct('licence_number')
     returns_list = Return.objects.all().exclude(processing_status__in=[Return.RETURN_PROCESSING_STATUS_FUTURE])
     org_access_request_list = OrganisationRequest.objects.all()
     url_string = {}
-    try:
-        result = application_list.get(lodgement_number=reference_number)
-        url_string = {'url_string': '/internal/application/' + str(result.id)}
-    except Application.DoesNotExist:
-        try:
-            result = licence_list.get(licence_number=reference_number)
-            url_string = {'url_string': result.licence_document._file.url}
-        except WildlifeLicence.DoesNotExist:
-            try:
-                result = returns_list.get(lodgement_number=reference_number)
-                url_string = {'url_string': '/internal/return/' + str(result.id)}
-            except Return.DoesNotExist:
-                try:
-                    result = org_access_request_list.get(lodgement_number=reference_number)
-                    url_string = {'url_string': '/internal/organisations/access/' + str(result.id)}
-                except BaseException:
-                    raise ValidationError('Record with provided reference number does not exist')
+
+    # Application
+    result = application_list.filter(lodgement_number=reference_number)
+    if result:
+        url_string = {'url_string': '/internal/application/' + str(result[0].id)}
+    # Licence
+    result = licence_list.filter(licence_number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': result[0].licence_document._file.url}
+    # Returns
+    result = returns_list.filter(lodgement_number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/return/' + str(result[0].id)}
+    #import ipdb; ipdb.set_trace()
+    # Org access reqeust
+    result = org_access_request_list.filter(lodgement_number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/organisations/access/' + str(result[0].id)}
+    # CallEmail
+    result = CallEmail.objects.filter(number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/call_email/' + str(result[0].id)}
+    # Offence
+    result = Offence.objects.filter(lodgement_number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/offence/' + str(result[0].id)}
+    # Legal Case
+    result = LegalCase.objects.filter(number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/legal_case/' + str(result[0].id)}
+    # Inspection
+    result = Inspection.objects.filter(number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/inspection/' + str(result[0].id)}
+    # Sanction Outcome
+    result = SanctionOutcome.objects.filter(lodgement_number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/sanction_outcome/' + str(result[0].id)}
+    # Offence
+    result = Artifact.objects.filter(number=reference_number)
+    if result and not url_string:
+        url_string = {'url_string': '/internal/object/' + str(result[0].id)}
+
     if url_string:
         return url_string
     else:
-        raise ValidationError('Record with provided reference number does not exist')
+        #raise ValidationError('Record with provided reference number does not exist')
+        return {'error': 'Record with provided reference number does not exist'}
 
 
 def add_url_internal_request(request, url):

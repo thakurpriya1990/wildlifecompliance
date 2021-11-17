@@ -31,14 +31,13 @@ def is_new_to_wildlifelicensing(request=None):
         and request.user.dob \
         and request.user.residential_address \
         and (request.user.phone_number or request.user.mobile_number) \
-        and request.user.identification else False
+        and (request.user.identification or prefer_compliance_management(request)) else False 
 
     if not SecureBaseUtils.is_wildlifelicensing_request(request):
          has_user_details = True
 
     if is_internal(request):
         has_user_details = True
-
     return not has_user_details
 
 def belongs_to(user, group_name):
@@ -120,8 +119,10 @@ def in_dbca_domain(request):
 
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and (is_model_backend(
-        request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)
+    return request.user.is_authenticated() and (
+            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) #or
+            #is_compliance_management_approved_external_user(request)
+            )
 
 
 def is_reception(request):
@@ -160,31 +161,63 @@ def is_officer(request):
     return request.user.is_authenticated() and (belongs_to_list(
         request.user, licence_officer_groups) or request.user.is_superuser)
 
+def is_external_url(request):
+    external = False
+    if request.path[:10] == '/external/':
+        external = True
+    return external
+
 def prefer_compliance_management(request):
     ret_value = False
 
     if request.user.is_authenticated():
-        preference_qs, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
-        if preference_qs and preference_qs.prefer_compliance_management and is_compliance_management_readonly_user(request):
+        preference = ComplianceManagementUserPreferences.objects.get(email_user=request.user)
+        #if preference.prefer_compliance_management and (
+        #        is_compliance_management_readonly_user(request) or is_compliance_management_callemail_readonly_user(request)
+        #        ):
+        #if preference.prefer_compliance_management or is_compliance_management_callemail_readonly_user(request):
+        if preference.prefer_compliance_management:
             ret_value = True
 
     return ret_value
 
+#def is_compliance_internal_user(request):
+#    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+#            permissions__codename__in=['volunteer',
+#                                       'triage_call_email',
+#                                       'issuing_officer',
+#                                       'officer',
+#                                       'infringement_notice_coordinator',
+#                                       # 'branch_manager',
+#                                       'manager'])]
+#    return request.user.is_authenticated() and (belongs_to_list(
+#        request.user, compliance_groups) or request.user.is_superuser)
+
 def is_compliance_internal_user(request):
-    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
-            permissions__codename__in=['volunteer',
-                                       'triage_call_email',
-                                       'issuing_officer',
-                                       'officer',
-                                       'infringement_notice_coordinator',
-                                       # 'branch_manager',
-                                       'manager'])]
-    return request.user.is_authenticated() and (belongs_to_list(
-        request.user, compliance_groups) or request.user.is_superuser)
+    compliance_user = False
+    if request.user.is_authenticated() and (
+            is_compliance_management_readonly_user(request) or 
+            is_compliance_management_callemail_readonly_user(request) or
+            request.user.is_superuser
+            ):
+        compliance_user = True
+    return compliance_user
 
 def is_compliance_management_readonly_user(request):
     compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and (belongs_to(request.user, compliance_group.name) or request.user.is_superuser)
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+
+def is_compliance_management_callemail_readonly_user(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+
+def is_compliance_management_approved_external_user(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_approved_external_users')
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+
+def is_compliance_management_volunteer(request):
+    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
+    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
 
 def is_able_to_view_sanction_outcome_pdf(user):
     compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
