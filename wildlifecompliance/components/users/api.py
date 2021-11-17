@@ -980,7 +980,7 @@ class StaffMemberLookup(views.APIView):
 
                 email_user_data = {}
                 email_user_data['text'] = text
-                email_user_data['id'] = email_user.email
+                email_user_data['id'] = email_user.id
                 data_transform.append(email_user_data)
             return Response({"results": data_transform})
         return Response()
