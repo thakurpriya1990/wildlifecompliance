@@ -290,13 +290,31 @@
                               </div>
                             </div></div>
               
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <div class="col-sm-9 form-group"><div class="row">
                               <label class="col-sm-4">Classification</label>
                               <select :disabled="readonlyForm" class="form-control" v-model="call_email.classification_id">
                                     <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
                                       {{ option.display }} 
                                     </option>
                                 </select>
+                            </div></div>
+
+                             <div class="col-sm-9 form-group"><div class="row">
+                              <label class="col-sm-4">Call Type</label>
+                              <div  class="col-sm-8">
+                                <div v-for="option in call_types">
+                                  <input :disabled="readonlyForm"  type="radio" v-bind:value="option.id" name="call_type" v-model="call_email.call_type_id">
+                                   <label >{{ option.display }}</label>
+                                </div>
+                              </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Dead</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="deadYes" type="radio" v-model="call_email.dead" v-bind:value="true">
+                                <label class="col-sm-1" for="deadYes">Yes</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="deadNo" type="radio" v-model="call_email.dead" v-bind:value="false">
+                                <label class="col-sm-1" for="deadNo">No</label>
                             </div></div>
             
                             <div class="row">
@@ -461,6 +479,7 @@ export default {
       },
       workflow_type: '',
       classification_types: [],
+      call_types: [],
       report_types: [],
       referrers: [],
       referrersSelected: [],
@@ -516,6 +535,7 @@ export default {
           "region_id",
           "district_id",
           "case_priority_id",
+          "dead",
           ]
     };
   },
@@ -934,6 +954,9 @@ export default {
         id: null, 
         name: "",
       });
+    // call_types
+    let returned_call_types = await Vue.http.get('/api/call_type/call_type_choices/');
+    Object.assign(this.call_types, returned_call_types.body);
     //report_types
     let returned_report_types = await cache_helper.getSetCacheList('CallEmail_ReportTypes', helpers.add_endpoint_json(
                     api_endpoints.report_types,

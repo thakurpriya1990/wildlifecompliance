@@ -51,6 +51,7 @@ from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_i
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
+    CallType,
     Location,
     ComplianceFormDataRecord,
     ReportType,
@@ -62,6 +63,7 @@ from wildlifecompliance.components.call_email.models import (
 from wildlifecompliance.components.call_email.serializers import (
     CallEmailSerializer,
     ClassificationSerializer,
+    CallTypeSerializer,
     ComplianceFormDataRecordSerializer,
     CallEmailLogEntrySerializer,
     LocationSerializer,
@@ -805,6 +807,26 @@ class ClassificationViewSet(viewsets.ModelViewSet):
         #for choice in Classification.NAME_CHOICES:
             # res_obj.append({'id': choice[0], 'display': choice[1]});
         for choice in Classification.objects.all():
+            res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+class CallTypeViewSet(viewsets.ModelViewSet):
+    queryset = CallType.objects.all()
+    serializer_class = CallTypeSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return CallType.objects.all()
+        return CallType.objects.none()
+
+    @list_route(methods=['GET', ])    
+    def call_type_choices(self, request, *args, **kwargs):
+        res_obj = [] 
+        #for choice in CallType.NAME_CHOICES:
+            # res_obj.append({'id': choice[0], 'display': choice[1]});
+        for choice in CallType.objects.all():
             res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')

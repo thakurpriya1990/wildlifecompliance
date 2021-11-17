@@ -7,6 +7,7 @@ from ledger.accounts.models import EmailUser, Address
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
+    CallType,
     Referrer,
     ReportType,
     ComplianceFormDataRecord,
@@ -170,6 +171,25 @@ class ClassificationSerializer(serializers.ModelSerializer):
                 display_name = choice[1]
         return display_name
 
+class CallTypeSerializer(serializers.ModelSerializer):
+    call_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CallType
+        fields = (
+            'id',
+            'name',
+            'call_type_display',
+        )
+        read_only_fields = ('id', 'name', )
+
+    def get_call_type_display(self, obj):
+        display_name = ''
+        for choice in CallType.NAME_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
 
 class ReferrerSerializer(serializers.ModelSerializer):
 
@@ -233,12 +253,15 @@ class ReportTypeSerializer(serializers.ModelSerializer):
 class SaveCallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     classification = ClassificationSerializer(read_only=True)
+    call_type = CallTypeSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
     report_type = ReportTypeSerializer(read_only=True)
     referrer = ReferrerSerializer(read_only=True)
     email_user = EmailUserSerializer(read_only=True)
     classification_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
+    call_type_id= serializers.IntegerField(
+        required=True, write_only=True, allow_null=False)
     report_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
@@ -273,9 +296,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'schema',
             'location',
             'classification',
+            'call_type',
             'report_type',
             'location_id',
             'classification_id',
+            'call_type_id',
+            'dead',
             'report_type_id',
             'caller',
             
@@ -370,6 +396,7 @@ class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
 class CallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
     classification = ClassificationSerializer(read_only=True)
+    call_type= CallTypeSerializer(read_only=True)
     lodgement_date = serializers.CharField(source='lodged_on')
     report_type = ReportTypeSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
@@ -407,7 +434,9 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'lodgement_date',
             'number',
             'caller',
-            
+            'call_type',
+            'call_type_id',
+            'dead',
             'report_type',
             'report_type_id',
             'data',
@@ -692,6 +721,7 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             #'referrer_id',
             'region_id',
             'district_id',
+            'dead',
         )
         read_only_fields = (
             'id', 

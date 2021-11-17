@@ -34,3 +34,9 @@ class CallEmailAdmin(admin.ModelAdmin):
 class ClassificationAdmin(admin.ModelAdmin):
     pass
 
+
+@admin.register(models.CallType)
+class CallTypeAdmin(admin.ModelAdmin):
+    pass
+
+

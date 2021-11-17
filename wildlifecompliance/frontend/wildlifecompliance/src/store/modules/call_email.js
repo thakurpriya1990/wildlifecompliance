@@ -29,6 +29,9 @@ export const callemailStore = {
                     "coordinates": [],
                 },
             },
+            call_type: {
+                id: null,
+            },
             report_type: {
                 id: null,
             },
@@ -39,6 +42,7 @@ export const callemailStore = {
             volunteer_list: [],
         },
         classification_types: [],
+        call_types: [],
         report_types: [],
         referrers: [],
         status_choices: [],

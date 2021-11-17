@@ -46,6 +46,7 @@ module.exports = {
     sanction_outcome_paginated: "/api/sanction_outcome_paginated/",
     remediation_action: "/api/remediation_action/",
     classification: "/api/classification/",
+    call_type : "/api/call_type/",
     report_types: "/api/report_types/",
     referrers: "/api/referrers/",
     location: "/api/location/",

@@ -69,6 +69,36 @@ class Classification(models.Model):
     def __str__(self):
         return self.get_name_display()
 
+class CallType(models.Model):
+    CALL_TYPE_GENERAL_ENQUIRY = 'general_enquiry'
+    CALL_TYPE_ILLEGAL_ACTIVITY = 'illegal_activity'
+    CALL_TYPE_AMPHIBIAN = 'amphibian'
+    CALL_TYPE_MAMMAL='mammal'
+    CALL_TYPE_BIRD='bird'
+
+    NAME_CHOICES = (
+        (CALL_TYPE_GENERAL_ENQUIRY, 'General Enquiry'),
+        (CALL_TYPE_ILLEGAL_ACTIVITY, 'Illegal Activity'),
+        (CALL_TYPE_AMPHIBIAN, 'Ambhibian - e.g. frog, cane toad'),
+        (CALL_TYPE_MAMMAL, 'Mammal'),
+        (CALL_TYPE_BIRD, 'Bird'),
+    )
+
+    name = models.CharField(
+        max_length=50,
+        choices=NAME_CHOICES,
+        default=CALL_TYPE_AMPHIBIAN,
+        unique=True
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_CallType'
+        verbose_name_plural = 'CM_CallTypes'
+
+    def __str__(self):
+        return self.get_name_display()
+
 
 class Referrer(models.Model):
     name = models.CharField(max_length=50, blank=True)
@@ -193,7 +223,13 @@ class CallEmail(RevisionedMixin):
         null=True,
         related_name="call_classification"
     )
+    call_type = models.ForeignKey(
+        CallType,
+        null=True,
+        related_name="call_type"
+    )
     
+    dead = models.BooleanField(default=False)
     lodged_on = models.DateField(auto_now_add=True)
     number = models.CharField(max_length=50, blank=True, null=True)
     caller = models.CharField(max_length=100, blank=True, null=True)
