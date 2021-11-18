@@ -302,6 +302,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'classification_id',
             'call_type_id',
             'dead',
+            'euthanise',
             'report_type_id',
             'caller',
             
@@ -437,6 +438,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'call_type',
             'call_type_id',
             'dead',
+            'euthanise',
             'report_type',
             'report_type_id',
             'data',
@@ -722,6 +724,7 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'region_id',
             'district_id',
             'dead',
+            'euthanise',
         )
         read_only_fields = (
             'id', 

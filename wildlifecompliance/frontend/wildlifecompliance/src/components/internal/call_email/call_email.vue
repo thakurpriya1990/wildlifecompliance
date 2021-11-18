@@ -316,6 +316,14 @@
                                 <input :disabled="readonlyForm" class="col-sm-1" id="deadNo" type="radio" v-model="call_email.dead" v-bind:value="false">
                                 <label class="col-sm-1" for="deadNo">No</label>
                             </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Euthanise</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="euthaniseYes" type="radio" v-model="call_email.euthanise" v-bind:value="true">
+                                <label class="col-sm-1" for="euthaniseYes">Yes</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="euthaniseNo" type="radio" v-model="call_email.euthanise" v-bind:value="false">
+                                <label class="col-sm-1" for="euthaniseNo">No</label>
+                            </div></div>
             
                             <div class="row">
                                 <div class="col-sm-9 form-group">
@@ -536,6 +544,7 @@ export default {
           "district_id",
           "case_priority_id",
           "dead",
+          "euthanise",
           ]
     };
   },

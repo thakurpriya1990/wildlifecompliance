@@ -672,9 +672,11 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def workflow_action(self, request, *args, **kwargs):
+        print("workflow_action")
         print(request.data)
         try:
             with transaction.atomic():
+                #import ipdb; ipdb.set_trace()
                 instance = self.get_object()
                 comms_log_id = request.data.get('call_email_comms_log_id')
                 if comms_log_id and comms_log_id is not 'null':

@@ -73,8 +73,11 @@ class CallType(models.Model):
     CALL_TYPE_GENERAL_ENQUIRY = 'general_enquiry'
     CALL_TYPE_ILLEGAL_ACTIVITY = 'illegal_activity'
     CALL_TYPE_AMPHIBIAN = 'amphibian'
-    CALL_TYPE_MAMMAL='mammal'
-    CALL_TYPE_BIRD='bird'
+    CALL_TYPE_MAMMAL = 'mammal'
+    CALL_TYPE_BIRD = 'bird'
+    CALL_TYPE_NON_NATIVE_SPECIES = 'non_native_species'
+    CALL_TYPE_REPTILE = 'reptile'
+    CALL_TYPE_OTHER = 'other'
 
     NAME_CHOICES = (
         (CALL_TYPE_GENERAL_ENQUIRY, 'General Enquiry'),
@@ -82,6 +85,9 @@ class CallType(models.Model):
         (CALL_TYPE_AMPHIBIAN, 'Ambhibian - e.g. frog, cane toad'),
         (CALL_TYPE_MAMMAL, 'Mammal'),
         (CALL_TYPE_BIRD, 'Bird'),
+        (CALL_TYPE_NON_NATIVE_SPECIES, 'Non native species - e.g. pigeon, fox, cattle, peacock'),
+        (CALL_TYPE_REPTILE, 'Reptile - e.g. snake, turtles, lizard'),
+        (CALL_TYPE_OTHER, 'Other - e.g. spider, bees, fish'),
     )
 
     name = models.CharField(
@@ -230,6 +236,7 @@ class CallEmail(RevisionedMixin):
     )
     
     dead = models.BooleanField(default=False)
+    euthanise = models.BooleanField(default=False)
     lodged_on = models.DateField(auto_now_add=True)
     number = models.CharField(max_length=50, blank=True, null=True)
     caller = models.CharField(max_length=100, blank=True, null=True)
