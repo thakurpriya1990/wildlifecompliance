@@ -76,6 +76,7 @@
                         <ul class="nav nav-pills aho2">
                             <li class="nav-item active"><a data-toggle="tab" :href="'#'+offenceTab">Offence</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+detailsTab">Details</a></li>
+                            <!-- li class="nav-item"><a data-toggle="tab" :href="'#'+documentTab">Document</a></li-->
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+offenderTab">Offender(s)</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+locationTab" @click="mapOffenceClicked">Location</a></li>
                             <li class="nav-item"><a data-toggle="tab" :href="'#'+relatedItemsTab">Related Items</a></li>
@@ -169,6 +170,28 @@
                             <div :id="detailsTab" class="tab-pane face in">
                                 <FormSection :formCollapse="false" label="Details" Index="1">
                                     <textarea :readonly="readonlyForm" class="form-control" placeholder="add details" v-model="offence.details" />
+                                </FormSection>
+                            </div>
+                            <div :id="documentTab" class="tab-pane face in">
+                                <FormSection :formCollapse="false" label="Document" Index="1.5">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-sm-3">
+                                                <label class="control-label pull-left"  for="Name">Attachments</label>
+                                            </div>
+                                            <div class="col-sm-9">
+                                                <!--
+                                                <FileField 
+                                                    ref="comms_log_file" 
+                                                    name="comms-log-file" 
+                                                    :isRepeatable="true" 
+                                                    documentActionUrl="temporary_document" 
+                                                    @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"
+                                                />
+                                                -->
+                                            </div>
+                                        </div>
+                                    </div>
                                 </FormSection>
                             </div>
                             <div :id="offenderTab" class="tab-pane face in">
@@ -303,7 +326,7 @@ import utils from "../utils";
 import { api_endpoints, helpers, cache_helper } from "@/utils/hooks";
 import { mapState, mapGetters, mapActions, mapMutations } from "vuex";
 import CommsLogs from "@common-components/comms_logs.vue";
-import filefield from '@/components/common/compliance_file.vue';
+import FileField from '@/components/common/compliance_file.vue';
 import OffenceWorkflow from './offence_workflow';
 import SearchPersonOrganisation from "@common-components/search_person_or_organisation.vue";
 //import CreateNewPerson from "@common-components/create_new_person.vue";
@@ -341,6 +364,7 @@ export default {
             offender_search_type: "individual",
             offenceTab: 'offenceTab' + vm._uid,
             detailsTab: 'detailsTab' + vm._uid,
+            documentTab: 'documentTab' + vm._uid,
             offenderTab: 'offenderTab' + vm._uid,
             locationTab: 'locationTab' + vm._uid,
             relatedItemsTab: 'relatedItemsTab' + vm._uid,
@@ -597,6 +621,7 @@ export default {
         //CreateNewPerson,
         RelatedItems,
         SanctionOutcome,
+        FileField,
     },
     computed: {
         ...mapGetters('offenceStore', {
@@ -705,6 +730,9 @@ export default {
             setCanUserAction: 'setCanUserAction',
             setRelatedItems: 'setRelatedItems',
         }),
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
         constructOffenceDedicatedPage: async function(){
             console.log('constructOffenceDedicatedPage');
             await this.loadOffenceVuex({offence_id: this.$route.params.offence_id});
