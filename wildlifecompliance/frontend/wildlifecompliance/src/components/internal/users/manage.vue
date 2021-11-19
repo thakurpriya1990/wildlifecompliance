@@ -8,12 +8,25 @@
                 <CommsLogs :comms_url="comms_url" :logs_url="logs_url" comms_add_url="test"/>
             </div>
             <div class="col-md-9">
-                <ul class="nav nav-tabs">
-                    <li class="active"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
-                    <li><a data-toggle="tab" :href="'#'+oTab">Licensing</a></li>
+                <!--ul class="nav nav-tabs"-->
+                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="pills-details-tab" data-toggle="pill" href="#pills-details" role="tab" aria-controls="pills-details" aria-selected="true">
+                            Details
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="pills-licensing-tab" data-toggle="pill" href="#pills-licensing" role="tab" aria-controls="pills-licensing" aria-selected="false">
+                            Licensing
+                        </a>
+                    </li>
+                    <!--li class="active"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
+                    <li><a data-toggle="tab" :href="'#'+oTab">Licensing</a></li-->
                 </ul>
-                <div class="tab-content">
-                    <div :id="dTab" class="tab-pane fade in active">
+                <div class="tab-content" id="pills-tabContent">
+                  <div class="tab-pane fade" id="pills-details" role="tabpanel" aria-labelledby="pills-details-tab">
+                <!--div class="tab-content">
+                    <div :id="dTab" class="tab-pane fade in active"-->
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="panel panel-default">
@@ -227,7 +240,8 @@
                             </div>
                         </div>
                     </div> 
-                    <div :id="oTab" class="tab-pane fade">
+
+                    <div class="tab-pane fade" id="pills-licensing" role="tabpanel" aria-labelledby="pills-licensing-tab">
                         <ApplicationDashTable ref="applications_table" level='internal' :url='applications_url'/>
                         <LicenceDashTable ref="licences_table" level='internal' :url='licences_url'/>
                         <ReturnDashTable ref="returns_table" level='internal' :url='returns_url'/>
@@ -335,6 +349,13 @@ export default {
         });
     },
     methods: {
+        set_tabs:function(){
+            let vm = this;
+
+            /* set Applicant tab Active */
+            $('#pills-tab a[href="#pills-details"]').tab('show');
+        },
+
         eventListeners: function(){
             let vm = this;
             // Fix the table responsiveness when tab is shown
@@ -375,7 +396,7 @@ export default {
 				});
 			}, (error) => {
 				vm.updatingPersonal = false;
-				let error_msg = '<br/>';
+				details_msg = '<br/>';
 				for (var key in error.body) {
 					if (key === 'dob') {
 						error_msg += 'dob: Please enter a valid date.<br/>';
@@ -552,6 +573,7 @@ export default {
     },
     mounted: function(){
         let vm = this;
+        vm.set_tabs();
         this.personal_form = document.forms.personal_form;
         this.eventListeners();
     },
