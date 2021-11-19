@@ -517,7 +517,11 @@ class SanctionOutcomeDatatableSerializer(serializers.ModelSerializer):
             if obj.payment_status == 'unpaid' and obj.status == SanctionOutcome.STATUS_AWAITING_PAYMENT:
                 url_list.append(cc_payment_url)
         elif is_internal(self.context.get('request')):
-            if obj.status not in SanctionOutcome.FINAL_STATUSES:
+            if obj.status in SanctionOutcome.FINAL_STATUSES:
+                if is_payment_admin(user):
+                    if inv_ref:
+                        url_list.append(view_payment_url)
+            else:
                 # infringement notice is not in the final statuses
                 if user.id == obj.assigned_to_id:
                     # if user is assigned to the object, the user can process it

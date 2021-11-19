@@ -156,6 +156,15 @@ export default {
                         orderable: true,
                     },
                     {
+                        data: 'documents',
+                        searchable: false,
+                        orderable: false,
+                        mRender: function (data, type, row){
+                            console.log(row)
+                            return row.documents
+                        }
+                    },
+                    {
                         data: 'user_action',
                         searchable: false,
                         orderable: false,
@@ -176,6 +185,7 @@ export default {
                 'Date',
                 'Offender(s)',
                 'Status',
+                'Document',
                 'Action',
             ],
         }
