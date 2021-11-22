@@ -259,6 +259,13 @@
                         :entity_id='user.id'
                         entity_type='person'
                         />
+                        <LegalCasePersonOrgDashTable 
+                        v-if="user.id"
+                        ref="legal_case_person_org_table" 
+                        level='internal' 
+                        :entity_id='user.id'
+                        entity_type='person'
+                        />
                     </div>
                 </div>
             </div>
@@ -275,6 +282,7 @@ import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
 import SanctionOutcomePersonOrgDashTable from '@common-components/sanction_outcomes_person_org_dashboard.vue'
+import LegalCasePersonOrgDashTable from '@common-components/legal_case_person_org_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
 import SecureBaseLink from '@common-components/securebase_link.vue';
 import utils from '../utils'
@@ -326,6 +334,7 @@ export default {
         LicenceDashTable,
         ReturnDashTable,
         SanctionOutcomePersonOrgDashTable,
+        LegalCasePersonOrgDashTable,
         CommsLogs,
         SecureBaseLink,
     },
