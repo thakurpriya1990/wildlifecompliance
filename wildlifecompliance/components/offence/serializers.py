@@ -99,6 +99,7 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
     user_action = serializers.SerializerMethodField()
     alleged_offences = SectionRegulationSerializer(read_only=True, many=True)
     offenders = serializers.SerializerMethodField(read_only=True)
+    documents = serializers.SerializerMethodField()
 
     class Meta:
         model = Offence
@@ -114,8 +115,23 @@ class OffenceDatatableSerializer(serializers.ModelSerializer):
             'occurrence_datetime_to',
             'details',
             'user_action',
+            'documents',
         )
         read_only_fields = ()
+
+    def get_documents(self, obj):
+        from wildlifecompliance.helpers import is_internal
+        url_list = []
+
+        if obj.documents.all().count():
+            # Paper notices
+            request = self.context.get('request', None)
+            if request and is_internal(request):
+                for doc in obj.documents.all():
+                    url = '<a href="{}" target="_blank">{}</a>'.format(doc._file.url, doc.name)  # + viewed_text
+                    url_list.append(url)
+        urls = '<br />'.join(url_list)
+        return urls
 
     def get_user_action(self, obj):
         return get_user_action(self, obj)

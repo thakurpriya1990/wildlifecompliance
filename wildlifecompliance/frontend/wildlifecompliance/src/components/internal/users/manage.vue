@@ -1,9 +1,12 @@
 <template>
-    <div class="container-fluid" id="internalUserInfo">
-    <div class="row">
-    <div class="col-md-10 col-md-offset-1">
+    <div class="container" id="internalUserInfo">
+    <!-- <div class="row"> -->
+    <!-- <div class="col-md-10 col-md-offset-1"> -->
         <div class="row">
-            <h3>{{ user.first_name }} {{ user.last_name  }} - {{ user.dob }} ({{ user.email }})</h3>
+            <div class="col-md-9">
+                <h3>{{ user.first_name }} {{ user.last_name  }} - {{ user.dob }} ({{ user.email }})</h3>
+            </div>
+        </div>    
             <div class="col-md-3">
                 <CommsLogs :comms_url="comms_url" :logs_url="logs_url" comms_add_url="test"/>
             </div>
@@ -25,8 +28,6 @@
                             Compliance
                         </a>
                     </li>
-                    <!--li class="active"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
-                    <li><a data-toggle="tab" :href="'#'+oTab">Licensing</a></li-->
                 </ul>
                 <div class="tab-content" id="pills-tabContent">
                   <div class="tab-pane fade" id="pills-details" role="tabpanel" aria-labelledby="pills-details-tab">
@@ -275,9 +276,9 @@
                     </div>
                 </div>
             </div>
-        </div>
-        </div>
-        </div>
+        <!-- </div> -->
+        <!-- </div> -->
+        <!-- </div> -->
     </div>
 </template>
 
@@ -623,5 +624,10 @@ export default {
 }
 .hidePopover {
     display: none;
+}
+#main-column {
+  padding-left: 2%;
+  padding-right: 0;
+  margin-bottom: 50px;
 }
 </style>
