@@ -165,11 +165,17 @@
                                                 <label >{{ interviewerLabel }}</label>
                                             </div>
                                             <div class="col-sm-9">
-                                                <select :disabled="readonlyForm" ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
+                                                <!--select :disabled="readonlyForm" ref="document_artifact_department_users" class="form-control" v-model="officerInterviewerEmailAddress">
                                                     <option  v-for="option in departmentStaffList" :value="option.email" v-bind:key="option.pk">
                                                     {{ option.name }} 
                                                     </option>
-                                                </select>
+                                                </select-->
+                                                <select 
+                                                    id="document_artifact_interviewer"  
+                                                    name="document_artifact_interviewer"  
+                                                    ref="document_artifact_interviewer" 
+                                                    class="form-control" 
+                                                />
                                             </div>
                                         </div>
                                     </div>
@@ -681,6 +687,7 @@ export default {
             //setDocumentArtifactLegalId: 'setDocumentArtifactLegalId',
             setOffenderId: 'setOffenderId',
             setOfficerInterviewer: 'setOfficerInterviewer',
+            setOfficerInterviewerId: 'setOfficerInterviewerId',
         }),
         ...mapActions('legalCaseStore', {
             loadLegalCase: 'loadLegalCase',
@@ -852,6 +859,7 @@ export default {
                   vm.document_artifact.artifact_time = "";
                 }
             });
+            /*
             // department_users
             $(vm.$refs.document_artifact_department_users).select2({
                     "theme": "bootstrap",
@@ -875,6 +883,40 @@ export default {
                     vm.setInterviewerEmail('');
                     //vm.selectedCustodian = {}
                 });
+                */
+            // department_users
+            $(vm.$refs.document_artifact_interviewer).select2({
+                    minimumInputLength: 2,
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"",
+                    ajax: {
+                        url: api_endpoints.staff_member_lookup,
+                        //url: api_endpoints.vessel_rego_nos,
+                        dataType: 'json',
+                        data: function(params) {
+                            console.log(params)
+                            var query = {
+                                term: params.term,
+                                type: 'public',
+                            }
+                            return query;
+                        },
+                    },
+                }).
+                on("select2:select",function (e) {
+                    let selected = $(e.currentTarget);
+                    let selectedData = selected.val();
+                    console.log(selectedData);
+                    //vm.setOfficerInterviewerWrapper(selectedData);
+                    vm.setOfficerInterviewerId(selectedData);
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    //vm.setOfficerInterviewerWrapper(null);
+                    vm.setOfficerInterviewerId(null);
+                });
+
             let existingArtifactTable = $('#existing-artifact-table');
             existingArtifactTable.on(
                 'click',
@@ -958,6 +1000,19 @@ export default {
             artifact_type: "",
             description: "",
           });
+        // Trigger Officer Interviewer select2 controls
+        let vm=this;
+        if (this.document_artifact.officer_interviewer && this.document_artifact.officer_interviewer.id) {
+            var option = new Option(
+                this.document_artifact.officer_interviewer.full_name, 
+                this.document_artifact.officer_interviewer.full_name, 
+                true, 
+                true
+            );
+            $(vm.$refs.document_artifact_interviewer).append(option).trigger('change');
+        }
+
+        /*
         // retrieve department_users from backend cache
         let returned_department_users = await this.$http.get(api_endpoints.department_users)
         Object.assign(this.departmentStaffList, returned_department_users.body)
@@ -966,6 +1021,7 @@ export default {
             pk: "",
             name: "",
           });
+          */
     },
 };
 </script>
