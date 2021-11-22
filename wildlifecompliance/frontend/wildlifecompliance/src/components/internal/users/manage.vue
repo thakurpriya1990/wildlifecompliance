@@ -266,6 +266,12 @@
                         :entity_id='user.id'
                         entity_type='person'
                         />
+                        <IntelligenceInformation
+                        v-if="user.id"
+                        ref="intelligence_information" 
+                        :entity_id='user.id'
+                        entity_type='person'
+                        />
                     </div>
                 </div>
             </div>
@@ -284,6 +290,7 @@ import ReturnDashTable from '@common-components/returns_dashboard.vue'
 import SanctionOutcomePersonOrgDashTable from '@common-components/sanction_outcomes_person_org_dashboard.vue'
 import LegalCasePersonOrgDashTable from '@common-components/legal_case_person_org_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
+import IntelligenceInformation from '@common-components/intelligence_information.vue'
 import SecureBaseLink from '@common-components/securebase_link.vue';
 import utils from '../utils'
 export default {
@@ -337,6 +344,7 @@ export default {
         LegalCasePersonOrgDashTable,
         CommsLogs,
         SecureBaseLink,
+        IntelligenceInformation,
     },
     computed: {
         isLoading: function () {

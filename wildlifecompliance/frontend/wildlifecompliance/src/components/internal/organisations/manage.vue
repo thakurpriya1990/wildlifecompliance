@@ -246,8 +246,15 @@
                     </div>
                     <div class="tab-pane fade" id="pills-compliance" role="tabpanel" aria-labelledby="pills-compliance-tab">
                         <SanctionOutcomePersonOrgDashTable 
+                        v-if="org.id"
                         ref="sanction_outcome_person_org_table" 
                         level='internal' 
+                        :entity_id='org.id'
+                        entity_type='org'
+                        />
+                        <IntelligenceInformation
+                        v-if="org.id"
+                        ref="intelligence_information" 
                         :entity_id='org.id'
                         entity_type='org'
                         />
@@ -271,6 +278,7 @@ import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
 import SanctionOutcomePersonOrgDashTable from '@common-components/sanction_outcomes_person_org_dashboard.vue'
+import IntelligenceInformation from '@common-components/intelligence_information.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
 import utils from '../utils'
 import api from '../api'
@@ -392,7 +400,8 @@ export default {
         ReturnDashTable,
         SanctionOutcomePersonOrgDashTable,
         AddContact,
-        CommsLogs
+        CommsLogs,
+        IntelligenceInformation,
     },
     computed: {
         isLoading: function () {
