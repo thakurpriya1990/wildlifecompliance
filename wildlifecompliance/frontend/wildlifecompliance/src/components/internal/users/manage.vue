@@ -20,6 +20,11 @@
                             Licensing
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="pills-compliance-tab" data-toggle="pill" href="#pills-compliance" role="tab" aria-controls="pills-compliance" aria-selected="false">
+                            Compliance
+                        </a>
+                    </li>
                     <!--li class="active"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
                     <li><a data-toggle="tab" :href="'#'+oTab">Licensing</a></li-->
                 </ul>
@@ -246,6 +251,15 @@
                         <LicenceDashTable ref="licences_table" level='internal' :url='licences_url'/>
                         <ReturnDashTable ref="returns_table" level='internal' :url='returns_url'/>
                     </div>
+                    <div class="tab-pane fade" id="pills-compliance" role="tabpanel" aria-labelledby="pills-compliance-tab">
+                        <SanctionOutcomePersonOrgDashTable 
+                        v-if="user.id"
+                        ref="sanction_outcome_person_org_table" 
+                        level='internal' 
+                        :entity_id='user.id'
+                        entity_type='person'
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -260,6 +274,7 @@ import datatable from '@vue-utils/datatable.vue'
 import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
+import SanctionOutcomePersonOrgDashTable from '@common-components/sanction_outcomes_person_org_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
 import SecureBaseLink from '@common-components/securebase_link.vue';
 import utils from '../utils'
@@ -310,8 +325,9 @@ export default {
         ApplicationDashTable,
         LicenceDashTable,
         ReturnDashTable,
+        SanctionOutcomePersonOrgDashTable,
         CommsLogs,
-        SecureBaseLink,        
+        SecureBaseLink,
     },
     computed: {
         isLoading: function () {

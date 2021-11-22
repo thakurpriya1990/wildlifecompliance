@@ -21,6 +21,11 @@
                             Licensing
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="pills-compliance-tab" data-toggle="pill" href="#pills-compliance" role="tab" aria-controls="pills-compliance" aria-selected="false">
+                            Compliance
+                        </a>
+                    </li>
                 </ul>
                 <!--ul class="nav nav-tabs">
                     <li class="active"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
@@ -239,6 +244,14 @@
                         <LicenceDashTable ref="licences_table" level='internal' :url='licences_url'/>
                         <ReturnDashTable ref="returns_table" level='internal' :url='returns_url'/>
                     </div>
+                    <div class="tab-pane fade" id="pills-compliance" role="tabpanel" aria-labelledby="pills-compliance-tab">
+                        <SanctionOutcomePersonOrgDashTable 
+                        ref="sanction_outcome_person_org_table" 
+                        level='internal' 
+                        :entity_id='org.id'
+                        entity_type='org'
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -257,6 +270,7 @@ import AddContact from '@common-components/add_contact.vue'
 import ApplicationDashTable from '@common-components/applications_dashboard.vue'
 import LicenceDashTable from '@common-components/licences_dashboard.vue'
 import ReturnDashTable from '@common-components/returns_dashboard.vue'
+import SanctionOutcomePersonOrgDashTable from '@common-components/sanction_outcomes_person_org_dashboard.vue'
 import CommsLogs from '@common-components/comms_logs.vue'
 import utils from '../utils'
 import api from '../api'
@@ -376,6 +390,7 @@ export default {
         ApplicationDashTable,
         LicenceDashTable,
         ReturnDashTable,
+        SanctionOutcomePersonOrgDashTable,
         AddContact,
         CommsLogs
     },
