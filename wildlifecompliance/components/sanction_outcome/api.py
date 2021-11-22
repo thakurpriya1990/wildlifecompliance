@@ -13,6 +13,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
 from ledger.payments.invoice.models import Invoice
+from ledger.accounts.models import EmailUser
 
 from rest_framework import viewsets, serializers, status
 from rest_framework.decorators import list_route, detail_route, renderer_classes
@@ -180,6 +181,33 @@ class SanctionOutcomePaginatedViewSet(viewsets.ModelViewSet):
             (Q(offender__person=request.user) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
             (Q(offender__isnull=True) & Q(registration_holder=request.user) & Q(driver__isnull=True)) |
             (Q(offender__isnull=True) & Q(driver=request.user))
+        )
+        queryset = self.filter_queryset(queryset).order_by('-id')
+        self.paginator.page_size = queryset.count()
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = SanctionOutcomeDatatableSerializer(result_page, many=True, context={'request': request, 'internal': is_internal(request)})
+        ret = self.paginator.get_paginated_response(serializer.data)
+        return ret
+
+    @list_route(methods=['GET', ])
+    def person_org_datatable_list(self, request, *args, **kwargs):
+        """
+        This function is called from the external dashboard page by external user
+        """
+        entity_id = request.GET.get('entity_id')
+        entity_type = request.GET.get('entity_type')
+        person = None
+        org = None
+        if entity_type == 'person':
+            person = EmailUser.objects.get(id=entity_id)
+        ## Expand to include Orgs
+        elif entity_type == 'org':
+            pass
+        #import ipdb; ipdb.set_trace()
+        queryset = SanctionOutcome.objects.filter(
+            (Q(offender__person=person) & Q(offender__removed=False) & Q(registration_holder__isnull=True) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(registration_holder=person) & Q(driver__isnull=True)) |
+            (Q(offender__isnull=True) & Q(driver=person))
         )
         queryset = self.filter_queryset(queryset).order_by('-id')
         self.paginator.page_size = queryset.count()

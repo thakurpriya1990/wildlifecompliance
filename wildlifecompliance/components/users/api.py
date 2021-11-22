@@ -63,6 +63,7 @@ from rest_framework.decorators import (
     api_view
 )
 from django.core.cache import cache
+from wildlifecompliance.components.main.process_document import process_generic_document
 #from wildlifecompliance.components.main.utils import retrieve_department_users
 
 
@@ -288,6 +289,87 @@ class UserViewSet(viewsets.ModelViewSet):
         if dob is not None and dob is not u'':
             queryset = queryset.filter(dob=dob)
         return queryset
+
+    @detail_route(methods=['GET'])
+    @renderer_classes((JSONRenderer,))
+    def get_intelligence_text(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            intelligence_text = ""
+            preference_qs = ComplianceManagementUserPreferences.objects.filter(email_user=instance)
+            if preference_qs:
+                intelligence_text = preference_qs[0].intelligence_information_text
+            return Response({"intelligence_text": intelligence_text})
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def save_intelligence_text(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            intelligence_text = request.data.get('intelligence_text')
+            preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=instance)
+            preference.intelligence_information_text = intelligence_text
+            preference.save()
+            return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_intelligence_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # process docs
+            returned_data = process_generic_document(request, instance, 'intelligence_document')
+            # delete Sanction Outcome if user cancels modal
+            action = request.data.get('action')
+            if action == 'cancel' and returned_data:
+                instance.status = 'discarded'
+                instance.save()
+
+            # return response
+            if returned_data:
+                return Response(returned_data)
+            else:
+                return Response()
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
 
     @detail_route(methods=['GET', ])
     def action_log(self, request, *args, **kwargs):
