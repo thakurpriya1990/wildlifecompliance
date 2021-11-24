@@ -3468,6 +3468,8 @@ class Application(RevisionedMixin):
                     '''
                     original_issue_date = start_date = item.get('start_date')
                     expiry_date = item.get('end_date')
+                    original_activity_status= selected_activity.processing_status
+                    issued_purpose_exists=False
 
                     if self.application_type in [
                         Application.APPLICATION_TYPE_AMENDMENT,
@@ -3552,6 +3554,8 @@ class Application(RevisionedMixin):
                             selected_activity.decision_action =\
                                 ApplicationSelectedActivity.DECISION_ACTION_ISSUED
 
+                            issued_purpose_exists =True
+
                         elif purpose.purpose_id in decline_ids:
                             P_LOG = ApplicationUserAction.ACTION_DECLINE_LICENCE_
                             purpose.processing_status = DECLINE
@@ -3600,6 +3604,11 @@ class Application(RevisionedMixin):
                                 P_LOG.format(purpose.purpose.name),
                                 request
                             )
+
+                    '''Currently if there is atleast one declined activity then activity status changes to 'decline'.
+                    To fix it, if there is atleast one issued purpose on the activity then reverting back to original status so it will be accepted later'''
+                    if issued_purpose_exists:
+                        selected_activity.processing_status= original_activity_status 
 
                     if not selected_activity.processing_status == \
                         ApplicationSelectedActivity.PROCESSING_STATUS_DECLINED:

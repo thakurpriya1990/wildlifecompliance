@@ -191,7 +191,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
         try:
 
             excl_choices = [
-                # None
+                'group2'
             ]
 
             answer_types = [
@@ -314,6 +314,7 @@ class SchemaMasterlistViewSet(viewsets.ModelViewSet):
                 serializer = SchemaMasterlistSerializer(
                     instance, data=request.data
                 )
+                serializer.get_options(instance)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 

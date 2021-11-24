@@ -111,7 +111,7 @@
                                     <div class="col-sm-12" v-if="notOfficerWorkflow">
                                         <strong>Application</strong><br/>
                                         <a class="actionBtn" v-if="!showingApplication && showingConditions" @click.prevent="actionApplicationLink()">Show Application</a>
-                                        <a class="actionBtn" v-else-if="showingApplication && !showingConditions" @click.prevent="actionApplicationLink()">Hide Application</a><br/>
+                                        <a class="actionBtn" v-else-if="showingApplication && !showingConditions" @click.prevent="actionApplicationLink()">Hide Application2</a><br/>
                                     </div>                                    
                                     <div class="col-sm-12" v-else>
                                         <strong>Application</strong><br/>
@@ -1052,8 +1052,21 @@ export default {
 
             return true;
         },
-        showFinalDecision: function() {
+        showFinalDecisionOriginal: function() {
             let show_final = (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline && !this.showingConditions
+            if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
+                this.toggleApplication({show: false})
+                this.isSendingToAssessor=false
+            }
+            if (show_final) {this.showingApplication=false}
+            return show_final
+        },
+        showFinalDecision: function() {
+            let show_final=false;
+
+            if(!this.unfinishedActivities.length){
+                show_final = (!this.showingApplication || !this.unfinishedActivities.length) && !this.isSendingToAssessor && !this.canIssueDecline && !this.showingConditions
+            }
             if (['awaiting_payment'].includes(this.application.processing_status.id)) { // prevent processing for outstanding payments.
                 this.toggleApplication({show: false})
                 this.isSendingToAssessor=false
@@ -2040,7 +2053,28 @@ export default {
 
                     if (!this.isofficerfinalisation && (!this.hasActionedConditionLink && !this.hasActionedApplicationLink)) {
 
-                        this.toggleIssue();
+                        //this.toggleIssue(); Orginal code
+                        //PA code start
+                        if(this.showIssueDeclineButton){//check if user has access to process application
+                            this.toggleIssue();
+                        }
+                        else{//if no access then show application
+                            //this.notOfficerWorkflow=true;
+                            this.approvingApplication=false;
+                            this.isofficerfinalisation = false;
+
+                            if (this.showingConditions) {
+
+                                this.showingApplication = false;
+                                //this.isSendingToAssessor = true;
+
+                            } else if (!this.showingApplication) {
+
+                                this.toggleApplication({show: true})
+                                this.isSendingToAssessor = true;
+                            }
+                        }
+                        //PA code end
                     }
                     return
                 }
