@@ -58,6 +58,7 @@
                             <textarea class="form-control" name="question" v-model="masterlist.question"></textarea>
                         </div>
                     </div>
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Answer Type</label>
@@ -269,12 +270,31 @@ export default {
             this.showOptions = q_type && option.includes(q_type.value) ? true : false
             this.showTables = q_type && table.includes(q_type.value) ? true : false
 
-            if (this.showOptions && this.isNewEntry) {
-                this.addedOption.id = ''
-                this.addedOption.label = ''
-                this.addedOption.value = ''
-                let newOption = Object.assign(this.addedOption)
-                this.addedOptions.push(newOption);          
+            // if (this.showOptions && this.isNewEntry) {
+            //     this.addedOption.id = ''
+            //     this.addedOption.label = ''
+            //     this.addedOption.value = ''
+            //     let newOption = Object.assign(this.addedOption)
+            //     this.addedOptions.push(newOption);          
+            // }
+            if (this.showOptions) {
+                if(this.isNewEntry){
+                    this.addedOption.id = ''
+                    this.addedOption.label = ''
+                    this.addedOption.value = ''
+                    let newOption = Object.assign(this.addedOption)
+                    this.addedOptions.push(newOption); 
+                }
+                else{//if in edit mode but has no options added previously then allow to add options.
+                    if(this.addedOptions.length==0){
+                        this.addedOption.id = ''
+                        this.addedOption.label = ''
+                        this.addedOption.value = ''
+                        let newOption = Object.assign(this.addedOption)
+                        this.addedOptions.push(newOption); 
+                    }
+                }
+                         
             }
 
             if (this.showTables && this.isNewEntry) {

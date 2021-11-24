@@ -698,10 +698,14 @@ export default {
                         activity_rows += `
                             <tr>
                                 <td>${activity['activity_name_str']}</td>
-                                <td>${activity['activity_purpose_names'].
+                                
+                                <td>${activity['activity_purpose_names_status']['name_string'].
                                     replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>
                                 ${vm.is_external ? '' : activity['officer_name'] == null ?  `<td>&nbsp;</td>`: `<td>${activity['officer_name']}</td>`}    
-                                ${vm.is_external ? '' : `<td>${activity['processing_status']['name']}</td>`}
+    
+                                ${vm.is_external ? '' : `<td>${activity['activity_purpose_names_status']['status_string'].
+                                    replace(/(?:\r\n|\r|\n|,)/g, '<br>')}</td>`}
+
                                 ${vm.is_external ? '' : `<td>${activity['can_pay_licence_fee'] ?
                                     `<a pay-licence-fee-for='${activity['id']}' application-id='${row.data()['id']}'>Pay licence fee</a>` : ''}
                                 </td>`}
