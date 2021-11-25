@@ -468,7 +468,10 @@ export default {
                 this.answerList = master.options;
                 let parent = this.parentList.find( q => q.value == q_id)
                 if (parent) {
-                    this.sectionQuestion.section_group = parent.group
+                    //this.sectionQuestion.section_group = parent.group
+                    if(parent.group){
+                        this.sectionQuestion.section_group = parent.group
+                    }
                 }
             } else {
                 this.sectionQuestion.parent_question = '';
