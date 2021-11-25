@@ -215,7 +215,7 @@ def is_authorised_to_modify(request, instance):
     authorised = True
                 
     # Can only modify if Open (not overdue, submitted, accepted).
-    if instance.status != 'open':
+    if instance.status not in ['open', 'overdue']:
         raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
                                           .format(instance.status))
 
