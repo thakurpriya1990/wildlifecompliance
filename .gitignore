@@ -112,4 +112,5 @@ uwsgi*.ini
 # wildlifecompliance/static/wildlifecompliance_vue/js/manifest.js
 # wildlifecompliance/static/wildlifecompliance_vue/js/vendor.js
 # wildlifecompliance/static/wildlifecompliance_vue/static/js/babel-polyfill.js
+wildlifecompliance/static/wildlifecompliance_vue/*
 
