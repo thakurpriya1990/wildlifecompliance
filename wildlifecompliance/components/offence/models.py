@@ -178,6 +178,22 @@ def perform_can_close_record(sender, instance, **kwargs):
 post_save.connect(perform_can_close_record, sender=Offence)
 
 
+def update_offence_doc_filename(instance, filename):
+    return 'wildlifecompliance/offence/{}/documents/{}'.format(
+        instance.sanction_outcome.id, filename
+    )
+
+
+class OffenceDocument(Document):
+    offence = models.ForeignKey(Offence, related_name='documents')
+    _file = models.FileField(max_length=255, upload_to=update_offence_doc_filename)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_OffenceDocument'
+        verbose_name_plural = 'CM_OffenceDocuments'
+
+
 class AllegedOffence(RevisionedMixin):
     offence = models.ForeignKey(Offence, null=False,)
     section_regulation = models.ForeignKey(SectionRegulation, null=False, )

@@ -362,7 +362,8 @@ export default {
         canIssueOrDecline: function() {
 
             let is_checked = this.getCheckedItem('id_check').isChecked && this.getCheckedItem('character_check').isChecked  && this.getCheckedItem('return_check').isChecked;
-            return (this.allActivitiesDeclined || is_checked) && this.visibleLicenceActivities.length;
+            let is_accepted = this.isIdCheckAccepted && this.isCharacterCheckAccepted && this.isReturnCheckAccepted;
+            return (this.allActivitiesDeclined || is_checked || is_accepted) && this.visibleLicenceActivities.length;
         },
         selectedActivity: function() {
             return this.visibleLicenceActivities.filter(

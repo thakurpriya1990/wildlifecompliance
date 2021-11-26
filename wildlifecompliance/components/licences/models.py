@@ -1787,11 +1787,12 @@ class MasterlistQuestion(models.Model):
                 if isinstance(obj, list):
                     options = []
                     for o in obj:
-                        option = {
-                            'label': o['label'],
-                            'value': o['value'],
-                        }
-                        options.append(option)
+                        if not o['label']=='':
+                            option = {
+                                'label': o['label'],
+                                'value': o['value'],
+                            }
+                            options.append(option)
                     return options
 
             def encode_list(self, obj, iter=None):

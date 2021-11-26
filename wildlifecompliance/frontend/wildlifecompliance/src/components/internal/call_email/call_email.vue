@@ -364,7 +364,7 @@
                             <div class="container">
                                 <p class="pull-right" style="margin-top:5px;">
                                     
-                                    <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"w/>
+                                    <input type="button" @click.prevent="save('exit')" class="btn btn-primary" value="Save and Exit"/>
                                     <input type="button" @click.prevent="save('noexit')" class="btn btn-primary" value="Save and Continue" />
                                 </p>
                             </div>

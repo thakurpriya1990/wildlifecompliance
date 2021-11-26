@@ -109,3 +109,7 @@ wildlifecompliance/static/wildlifecompliance_vue/*
 # *-lock.json
 
 wlc_git_history
+
+# Jupyter lab
+.ipynb_checkpoints/
+*.ipynb

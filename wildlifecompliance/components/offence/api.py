@@ -529,7 +529,21 @@ class OffenceViewSet(viewsets.ModelViewSet):
 
                 # 2.2. Update parents
                 self.update_parent(request, saved_offence_instance)
-                
+
+                # Handle documents
+                from wildlifecompliance.components.main.models import TemporaryDocumentCollection
+                from wildlifecompliance.components.main.process_document import save_default_document_obj
+                temporary_document_collection_dict = request_data.get('temporary_document_collection_id', None)
+                if temporary_document_collection_dict:
+                    temporary_document_collection_id = temporary_document_collection_dict.get('temp_doc_id', None)
+                    if temporary_document_collection_id:
+                        temp_doc_collection, created = TemporaryDocumentCollection.objects.get_or_create(id=temporary_document_collection_id)
+                        if temp_doc_collection:
+                            for doc in temp_doc_collection.documents.all():
+                                save_default_document_obj(saved_offence_instance, doc)
+                                pass
+                            temp_doc_collection.delete()
+
                 ## 2a. Log it to the call email, if applicable
                 #if saved_offence_instance.call_email:
                 #    saved_offence_instance.call_email.log_user_action(

@@ -146,7 +146,7 @@ class ReturnPaginatedViewSet(viewsets.ModelViewSet):
         # Filter by org
         org_id = request.GET.get('org_id', None)
         if org_id:
-            queryset = queryset.filter(org_applicant_id=org_id)
+            queryset = queryset.filter(licence__current_application__org_applicant_id=org_id)
         # Filter by proxy_applicant
         proxy_applicant_id = request.GET.get('proxy_applicant_id', None)
         if proxy_applicant_id:

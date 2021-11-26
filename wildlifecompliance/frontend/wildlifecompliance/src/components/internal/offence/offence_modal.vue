@@ -5,6 +5,7 @@
                 <ul class="nav nav-pills">
                     <li class="nav-item active"><a data-toggle="tab" :href="'#'+oTab">Offence</a></li>
                     <li class="nav-item"><a data-toggle="tab" :href="'#'+dTab">Details</a></li>
+                    <li class="nav-item"><a data-toggle="tab" :href="'#'+documentTab">Document</a></li>
                     <li class="nav-item"><a data-toggle="tab" :href="'#'+pTab">Offender(s)</a></li>
                     <li class="nav-item"><a data-toggle="tab" :href="'#'+lTab" @click="mapOffenceClicked">Location</a></li>
                 </ul>
@@ -140,6 +141,25 @@
                         </div>
                     </div>
 
+                    <div :id="documentTab" class="tab-pane face in">
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-3">
+                                        <label class="control-label pull-left"  for="Name">Attachments</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <FileField 
+                                            ref="comms_log_file" 
+                                            name="comms-log-file" 
+                                            :isRepeatable="true" 
+                                            documentActionUrl="temporary_document" 
+                                            @update-temp-doc-coll-id="setTemporaryDocumentCollectionId"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+
                     <div :id="pTab" class="tab-pane fade in">
                         <div class="row"><div class="col-sm-12">
 
@@ -226,6 +246,7 @@ import "bootstrap/dist/css/bootstrap.css";
 import "awesomplete/awesomplete.css";
 import uuid from 'uuid';
 import "jquery-ui/ui/widgets/draggable.js";
+import FileField from '@/components/common/compliance_file.vue';
 
 export default {
   name: "Offence",
@@ -259,7 +280,10 @@ export default {
       dTab: "dTab" + vm._uid,
       pTab: "pTab" + vm._uid,
       lTab: "lTab" + vm._uid,
+      documentTab: 'documentTab' + vm._uid,
       errorResponse: '',
+
+      temporary_document_collection_id: null,
 
       regionDistricts: [],
       regions: [], // this is the list of options
@@ -396,10 +420,11 @@ export default {
 
   },
   components: {
-    modal,
-    datatable,
-    MapLocationOffence,
-    SearchPersonOrganisation,
+      modal,
+      datatable,
+      MapLocationOffence,
+      SearchPersonOrganisation,
+      FileField,
     //CreateNewPerson
   },
     props:{
@@ -487,6 +512,7 @@ export default {
       setLegalCaseId: "setLegalCaseId",
       createOffence: "createOffence",
       setOffenceEmpty: "setOffenceEmpty",
+      setTempDocumentCollectionId: "setTempDocumentCollectionId",
     }),
     ...mapActions('inspectionStore', {
       loadInspection: "loadInspection",
@@ -497,6 +523,9 @@ export default {
     ...mapActions('legalCaseStore', {
       loadLegalCase: "loadLegalCase",
     }),
+        setTemporaryDocumentCollectionId: function(val) {
+            this.temporary_document_collection_id = val;
+        },
     makeModalsDraggable: function(){
         this.elem_modal = $('.modal > .modal-dialog');
         for (let i=0; i<this.elem_modal.length; i++){
@@ -810,6 +839,10 @@ export default {
         // If exists, set legal_case_id to the offence
         if (this.$parent.legal_case && this.$parent.legal_case.id) {
             vm.setLegalCaseId(this.$parent.legal_case.id);
+        }
+
+        if (this.temporary_document_collection_id){
+            vm.setTempDocumentCollectionId(this.temporary_document_collection_id)
         }
 
         // Collect offenders data from the datatable, and set them to the vuex
