@@ -29,10 +29,12 @@ from wildlifecompliance.components.organisations.emails import (
     send_organisation_id_upload_email_notification,
     send_organisation_contact_consultant_email_notification,
 )
+from wildlifecompliance.components.main.models import Document
 
 
 @python_2_unicode_compatible
 class Organisation(models.Model):
+    intelligence_information_text = models.TextField(blank=True)
     organisation = models.ForeignKey(ledger_organisation)
     # TODO: business logic related to delegate changes.
     delegates = models.ManyToManyField(
@@ -574,6 +576,16 @@ class Organisation(models.Model):
     @property
     def get_related_items_descriptor(self):
         return self.name
+
+
+class OrganisationIntelligenceDocument(Document):
+    organisation = models.ForeignKey(Organisation, related_name='intelligence_documents')
+    _file = models.FileField(max_length=255,)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        #verbose_name = 'CM_ProsecutionNoticeDocument'
+        #verbose_name_plural = 'CM_ProsecutionNoticeDocuments'
 
 
 @python_2_unicode_compatible

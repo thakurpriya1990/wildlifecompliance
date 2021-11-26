@@ -14,6 +14,10 @@
 {% endblock %}
 
 {% block order_contents %}
+<style>
+    html {display: none}
+</style>
+
     <div class="sub-header">
         {% block order_contents_actions %}
         {% endblock %}
@@ -72,4 +76,10 @@
             </div>
         </div>
     </form>
+
+    <script>
+        let continue_button = document.getElementById("place-order");
+        console.log(continue_button);
+        continue_button.click();
+    </script>
 {% endblock place_order %}

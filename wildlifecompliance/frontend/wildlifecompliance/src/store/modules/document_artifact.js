@@ -80,6 +80,9 @@ export const documentArtifactStore = {
             officerInterviewerConcise.surname = officer_interviewer.surname
             Vue.set(state.document_artifact, 'officer_interviewer', officerInterviewerConcise);
         },
+        updateOfficerInterviewerId(state, officer_interviewer_id) {
+            Vue.set(state.document_artifact, 'officer_interviewer_id', officer_interviewer_id);
+        },
         updateErrorMessage(state, errorMessage) {
             Vue.set(state.document_artifact, 'error_message', errorMessage);
         },
@@ -210,5 +213,9 @@ export const documentArtifactStore = {
             console.log(officer_interviewer)
             commit("updateOfficerInterviewer", officer_interviewer);
         },
+        setOfficerInterviewerId({ commit }, officer_interviewer_id) {
+            commit("updateOfficerInterviewerId", officer_interviewer_id);
+        },
+
     },
 };
