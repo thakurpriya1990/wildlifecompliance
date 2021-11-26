@@ -341,10 +341,9 @@ export const callemailStore = {
                 }
             }
         },
-        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal }) {
+        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal, close }) {
             console.log("saveCallEmail");
-            console.log("internal");
-            console.log(internal);
+            console.log("close");
             let callId = null;
             let savedCallEmail = null;
             try {
@@ -396,17 +395,37 @@ export const callemailStore = {
                     }
                 }
 
-                let fetchUrl = null;
                 if (crud === 'create' || crud === 'duplicate') {
-                    fetchUrl = api_endpoints.call_email;
-                    savedCallEmail = await Vue.http.post(fetchUrl, payload)
+                    const createUrl = api_endpoints.call_email;
+                    savedCallEmail = await Vue.http.post(createUrl, payload)
+                } else if (close) {
+                        const closeUrl = helpers.add_endpoint_join(
+                        api_endpoints.call_email,
+                        state.call_email.id + "/close/")
+                    try {
+                        savedCallEmail = await Vue.http.post(closeUrl, payload)
+                    }catch(err) {
+                        await swal({
+                            title: 'Mandatory Field',
+                            html: helpers.formatError(err),
+                            type: "error",
+                        })
+                    }
                 } else {
-                    fetchUrl = helpers.add_endpoint_join(
+                    //---Save the draft call/email
+                    try {
+                        const fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.call_email, 
-                        //state.call_email.id + "/call_email_save/"
                         state.call_email.id + "/"
                         )
-                    savedCallEmail = await Vue.http.put(fetchUrl, payload)
+                        savedCallEmail = await Vue.http.put(fetchUrl, payload)
+                    }catch(err) {
+                        await swal({
+                            title: 'Mandatory Field',
+                            html: helpers.formatError(err),
+                            type: "error",
+                        })
+                    }
                 }
 
                 await dispatch("setCallEmail", savedCallEmail.body);

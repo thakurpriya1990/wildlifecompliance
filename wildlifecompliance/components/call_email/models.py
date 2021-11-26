@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
+from multiselectfield import MultiSelectField
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
@@ -73,8 +74,11 @@ class CallType(models.Model):
     CALL_TYPE_GENERAL_ENQUIRY = 'general_enquiry'
     CALL_TYPE_ILLEGAL_ACTIVITY = 'illegal_activity'
     CALL_TYPE_AMPHIBIAN = 'amphibian'
-    CALL_TYPE_MAMMAL='mammal'
-    CALL_TYPE_BIRD='bird'
+    CALL_TYPE_MAMMAL = 'mammal'
+    CALL_TYPE_BIRD = 'bird'
+    CALL_TYPE_NON_NATIVE_SPECIES = 'non_native_species'
+    CALL_TYPE_REPTILE = 'reptile'
+    CALL_TYPE_OTHER = 'other'
 
     NAME_CHOICES = (
         (CALL_TYPE_GENERAL_ENQUIRY, 'General Enquiry'),
@@ -82,6 +86,9 @@ class CallType(models.Model):
         (CALL_TYPE_AMPHIBIAN, 'Ambhibian - e.g. frog, cane toad'),
         (CALL_TYPE_MAMMAL, 'Mammal'),
         (CALL_TYPE_BIRD, 'Bird'),
+        (CALL_TYPE_NON_NATIVE_SPECIES, 'Non native species - e.g. pigeon, fox, cattle, peacock'),
+        (CALL_TYPE_REPTILE, 'Reptile - e.g. snake, turtles, lizard'),
+        (CALL_TYPE_OTHER, 'Other - e.g. spider, bees, fish'),
     )
 
     name = models.CharField(
@@ -98,6 +105,97 @@ class CallType(models.Model):
 
     def __str__(self):
         return self.get_name_display()
+
+class WildcareSpeciesType(models.Model):
+    WILDCARE_SPECIES_TYPE_CANETOAD = 'cane_toad'
+    WILDCARE_SPECIES_TYPE_FROG = 'frog'
+    WILDCARE_SPECIES_TYPE_BUTCHERBIRD = 'butcherbird'
+    WILDCARE_SPECIES_TYPE_COCKATOO = 'cockatoo'
+    WILDCARE_SPECIES_TYPE_COOT = 'coot'
+    WILDCARE_SPECIES_TYPE_CORMORANT = 'cormorant'
+    WILDCARE_SPECIES_TYPE_DUCK = 'duck'
+    WILDCARE_SPECIES_TYPE_EAGLE_FALCON_HAWK = 'eagle_falcon_hawk'
+    WILDCARE_SPECIES_TYPE_EMU = 'emu'
+    WILDCARE_SPECIES_TYPE_FINCH = 'finch'
+    WILDCARE_SPECIES_TYPE_GOOSE = 'goose'
+    WILDCARE_SPECIES_TYPE_HERON = 'heron'
+    WILDCARE_SPECIES_TYPE_HONEYEATER = 'honeyeater'
+    WILDCARE_SPECIES_TYPE_IBIS = 'ibis'
+    WILDCARE_SPECIES_TYPE_KINGFISHER = 'kingfisher'
+    WILDCARE_SPECIES_TYPE_MAGPIE = 'magpie'
+    WILDCARE_SPECIES_TYPE_MAGPIE_LARK = 'magpie_lark'
+    WILDCARE_SPECIES_TYPE_OWL = 'owl'
+    WILDCARE_SPECIES_TYPE_PARROT = 'parrot'
+    WILDCARE_SPECIES_TYPE_PEACOCK = 'peacock'
+    WILDCARE_SPECIES_TYPE_PENGUIN = 'penguin'
+    WILDCARE_SPECIES_TYPE_QUAIL = 'quail'
+    WILDCARE_SPECIES_TYPE_RAINBOW_BEE_EATER = 'rainbow_bee_eater'
+    WILDCARE_SPECIES_TYPE_RAINBOW_LORIKEET = 'rainbow_lorikeet'
+    WILDCARE_SPECIES_TYPE_RAVEN = 'raven'
+    WILDCARE_SPECIES_TYPE_ALBATROSS = 'albatross'
+    WILDCARE_SPECIES_TYPE_GULL = 'gull'
+    WILDCARE_SPECIES_TYPE_PELICAN = 'pelican'
+    WILDCARE_SPECIES_TYPE_SHEARWATER = 'shearwater'
+    WILDCARE_SPECIES_TYPE_TERN = 'tern'
+    WILDCARE_SPECIES_TYPE_SWALLOW = 'swallow'
+    WILDCARE_SPECIES_TYPE_SWAN = 'swan'
+    WILDCARE_SPECIES_TYPE_TAWNY_FROGMOUTH = 'tawny_frogmouth'
+    WILDCARE_SPECIES_TYPE_WILLY_WAGTAIL = 'willy_wagtail'
+    WILDCARE_SPECIES_TYPE_SNAKE = 'snake'
+
+
+    WILDCARE_SPECIES_TYPE_CHOICES = (
+        (WILDCARE_SPECIES_TYPE_CANETOAD, 'Cane Toad'),
+        (WILDCARE_SPECIES_TYPE_FROG, 'Frog'),
+        (WILDCARE_SPECIES_TYPE_BUTCHERBIRD, 'Butcherbird'),
+        (WILDCARE_SPECIES_TYPE_COCKATOO, 'Cockatoo'),
+        (WILDCARE_SPECIES_TYPE_COOT, 'Coot'),
+        (WILDCARE_SPECIES_TYPE_CORMORANT, 'Cormorant'),
+        (WILDCARE_SPECIES_TYPE_DUCK, 'Duck'),
+        (WILDCARE_SPECIES_TYPE_EAGLE_FALCON_HAWK, 'Eagle, Falcon, Hawk'),
+        (WILDCARE_SPECIES_TYPE_EMU, 'Emu'),
+        (WILDCARE_SPECIES_TYPE_GOOSE, 'Goose'),
+        (WILDCARE_SPECIES_TYPE_HERON, 'Heron'),
+        (WILDCARE_SPECIES_TYPE_HONEYEATER, 'Honeyeater'),
+        (WILDCARE_SPECIES_TYPE_IBIS, 'Ibis'),
+        (WILDCARE_SPECIES_TYPE_KINGFISHER, 'Kingfisher'),
+        (WILDCARE_SPECIES_TYPE_MAGPIE, 'Magpie'),
+        (WILDCARE_SPECIES_TYPE_MAGPIE_LARK, 'Magpie-Lark'),
+        (WILDCARE_SPECIES_TYPE_OWL, 'Owl'),
+        (WILDCARE_SPECIES_TYPE_PARROT, 'Parrot'),
+        (WILDCARE_SPECIES_TYPE_PEACOCK, 'Peacock'),
+        (WILDCARE_SPECIES_TYPE_PENGUIN, 'Penguin'),
+        (WILDCARE_SPECIES_TYPE_QUAIL, 'Quail'),
+        (WILDCARE_SPECIES_TYPE_RAINBOW_BEE_EATER, 'Rainbow Bee-Eater'),
+        (WILDCARE_SPECIES_TYPE_RAINBOW_LORIKEET, 'Rainbow Lorikeet'),
+        (WILDCARE_SPECIES_TYPE_RAVEN, 'Raven'),
+        (WILDCARE_SPECIES_TYPE_ALBATROSS, 'Albatross'),
+        (WILDCARE_SPECIES_TYPE_GULL, 'Gull'),
+        (WILDCARE_SPECIES_TYPE_PELICAN, 'Pelican'),
+        (WILDCARE_SPECIES_TYPE_SHEARWATER, 'Shearwater'),
+        (WILDCARE_SPECIES_TYPE_TERN, 'tern'),
+        (WILDCARE_SPECIES_TYPE_SWALLOW, 'Swallow'),
+        (WILDCARE_SPECIES_TYPE_SWAN, 'Swan'),
+        (WILDCARE_SPECIES_TYPE_TAWNY_FROGMOUTH, 'Tawny Frogmouth'),
+        (WILDCARE_SPECIES_TYPE_WILLY_WAGTAIL, 'Willy Wagtail'),
+        (WILDCARE_SPECIES_TYPE_SNAKE, 'Snake'),
+    )
+
+    call_type=models.ForeignKey(CallType, on_delete=models.CASCADE , related_name='wildcare_species_types')
+    species_name = models.CharField(
+        max_length=100,
+        choices=WILDCARE_SPECIES_TYPE_CHOICES,
+    )
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_WildcareSpeciesType'
+        verbose_name_plural = 'CM_WildcareSpeciesTypes'
+        ordering = ['species_name']
+        unique_together = ['species_name','call_type']
+
+    def __str__(self):
+        return self.get_species_name_display()
 
 
 class Referrer(models.Model):
@@ -209,6 +307,46 @@ class CallEmail(RevisionedMixin):
         (STATUS_PENDING_CLOSURE, 'Pending Closure'),
     )
 
+    ENTANGLED_NO = 'no'
+    ENTANGLED_FISHING_LINE = 'fishing_line'
+    ENTANGLED_ROPE = 'rope'
+    ENTANGLED_STRING = 'string'
+    ENTANGLED_WIRE = 'wire'
+    ENTANGLED_OTHER = 'other'
+    ENTANGLED_CHOICES = (
+        (ENTANGLED_NO, 'No'),
+        (ENTANGLED_FISHING_LINE, 'Fishing Line'),
+        (ENTANGLED_ROPE, 'Rope'),
+        (ENTANGLED_STRING, 'String'),
+        (ENTANGLED_WIRE, 'Wire'),
+        (ENTANGLED_OTHER, 'Other'),
+    )
+
+    GENDER_FEMALE = 'female'
+    GENDER_MALE = 'male'
+    GENDER_UNKNOWN = 'unknown'
+    GENDER_CHOICES = (
+        (GENDER_FEMALE, 'Female'),
+        (GENDER_MALE, 'Male'),
+        (GENDER_UNKNOWN, 'Unknown'),
+    )
+
+    AGE_BABY = 'baby'
+    AGE_ADULT = 'adult'
+    AGE_JUVENILE = 'juvenile'
+    AGE_CHOICES = (
+        (AGE_BABY, 'Baby'),
+        (AGE_ADULT, 'Adult'),
+        (AGE_JUVENILE, 'Juvenile'),
+    )
+
+    BABY_KANGAROO_PINKY = 'pinky'
+    BABY_KANGAROO_JOEY = 'joey'
+    BABY_KANGAROO_CHOICES = (
+        (BABY_KANGAROO_PINKY, 'Pinky'),
+        (BABY_KANGAROO_JOEY, 'Joey'),
+    )
+
     status = models.CharField(
         max_length=40,
         choices=STATUS_CHOICES,
@@ -226,10 +364,19 @@ class CallEmail(RevisionedMixin):
     call_type = models.ForeignKey(
         CallType,
         null=True,
+        blank=True,
         related_name="call_type"
     )
     
     dead = models.BooleanField(default=False)
+    euthanise = models.BooleanField(default=False)
+    number_of_animals = models.CharField(max_length=100, blank=True, null=True)
+    brief_nature_of_call = models.TextField(blank=True)
+    entangled = MultiSelectField(max_length=40, choices=ENTANGLED_CHOICES, blank=True, null=True)
+    entangled_other = models.CharField(max_length=100, blank=True, null=True)
+    gender = MultiSelectField(max_length=30, choices=GENDER_CHOICES, blank=True, null=True)
+    baby_kangaroo = MultiSelectField(max_length=30, choices=BABY_KANGAROO_CHOICES, blank=True, null=True)
+    age = MultiSelectField(max_length=30, choices=AGE_CHOICES, blank=True, null=True)
     lodged_on = models.DateField(auto_now_add=True)
     number = models.CharField(max_length=50, blank=True, null=True)
     caller = models.CharField(max_length=100, blank=True, null=True)

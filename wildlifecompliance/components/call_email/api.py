@@ -286,6 +286,38 @@ class CallEmailViewSet(viewsets.ModelViewSet):
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
 
+    @list_route(methods=['GET', ])
+    def entangled_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.ENTANGLED_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def gender_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.GENDER_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def baby_kangaroo_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.BABY_KANGAROO_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def age_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.AGE_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
     @detail_route(methods=['GET', ])
     @renderer_classes((JSONRenderer,))
     def get_allocated_group(self, request, *args, **kwargs):
@@ -614,11 +646,29 @@ class CallEmailViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def close(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer_data, headers = self.common_save(instance, request, close=True)
+        return Response(
+                        serializer_data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                    )
 
     #@detail_route(methods=['POST', ])
     #def call_email_save(self, request, *args, **kwargs):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        serializer_data, headers = self.common_save(instance, request)
+        return Response(
+                        serializer_data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                    )
+
+    def common_save(self, instance, request, close=False):
         try:
             with transaction.atomic():
                 request_data = request.data
@@ -644,7 +694,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if instance.report_type and 'report_type_id' in request.data.keys() and not request.data.get('report_type_id'):
                         del request.data['report_type_id']
 
-                serializer = SaveCallEmailSerializer(instance, data=request_data)
+                serializer = SaveCallEmailSerializer(instance, data=request_data, context={'close': close})
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     saved_instance = serializer.save()
@@ -653,11 +703,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                         instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     return_serializer = CallEmailSerializer(instance=saved_instance, context={'request': request})
-                    return Response(
-                        return_serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        headers=headers
-                    )
+                    return return_serializer.data, headers
                     
         except serializers.ValidationError:
             print(traceback.print_exc())

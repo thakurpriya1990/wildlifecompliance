@@ -252,6 +252,10 @@ class ReportTypeSerializer(serializers.ModelSerializer):
 
 class SaveCallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, allow_null=True, allow_blank=True, required=False)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, allow_null=True, allow_blank=True, required=False)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, allow_null=True, allow_blank=True, required=False)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, allow_null=True, allow_blank=True, required=False)
     classification = ClassificationSerializer(read_only=True)
     call_type = CallTypeSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
@@ -261,7 +265,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
     classification_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     call_type_id= serializers.IntegerField(
-        required=True, write_only=True, allow_null=False)
+        write_only=True, required=False, allow_null=True)
     report_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
@@ -289,6 +293,11 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'id',
             'number',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             'assigned_to_id',
             # 'allocated_to',
             'allocated_group_id',
@@ -302,6 +311,9 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'classification_id',
             'call_type_id',
             'dead',
+            'euthanise',
+            'number_of_animals',
+            'brief_nature_of_call',
             'report_type_id',
             'caller',
             
@@ -335,6 +347,21 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'referrer',
             'email_user',
             )
+
+    def validate(self, data):
+        custom_errors = {}
+        print("self.context")
+        print(self.context)
+        if self.context.get('close'):
+            if not data.get("call_type_id"):
+                custom_errors["Call Type"] = "You must choose call type"
+            if not data.get("brief_nature_of_call"):
+                custom_errors["Brief Nature of Call"] = "You must fill in brief nature of call"
+
+            if custom_errors.keys():
+                raise serializers.ValidationError(custom_errors)
+
+        return data
 
 
 class ReportTypeSchemaSerializer(serializers.ModelSerializer):
@@ -395,6 +422,10 @@ class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
 
 class CallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, read_only=True)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, read_only=True)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, read_only=True)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, read_only=True)
     classification = ClassificationSerializer(read_only=True)
     call_type= CallTypeSerializer(read_only=True)
     lodgement_date = serializers.CharField(source='lodged_on')
@@ -422,6 +453,11 @@ class CallEmailSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             # 'status_display',
             'assigned_to_id',
             'allocated_group',
@@ -437,6 +473,9 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'call_type',
             'call_type_id',
             'dead',
+            'euthanise',
+            'number_of_animals',
+            'brief_nature_of_call',
             'report_type',
             'report_type_id',
             'data',
@@ -672,7 +711,10 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
     # status_display = serializers.CharField(source='get_status_display')
     status = CustomChoiceField(read_only=True)
     # customer_status = CustomChoiceField(read_only=True)
-
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, allow_null=True, allow_blank=True, required=False)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, allow_null=True, allow_blank=True, required=False)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, allow_null=True, allow_blank=True, required=False)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, allow_null=True, allow_blank=True, required=False)
     lodgement_date = serializers.CharField(
         source='lodged_on')
     classification_id = serializers.IntegerField(
@@ -699,6 +741,11 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             'assigned_to_id',
             # 'allocated_to',
             'allocated_group_id',
@@ -722,6 +769,8 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'region_id',
             'district_id',
             'dead',
+            'euthanise',
+            'number_of_animals'
         )
         read_only_fields = (
             'id', 

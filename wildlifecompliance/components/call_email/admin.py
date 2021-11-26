@@ -39,4 +39,7 @@ class ClassificationAdmin(admin.ModelAdmin):
 class CallTypeAdmin(admin.ModelAdmin):
     pass
 
+@admin.register(models.WildcareSpeciesType)
+class WildcareSpeciesTypeAdmin(admin.ModelAdmin):
+    list_display = ['call_type', 'species_name']
 

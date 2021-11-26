@@ -310,14 +310,89 @@
                             </div></div>
 
                             <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Age</label>
+                              <div  class="col-sm-8">
+                                <div v-for="option in age_choices" class="col-sm-4">
+                                  <input :disabled="readonlyForm" type="checkbox" :value="option.id" v-bind:key="option.id" v-model="call_email.age"/>
+                                   <label >{{ option.display }}</label>
+                                </div>
+                              </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-4">Dead</label>
                                 <input :disabled="readonlyForm" class="col-sm-1" id="deadYes" type="radio" v-model="call_email.dead" v-bind:value="true">
                                 <label class="col-sm-1" for="deadYes">Yes</label>
                                 <input :disabled="readonlyForm" class="col-sm-1" id="deadNo" type="radio" v-model="call_email.dead" v-bind:value="false">
                                 <label class="col-sm-1" for="deadNo">No</label>
                             </div></div>
-            
-                            <div class="row">
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Euthanise</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="euthaniseYes" type="radio" v-model="call_email.euthanise" v-bind:value="true">
+                                <label class="col-sm-1" for="euthaniseYes">Yes</label>
+                                <input :disabled="readonlyForm" class="col-sm-1" id="euthaniseNo" type="radio" v-model="call_email.euthanise" v-bind:value="false">
+                                <label class="col-sm-1" for="euthaniseNo">No</label>
+                            </div></div>
+
+                             <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Female/ Male</label>
+                              <div  class="col-sm-8">
+                                <div v-for="option in gender_choices" class="col-sm-4">
+                                  <input :disabled="readonlyForm" type="checkbox" :value="option.id" v-bind:key="option.id" v-model="call_email.gender"/>
+                                   <label >{{ option.display }}</label>
+                                </div>
+                              </div>
+                            </div></div>
+
+                            <div v-if="isKangarooFemale" class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Pinky/ Joey</label>
+                              <div  class="col-sm-8">
+                                <div v-for="option in baby_kangaroo_choices" class="col-sm-4">
+                                  <input :disabled="readonlyForm" type="checkbox" :value="option.id" v-bind:key="option.id" v-model="call_email.baby_kangaroo"/>
+                                   <label >{{ option.display }}</label>
+                                </div>
+                              </div>
+                            </div></div>
+
+                            <div class="col-sm-12 form-group">
+                              <div class="row">
+                                  <label class="col-sm-3">Number of Animals</label>
+                                  <div class="col-sm-9">
+                                    <input :disabled="readonlyForm" class="form-control" v-model="call_email.number_of_animals" />
+                                  </div>
+                              </div>
+                            </div>
+
+                            <div class="col-sm-12 form-group">
+                              <div class="row">
+                                  <label class="col-sm-3">Brief nature of call</label>
+                                  <div class="col-sm-9">
+                                    <textarea :disabled="readonlyForm" class="form-control" v-model="call_email.brief_nature_of_call" />
+                                  </div>
+                              </div>
+                            </div>
+
+                            <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-4">Entangled</label>
+                              <div  class="col-sm-8">
+                                <div v-for="option in entangled_choices" class="col-sm-4">
+                                  <input :disabled="readonlyForm" type="checkbox" :value="option.id" v-bind:key="option.id" v-model="call_email.entangled"/>
+                                   <label >{{ option.display }}</label>
+                                </div>
+                              </div>
+                            </div></div>
+
+                             <div v-if="isEntangledOther" class="col-sm-12 form-group">
+                              <div class="row">
+                                  <label class="col-sm-3">Entangled Other</label>
+                                  <div class="col-sm-9">
+                                    <input :disabled="readonlyForm" class="form-control" v-model="call_email.entangled_other"/>
+                                  </div>
+                              </div>
+                            </div>
+
+                           <div class="row">
                                 <div class="col-sm-9 form-group">
                                   <label class="col-sm-4">Report Type</label>
                                   <select :disabled="readonlyForm" @change.prevent="loadSchema" class="form-control" v-model="call_email.report_type_id">
@@ -480,6 +555,10 @@ export default {
       workflow_type: '',
       classification_types: [],
       call_types: [],
+      entangled_choices: [],
+      gender_choices: [],
+      baby_kangaroo_choices: [],
+      age_choices: [],
       report_types: [],
       referrers: [],
       referrersSelected: [],
@@ -516,6 +595,8 @@ export default {
           "location_id",
           "classification",
           "classification_id",
+          "call_type",
+          "call_type_id",
           "lodgement_date",
           "number",
           "caller",
@@ -536,6 +617,9 @@ export default {
           "district_id",
           "case_priority_id",
           "dead",
+          "euthanise",
+          "number_of_animals",
+          "brief_nature_of_call",
           ]
     };
   },
@@ -658,6 +742,36 @@ export default {
     offenceBindId: function() {
         //this.uuid += 1
         return 'offence' + this.uuid;
+    },
+    isEntangledOther: function() {
+        let entangled_other_checked=false;
+        if(this.call_email && this.call_email.entangled){
+          for (let choice of this.call_email.entangled){
+            if(choice === "other")
+              entangled_other_checked = true;
+          }
+        } else{
+          entangled_other_checked = false;
+        }
+        if (entangled_other_checked===false) {
+          this.call_email.entangled_other=null;
+        }
+        return entangled_other_checked;
+    },
+    isKangarooFemale: function() {
+      let female_checked=false;
+      if(this.call_email && this.call_email.gender){
+        for(let choice of this.call_email.gender){
+          if(choice === "female")
+            female_checked=true;
+        }
+      } else{
+        female_checked=false;
+      }
+      if (female_checked === false) {
+        this.call_email.baby_kangaroo=[];
+      }
+      return female_checked;
     },
   },
   filters: {
@@ -957,6 +1071,18 @@ export default {
     // call_types
     let returned_call_types = await Vue.http.get('/api/call_type/call_type_choices/');
     Object.assign(this.call_types, returned_call_types.body);
+    // Entangled choices
+    let returned_entangled_choices = await Vue.http.get('/api/call_email/entangled_choices/');
+    Object.assign(this.entangled_choices, returned_entangled_choices.body);
+    // Gender choices
+    let returned_gender_choices = await Vue.http.get('/api/call_email/gender_choices/');
+    Object.assign(this.gender_choices, returned_gender_choices.body);
+    // Pinky/Joey choices
+    let returned_baby_kangaroo_choices = await Vue.http.get('/api/call_email/baby_kangaroo_choices/');
+    Object.assign(this.baby_kangaroo_choices, returned_baby_kangaroo_choices.body);
+    // Age choices
+    let returned_age_choices = await Vue.http.get('/api/call_email/age_choices/');
+    Object.assign(this.age_choices, returned_age_choices.body);
     //report_types
     let returned_report_types = await cache_helper.getSetCacheList('CallEmail_ReportTypes', helpers.add_endpoint_json(
                     api_endpoints.report_types,
