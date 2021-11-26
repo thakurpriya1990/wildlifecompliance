@@ -70,12 +70,18 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Section Label</label>
                         </div>
                         <div class="col-md-6">
                             <input type='text' class="form-control" v-model='sectionPurpose.section_label' >
                         </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
                     </div>
                     <div class="row">
                         <div class="col-md-3">
