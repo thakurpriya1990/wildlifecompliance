@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='callemail',
             name='call_type',
-            field=models.ForeignKey(default=1, on_delete=django.db.models.deletion.CASCADE, related_name='call_type', to='wildlifecompliance.CallType'),
+            field=models.ForeignKey(default=None, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='call_type', to='wildlifecompliance.CallType'),
             preserve_default=False,
         ),
     ]
