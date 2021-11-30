@@ -34,3 +34,16 @@ class CallEmailAdmin(admin.ModelAdmin):
 class ClassificationAdmin(admin.ModelAdmin):
     pass
 
+
+@admin.register(models.CallType)
+class CallTypeAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(models.WildcareSpeciesType)
+class WildcareSpeciesTypeAdmin(admin.ModelAdmin):
+    list_display = ['call_type', 'species_name']
+
+@admin.register(models.WildcareSpeciesSubType)
+class WildcareSpeciesSubTypeAdmin(admin.ModelAdmin):
+    list_display = ['wildcare_species_type', 'species_sub_name']
+

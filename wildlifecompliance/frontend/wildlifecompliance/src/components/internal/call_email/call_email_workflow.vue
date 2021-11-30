@@ -371,7 +371,7 @@ export default {
           this.region_id ? payload.append('region_id', this.region_id) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
 
-          let callEmailRes = await this.saveCallEmail({ crud: 'save', 'internal': true });
+          let callEmailRes = await this.saveCallEmail({ crud: 'save', 'internal': true, close: true });
           console.log(callEmailRes);
           if (callEmailRes.ok) {
               try {
