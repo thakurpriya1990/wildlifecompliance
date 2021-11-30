@@ -51,6 +51,9 @@ from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_i
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
+    CallType,
+    WildcareSpeciesType,
+    WildcareSpeciesSubType,
     Location,
     ComplianceFormDataRecord,
     ReportType,
@@ -62,6 +65,9 @@ from wildlifecompliance.components.call_email.models import (
 from wildlifecompliance.components.call_email.serializers import (
     CallEmailSerializer,
     ClassificationSerializer,
+    CallTypeSerializer,
+    WildcareSpeciesTypeSerializer,
+    WildcareSpeciesSubTypeSerializer,
     ComplianceFormDataRecordSerializer,
     CallEmailLogEntrySerializer,
     LocationSerializer,
@@ -280,6 +286,38 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     def status_choices(self, request, *args, **kwargs):
         res_obj = [] 
         for choice in CallEmail.STATUS_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def entangled_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.ENTANGLED_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def gender_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.GENDER_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def baby_kangaroo_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.BABY_KANGAROO_CHOICES:
+            res_obj.append({'id': choice[0], 'display': choice[1]});
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+    @list_route(methods=['GET', ])
+    def age_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in CallEmail.AGE_CHOICES:
             res_obj.append({'id': choice[0], 'display': choice[1]});
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
@@ -612,11 +650,29 @@ class CallEmailViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['POST', ])
+    @renderer_classes((JSONRenderer,))
+    def close(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer_data, headers = self.common_save(instance, request, close=True)
+        return Response(
+                        serializer_data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                    )
 
     #@detail_route(methods=['POST', ])
     #def call_email_save(self, request, *args, **kwargs):
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
+        serializer_data, headers = self.common_save(instance, request)
+        return Response(
+                        serializer_data,
+                        status=status.HTTP_201_CREATED,
+                        headers=headers
+                    )
+
+    def common_save(self, instance, request, close=False):
         try:
             with transaction.atomic():
                 request_data = request.data
@@ -642,7 +698,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if instance.report_type and 'report_type_id' in request.data.keys() and not request.data.get('report_type_id'):
                         del request.data['report_type_id']
 
-                serializer = SaveCallEmailSerializer(instance, data=request_data)
+                serializer = SaveCallEmailSerializer(instance, data=request_data, context={'close': close})
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     saved_instance = serializer.save()
@@ -651,11 +707,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                         instance.number), request)
                     headers = self.get_success_headers(serializer.data)
                     return_serializer = CallEmailSerializer(instance=saved_instance, context={'request': request})
-                    return Response(
-                        return_serializer.data,
-                        status=status.HTTP_201_CREATED,
-                        headers=headers
-                    )
+                    return return_serializer.data, headers
                     
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -670,9 +722,11 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
     def workflow_action(self, request, *args, **kwargs):
+        print("workflow_action")
         print(request.data)
         try:
             with transaction.atomic():
+                #import ipdb; ipdb.set_trace()
                 instance = self.get_object()
                 comms_log_id = request.data.get('call_email_comms_log_id')
                 if comms_log_id and comms_log_id is not 'null':
@@ -809,6 +863,69 @@ class ClassificationViewSet(viewsets.ModelViewSet):
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
 
+class CallTypeViewSet(viewsets.ModelViewSet):
+    queryset = CallType.objects.all()
+    serializer_class = CallTypeSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return CallType.objects.all()
+        return CallType.objects.none()
+
+    @list_route(methods=['GET', ])    
+    def call_type_choices(self, request, *args, **kwargs):
+        res_obj = [] 
+        #for choice in CallType.NAME_CHOICES:
+            # res_obj.append({'id': choice[0], 'display': choice[1]});
+        for choice in CallType.objects.all():
+            res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+class WildcareSpeciesTypeViewSet(viewsets.ModelViewSet):
+    queryset = WildcareSpeciesType.objects.all()
+    serializer_class = WildcareSpeciesTypeSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return WildcareSpeciesType.objects.all()
+        return WildcareSpeciesType.objects.none()
+
+    @list_route(methods=['GET', ])
+    def wildcare_species_type_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in WildcareSpeciesType.objects.all():
+            res_obj.append({
+                'id': choice.id,
+                'display': choice.get_species_name_display(),
+                'call_type_id': choice.call_type_id
+                })
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+class WildcareSpeciesSubTypeViewSet(viewsets.ModelViewSet):
+    queryset = WildcareSpeciesSubType.objects.all()
+    serializer_class = WildcareSpeciesSubTypeSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return WildcareSpeciesSubType.objects.all()
+        return WildcareSpeciesSubType.objects.none()
+
+    @list_route(methods=['GET', ])
+    def wildcare_species_sub_type_choices(self, request, *args, **kwargs):
+        res_obj = []
+        for choice in WildcareSpeciesSubType.objects.all():
+            res_obj.append({
+                'id': choice.id,
+                'display': choice.get_species_sub_name_display(),
+                'wildcare_species_type_id': choice.wildcare_species_type_id
+                })
+        res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
 
 class ReferrerViewSet(viewsets.ModelViewSet):
     queryset = Referrer.objects.all()
