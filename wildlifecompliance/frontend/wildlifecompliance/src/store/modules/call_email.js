@@ -29,6 +29,9 @@ export const callemailStore = {
                     "coordinates": [],
                 },
             },
+            call_type: {
+                id: null,
+            },
             report_type: {
                 id: null,
             },
@@ -39,6 +42,7 @@ export const callemailStore = {
             volunteer_list: [],
         },
         classification_types: [],
+        call_types: [],
         report_types: [],
         referrers: [],
         status_choices: [],
@@ -293,8 +297,6 @@ export const callemailStore = {
     },
     actions: {
         async loadCallEmail({ dispatch, commit }, { call_email_id }) {
-            console.log("loadCallEmail");
-            console.log(call_email_id);
             try {
                 const returnedCallEmail = await Vue.http.get(
                     helpers.add_endpoint_json(
@@ -337,10 +339,7 @@ export const callemailStore = {
                 }
             }
         },
-        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal }) {
-            console.log("saveCallEmail");
-            console.log("internal");
-            console.log(internal);
+        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal, close }) {
             let callId = null;
             let savedCallEmail = null;
             try {
@@ -377,7 +376,6 @@ export const callemailStore = {
                 } else if (payload.time_of_call === '') {
                     payload.time_of_call = null;
                 }
-                console.log(payload);
                 if (crud == 'duplicate') {
                     payload.id = null;
                     payload.location_id = null;
@@ -392,17 +390,37 @@ export const callemailStore = {
                     }
                 }
 
-                let fetchUrl = null;
                 if (crud === 'create' || crud === 'duplicate') {
-                    fetchUrl = api_endpoints.call_email;
-                    savedCallEmail = await Vue.http.post(fetchUrl, payload)
+                    const createUrl = api_endpoints.call_email;
+                    savedCallEmail = await Vue.http.post(createUrl, payload)
+                } else if (close) {
+                        const closeUrl = helpers.add_endpoint_join(
+                        api_endpoints.call_email,
+                        state.call_email.id + "/close/")
+                    try {
+                        savedCallEmail = await Vue.http.post(closeUrl, payload)
+                    }catch(err) {
+                        await swal({
+                            title: 'Mandatory Field',
+                            html: helpers.formatError(err),
+                            type: "error",
+                        })
+                    }
                 } else {
-                    fetchUrl = helpers.add_endpoint_join(
+                    //---Save the draft call/email
+                    try {
+                        const fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.call_email, 
-                        //state.call_email.id + "/call_email_save/"
                         state.call_email.id + "/"
                         )
-                    savedCallEmail = await Vue.http.put(fetchUrl, payload)
+                        savedCallEmail = await Vue.http.put(fetchUrl, payload)
+                    }catch(err) {
+                        await swal({
+                            title: 'Mandatory Field',
+                            html: helpers.formatError(err),
+                            type: "error",
+                        })
+                    }
                 }
 
                 await dispatch("setCallEmail", savedCallEmail.body);
@@ -428,7 +446,6 @@ export const callemailStore = {
                     return savedCallEmail;
                 }
             }
-            //return callId;
             return savedCallEmail;
         },
         setAllocatedGroupList({ commit }, data) {

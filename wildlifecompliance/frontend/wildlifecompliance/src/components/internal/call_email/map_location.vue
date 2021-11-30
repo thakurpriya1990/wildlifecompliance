@@ -32,6 +32,13 @@
             </div>
         </div></div>
 
+        <div class="col-sm-4 form-group"><div class="row">
+            <label class="col-sm-6">BEN Number:</label>
+            <div>
+                <input :readonly="isReadonly" type="text" class="form-control" v-model="call_email.location.properties.ben_number" />
+            </div>
+        </div></div>
+
         <div :id="idLocationFieldsAddress">
             <div class="col-sm-12 form-group"><div class="row">
                 <label class="col-sm-4">Street</label>

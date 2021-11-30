@@ -7,6 +7,9 @@ from ledger.accounts.models import EmailUser, Address
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
+    CallType,
+    WildcareSpeciesType,
+    WildcareSpeciesSubType,
     Referrer,
     ReportType,
     ComplianceFormDataRecord,
@@ -170,6 +173,65 @@ class ClassificationSerializer(serializers.ModelSerializer):
                 display_name = choice[1]
         return display_name
 
+class CallTypeSerializer(serializers.ModelSerializer):
+    call_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CallType
+        fields = (
+            'id',
+            'name',
+            'call_type_display',
+        )
+        read_only_fields = ('id', 'name', )
+
+    def get_call_type_display(self, obj):
+        display_name = ''
+        for choice in CallType.NAME_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
+class WildcareSpeciesTypeSerializer(serializers.ModelSerializer):
+    wildcare_species_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WildcareSpeciesType
+        fields = (
+            'id',
+            'call_type_id',
+            'species_name',
+            'wildcare_species_type_display',
+        )
+        read_only_fields = ('id', 'species_name', )
+
+    def get_wildcare_species_type_display(self, obj):
+        display_name = ''
+        for choice in WildcareSpeciesType.WILDCARE_SPECIES_TYPE_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
+class WildcareSpeciesSubTypeSerializer(serializers.ModelSerializer):
+    wildcare_species_sub_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WildcareSpeciesSubType
+        fields = (
+            'id',
+            'wildcare_species_type_id',
+            'species_sub_name',
+            'wildcare_species_sub_type_display',
+        )
+        read_only_fields = ('id', 'species_sub_name', )
+
+    def get_wildcare_species_sub_type_display(self, obj):
+        display_name = ''
+        for choice in WildcareSpeciesSubType.WILDCARE_SPECIES_SUB_TYPE_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
 
 class ReferrerSerializer(serializers.ModelSerializer):
 
@@ -208,6 +270,7 @@ class LocationSerializer(GeoFeatureModelSerializer):
             'country',
             'wkb_geometry',
             'details',
+            'ben_number',
             #'call_email_id',
         )
         
@@ -232,12 +295,23 @@ class ReportTypeSerializer(serializers.ModelSerializer):
 
 class SaveCallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, allow_null=True, allow_blank=True, required=False)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, allow_null=True, allow_blank=True, required=False)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, allow_null=True, allow_blank=True, required=False)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, allow_null=True, allow_blank=True, required=False)
     classification = ClassificationSerializer(read_only=True)
+    call_type = CallTypeSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
     report_type = ReportTypeSerializer(read_only=True)
     referrer = ReferrerSerializer(read_only=True)
     email_user = EmailUserSerializer(read_only=True)
     classification_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    call_type_id= serializers.IntegerField(
+        write_only=True, required=False, allow_null=True)
+    wildcare_species_type_id= serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_sub_type_id= serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     report_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
@@ -266,6 +340,11 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'id',
             'number',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             'assigned_to_id',
             # 'allocated_to',
             'allocated_group_id',
@@ -273,9 +352,18 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'schema',
             'location',
             'classification',
+            'call_type',
             'report_type',
             'location_id',
             'classification_id',
+            'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
+            'dead',
+            'euthanise',
+            'number_of_animals',
+            'brief_nature_of_call',
             'report_type_id',
             'caller',
             
@@ -309,6 +397,21 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'referrer',
             'email_user',
             )
+
+    def validate(self, data):
+        custom_errors = {}
+        print("self.context")
+        print(self.context)
+        if self.context.get('close'):
+            if not data.get("call_type_id"):
+                custom_errors["Call Type"] = "You must choose call type"
+            if not data.get("brief_nature_of_call"):
+                custom_errors["Brief Nature of Call"] = "You must fill in brief nature of call"
+
+            if custom_errors.keys():
+                raise serializers.ValidationError(custom_errors)
+
+        return data
 
 
 class ReportTypeSchemaSerializer(serializers.ModelSerializer):
@@ -369,7 +472,12 @@ class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
 
 class CallEmailSerializer(serializers.ModelSerializer):
     status = CustomChoiceField(read_only=True)
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, read_only=True)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, read_only=True)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, read_only=True)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, read_only=True)
     classification = ClassificationSerializer(read_only=True)
+    call_type= CallTypeSerializer(read_only=True)
     lodgement_date = serializers.CharField(source='lodged_on')
     report_type = ReportTypeSerializer(read_only=True)
     location = LocationSerializer(read_only=True)
@@ -395,6 +503,11 @@ class CallEmailSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             # 'status_display',
             'assigned_to_id',
             'allocated_group',
@@ -407,7 +520,15 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'lodgement_date',
             'number',
             'caller',
-            
+            'call_type',
+            'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
+            'dead',
+            'euthanise',
+            'number_of_animals',
+            'brief_nature_of_call',
             'report_type',
             'report_type_id',
             'data',
@@ -643,13 +764,22 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
     # status_display = serializers.CharField(source='get_status_display')
     status = CustomChoiceField(read_only=True)
     # customer_status = CustomChoiceField(read_only=True)
-
+    entangled = serializers.MultipleChoiceField(choices=CallEmail.ENTANGLED_CHOICES, allow_null=True, allow_blank=True, required=False)
+    gender = serializers.MultipleChoiceField(choices=CallEmail.GENDER_CHOICES, allow_null=True, allow_blank=True, required=False)
+    baby_kangaroo = serializers.MultipleChoiceField(choices=CallEmail.BABY_KANGAROO_CHOICES, allow_null=True, allow_blank=True, required=False)
+    age = serializers.MultipleChoiceField(choices=CallEmail.AGE_CHOICES, allow_null=True, allow_blank=True, required=False)
     lodgement_date = serializers.CharField(
         source='lodged_on')
     classification_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     report_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)        
+        required=False, write_only=True, allow_null=True)
+    call_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_sub_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)        
     #referrer_id = serializers.IntegerField(
@@ -670,11 +800,21 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
         fields = (
             'id',
             'status',
+            'entangled',
+            'entangled_other',
+            'gender',
+            'baby_kangaroo',
+            'age',
             'assigned_to_id',
             # 'allocated_to',
             'allocated_group_id',
             'location_id',
             'classification_id',
+            'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
+            'brief_nature_of_call',
             'lodgement_date',
             'caller',
             
@@ -692,6 +832,9 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             #'referrer_id',
             'region_id',
             'district_id',
+            'dead',
+            'euthanise',
+            'number_of_animals'
         )
         read_only_fields = (
             'id', 
