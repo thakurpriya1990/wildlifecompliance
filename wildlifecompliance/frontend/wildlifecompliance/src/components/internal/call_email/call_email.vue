@@ -813,40 +813,6 @@ export default {
         }
         return entangled_other_checked;
     },
-    /*isKangarooFemale: function() {
-      let female_kangaroo=false;
-
-      if(this.call_email && this.call_email.gender.includes("female") && this.call_email.wildcare_species_type_id){
-        for(let choice of this.filter_wildcare_species_types){
-          if(choice.id === this.call_email.wildcare_species_type_id && choice.display === 'Kangaroo'){
-            female_kangaroo=true;
-          }
-        }
-      }
-      if (female_kangaroo === false) {
-        this.call_email.baby_kangaroo=[];
-      }
-      return female_kangaroo;
-    },
-    speciesSubTypeDisabled: function() {
-      let disabled = false;
-      if(this.readonlyForm)
-      {
-        disabled = true;
-      }
-      else if(this.call_email.wildcare_species_type_id){
-        for(let choice of this.filter_wildcare_species_types){
-          if(choice.id === this.call_email.wildcare_species_type_id && choice.display === 'Other'){
-            disabled=true;
-          }
-        }
-      }
-      if(!disabled)
-      {
-        this.call_email.species_name="liz2";
-      }
-      return disabled;
-    },*/
   },
   filters: {
     formatDate: function(data) {
@@ -1199,19 +1165,12 @@ export default {
     if (this.$route.params.call_email_id) {
       await this.loadCallEmail({ call_email_id: this.$route.params.call_email_id });
     }
-    console.log(this.call_email.species_name);
     // await this.loadComplianceAllocatedGroup(this.call_email.allocated_group_id);
     // load drop-down select lists
     // classification_types
     //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
     let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
     Object.assign(this.classification_types, returned_classification_types.body);
-    // blank entry allows user to clear selection
-    /*this.classification_types.splice(0, 0,
-      {
-        id: null, 
-        name: "",
-      });*/
     // call_types
     let returned_call_types = await Vue.http.get('/api/call_type/call_type_choices/');
     Object.assign(this.call_types, returned_call_types.body);

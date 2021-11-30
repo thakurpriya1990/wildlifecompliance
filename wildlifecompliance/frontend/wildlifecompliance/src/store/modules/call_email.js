@@ -297,8 +297,6 @@ export const callemailStore = {
     },
     actions: {
         async loadCallEmail({ dispatch, commit }, { call_email_id }) {
-            console.log("loadCallEmail");
-            console.log(call_email_id);
             try {
                 const returnedCallEmail = await Vue.http.get(
                     helpers.add_endpoint_json(
@@ -342,8 +340,6 @@ export const callemailStore = {
             }
         },
         async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal, close }) {
-            console.log("saveCallEmail");
-            console.log("close");
             let callId = null;
             let savedCallEmail = null;
             try {
@@ -380,7 +376,6 @@ export const callemailStore = {
                 } else if (payload.time_of_call === '') {
                     payload.time_of_call = null;
                 }
-                console.log(payload);
                 if (crud == 'duplicate') {
                     payload.id = null;
                     payload.location_id = null;
@@ -451,7 +446,6 @@ export const callemailStore = {
                     return savedCallEmail;
                 }
             }
-            //return callId;
             return savedCallEmail;
         },
         setAllocatedGroupList({ commit }, data) {
