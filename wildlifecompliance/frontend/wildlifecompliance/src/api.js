@@ -47,6 +47,8 @@ module.exports = {
     remediation_action: "/api/remediation_action/",
     classification: "/api/classification/",
     call_type : "/api/call_type/",
+    wildcare_species_type : "/api/wildcare_species_type/",
+    wildcare_species_sub_type : "/api/wildcare_species_sub_type/",
     report_types: "/api/report_types/",
     referrers: "/api/referrers/",
     location: "/api/location/",

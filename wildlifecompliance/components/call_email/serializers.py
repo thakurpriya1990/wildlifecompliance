@@ -8,6 +8,8 @@ from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
     CallType,
+    WildcareSpeciesType,
+    WildcareSpeciesSubType,
     Referrer,
     ReportType,
     ComplianceFormDataRecord,
@@ -190,6 +192,46 @@ class CallTypeSerializer(serializers.ModelSerializer):
                 display_name = choice[1]
         return display_name
 
+class WildcareSpeciesTypeSerializer(serializers.ModelSerializer):
+    wildcare_species_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WildcareSpeciesType
+        fields = (
+            'id',
+            'call_type_id',
+            'species_name',
+            'wildcare_species_type_display',
+        )
+        read_only_fields = ('id', 'species_name', )
+
+    def get_wildcare_species_type_display(self, obj):
+        display_name = ''
+        for choice in WildcareSpeciesType.WILDCARE_SPECIES_TYPE_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
+class WildcareSpeciesSubTypeSerializer(serializers.ModelSerializer):
+    wildcare_species_sub_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WildcareSpeciesSubType
+        fields = (
+            'id',
+            'wildcare_species_type_id',
+            'species_sub_name',
+            'wildcare_species_sub_type_display',
+        )
+        read_only_fields = ('id', 'species_sub_name', )
+
+    def get_wildcare_species_sub_type_display(self, obj):
+        display_name = ''
+        for choice in WildcareSpeciesSubType.WILDCARE_SPECIES_SUB_TYPE_CHOICES:
+            if obj.name == choice[0]:
+                display_name = choice[1]
+        return display_name
+
 
 class ReferrerSerializer(serializers.ModelSerializer):
 
@@ -228,6 +270,7 @@ class LocationSerializer(GeoFeatureModelSerializer):
             'country',
             'wkb_geometry',
             'details',
+            'ben_number',
             #'call_email_id',
         )
         
@@ -266,6 +309,10 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     call_type_id= serializers.IntegerField(
         write_only=True, required=False, allow_null=True)
+    wildcare_species_type_id= serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_sub_type_id= serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     report_type_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
@@ -310,6 +357,9 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'location_id',
             'classification_id',
             'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
             'dead',
             'euthanise',
             'number_of_animals',
@@ -472,6 +522,9 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'caller',
             'call_type',
             'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
             'dead',
             'euthanise',
             'number_of_animals',
@@ -720,7 +773,13 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
     classification_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     report_type_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)        
+        required=False, write_only=True, allow_null=True)
+    call_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
+    wildcare_species_sub_type_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)        
     #referrer_id = serializers.IntegerField(
@@ -751,6 +810,11 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'allocated_group_id',
             'location_id',
             'classification_id',
+            'call_type_id',
+            'wildcare_species_type_id',
+            'wildcare_species_sub_type_id',
+            'species_name',
+            'brief_nature_of_call',
             'lodgement_date',
             'caller',
             
