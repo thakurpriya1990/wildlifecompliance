@@ -56,3 +56,6 @@ class SanctionOutcomeDueDate(models.Model):
             self.id, self.sanction_outcome_id, self.due_date_1st, self.due_date_2nd)
 
 
+import reversion
+reversion.register(SanctionOutcomeDueDateConfiguration, follow=[])
+reversion.register(SanctionOutcomeDueDate, follow=[])

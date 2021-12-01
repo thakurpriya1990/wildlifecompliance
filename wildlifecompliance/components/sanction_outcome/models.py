@@ -1060,3 +1060,23 @@ class RemediationActionNotification(models.Model):
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_RemediationActionNotification'
         verbose_name_plural = 'CM_RemediationActionNotifications'
+
+
+import reversion
+#reversion.register(SanctionOutcome_alleged_offences, follow=[])
+reversion.register(SanctionOutcome, follow=['due_dates', 'allegedcommittedoffence_set', 'remediation_actions', 'documents', 'comms_logs', 'action_logs', 'dot_request_files'])
+reversion.register(AllegedCommittedOffence, follow=[])
+reversion.register(RemediationAction, follow=['documents', 'amendment_requests', 'notifications'])
+reversion.register(SanctionOutcomeDocument, follow=['access_logs'])
+reversion.register(SanctionOutcomeDocumentAccessLog, follow=[])
+reversion.register(SanctionOutcomeCommsLogDocument, follow=[])
+reversion.register(SanctionOutcomeCommsLogEntry, follow=['documents', 'remediationactionnotification_set'])
+reversion.register(SanctionOutcomeUserAction, follow=[])
+#reversion.register(DotRequestFile_sanction_outcomes, follow=[])
+reversion.register(DotRequestFile, follow=[])
+reversion.register(UnpaidInfringementFile, follow=[])
+reversion.register(ActionTakenDocument, follow=[])
+reversion.register(AmendmentRequestReason, follow=[])
+reversion.register(AmendmentRequestForRemediationAction, follow=[])
+reversion.register(RemediationActionNotification, follow=[])
+

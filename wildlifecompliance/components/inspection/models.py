@@ -465,3 +465,15 @@ class InspectionFormDataRecord(models.Model):
             form_data_record.save()
 
 
+import reversion
+reversion.register(InspectionType, follow=['inspectiontype_set', 'inspection_inspection_type'])
+#reversion.register(Inspection_inspection_team, follow=[])
+reversion.register(Inspection, follow=['report', 'comms_logs', 'action_logs', 'documents', 'form_data_records', 'wildlifecompliance_licence_inspection', 'wildlifecompliance_inspection', 'offence_inspection'])
+reversion.register(InspectionReportDocument, follow=[])
+reversion.register(InspectionTypeApprovalDocument, follow=['inspection_type'])
+reversion.register(InspectionCommsLogDocument, follow=[])
+reversion.register(InspectionCommsLogEntry, follow=['documents'])
+reversion.register(InspectionUserAction, follow=[])
+reversion.register(InspectionDocument, follow=[])
+reversion.register(InspectionFormDataRecord, follow=[])
+
