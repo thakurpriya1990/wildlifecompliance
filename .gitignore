@@ -113,3 +113,6 @@ wlc_git_history
 # Jupyter lab
 .ipynb_checkpoints/
 *.ipynb
+
+# Reversion utility
+reversion_utility_output.txt

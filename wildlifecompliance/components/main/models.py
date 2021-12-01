@@ -261,3 +261,14 @@ class SanctionOutcomeWordTemplate(models.Model):
 
     def __str__(self):
         return "Version: {}, {}".format(self.id, self._file.name)
+
+
+import reversion
+reversion.register(SystemMaintenance, follow=[])
+reversion.register(Region, follow=[])
+reversion.register(CommunicationsLogEntry, follow=[])
+reversion.register(TemporaryDocumentCollection, follow=['documents'])
+reversion.register(TemporaryDocument, follow=[])
+reversion.register(GlobalSettings, follow=[])
+reversion.register(SanctionOutcomeWordTemplate, follow=[])
+
