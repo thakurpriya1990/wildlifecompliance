@@ -400,8 +400,6 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
-        print("self.context")
-        print(self.context)
         if self.context.get('close'):
             if not data.get("call_type_id"):
                 custom_errors["Call Type"] = "You must choose call type"
