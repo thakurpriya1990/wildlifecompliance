@@ -3,7 +3,7 @@ import json
 
 from abc import ABC
 
-from wildlifecompliance.components.licences.models import SectionQuestion
+from wildlifecompliance.components.licences.models import SectionQuestion, SectionGroup
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -1248,8 +1248,10 @@ class LicenceSchemaUtility(LicenceUtility):
 
                             sc['options'] = sq_options
 
+                    # if sq.question.children_questions.exists() \
+                    #         and sc['type'] != 'group':
                     if sq.question.children_questions.exists() \
-                            and sc['type'] != 'group':
+                            and (sc['type'] != 'group' and sc['type'] != SectionGroup.TYPE_GROUP2):
                         sq_children = self.get_condition_children2(
                             sq,sq.question, section, sq_name
                         )
