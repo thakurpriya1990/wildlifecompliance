@@ -611,7 +611,6 @@ class CallEmailSerializer(serializers.ModelSerializer):
         #returned_referrers = ReferrerSerializer(obj.referrer)
         #print(returned_referrers.data)
         for referrer in obj.referrer.all():
-            print(referrer)
             referrers_selected.append(str(referrer.id))
 
         return referrers_selected

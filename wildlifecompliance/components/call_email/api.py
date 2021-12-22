@@ -508,7 +508,6 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 permission = Permission.objects.filter(codename='volunteer').filter(content_type_id=compliance_content_type.id).first()
                 group = CompliancePermissionGroup.objects.filter(permissions=permission).first()
                 request_data.update({'allocated_group_id': group.id})
-                
                 serializer = CreateCallEmailSerializer(data=request_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
@@ -861,6 +860,83 @@ class ClassificationViewSet(viewsets.ModelViewSet):
         for choice in Classification.objects.all():
             res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
         res_json = json.dumps(res_obj)
+        return HttpResponse(res_json, content_type='application/json')
+
+
+class LOVCollectionViewSet(viewsets.ModelViewSet):
+    queryset = CallEmail.objects.all()
+    serializer_class = CallEmailSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return CallEmail.objects.all()
+        return CallEmail.objects.none()
+
+    @list_route(methods=['GET', ])    
+    def lov_collection_choices(self, request, *args, **kwargs):
+        classification_types = [] 
+        for choice in Classification.objects.all():
+            classification_types.append({
+                'id': choice.id, 
+                'display': choice.get_name_display()
+                })
+        call_type_choices = []
+        for choice in CallType.objects.all():
+            call_type_choices.append({
+                'id': choice.id, 
+                'display': choice.get_name_display()
+                })
+        wildcare_species_types = []
+        for choice in WildcareSpeciesType.objects.all():
+            wildcare_species_types.append({
+                'id': choice.id,
+                'display': choice.get_species_name_display(),
+                'call_type_id': choice.call_type_id
+                })
+        wildcare_species_sub_types = []
+        for choice in WildcareSpeciesSubType.objects.all():
+            wildcare_species_sub_types.append({
+                'id': choice.id,
+                'display': choice.get_species_sub_name_display(),
+                'wildcare_species_type_id': choice.wildcare_species_type_id
+                })
+        age_choices = []
+        for choice in CallEmail.AGE_CHOICES:
+            age_choices.append({
+                'id': choice[0], 
+                'display': choice[1]
+                });
+        gender_choices = []
+        for choice in CallEmail.GENDER_CHOICES:
+            gender_choices.append({
+                'id': choice[0], 
+                'display': choice[1]
+                });
+        baby_kangaroo_choices = []
+        for choice in CallEmail.BABY_KANGAROO_CHOICES:
+            baby_kangaroo_choices.append({
+                'id': choice[0], 
+                'display': choice[1]
+                });
+        entangled_choices = []
+        for choice in CallEmail.ENTANGLED_CHOICES:
+            entangled_choices.append({
+                'id': choice[0], 
+                'display': choice[1]
+                });
+
+        res_json = {
+        "classification_types": classification_types,
+        "call_type_choices": call_type_choices,
+        "wildcare_species_types": wildcare_species_types,
+        "wildcare_species_sub_types": wildcare_species_sub_types,
+        "age_choices": age_choices,
+        "gender_choices": gender_choices,
+        "baby_kangaroo_choices": baby_kangaroo_choices,
+        "entangled_choices": entangled_choices,
+        }
+        res_json = json.dumps(res_json)
         return HttpResponse(res_json, content_type='application/json')
 
 class CallTypeViewSet(viewsets.ModelViewSet):

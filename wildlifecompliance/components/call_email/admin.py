@@ -41,9 +41,9 @@ class CallTypeAdmin(admin.ModelAdmin):
 
 @admin.register(models.WildcareSpeciesType)
 class WildcareSpeciesTypeAdmin(admin.ModelAdmin):
-    list_display = ['call_type', 'species_name']
+    list_display = ['species_name', 'call_type']
 
 @admin.register(models.WildcareSpeciesSubType)
 class WildcareSpeciesSubTypeAdmin(admin.ModelAdmin):
-    list_display = ['wildcare_species_type', 'species_sub_name']
+    list_display = ['species_sub_name', 'wildcare_species_type']
 
