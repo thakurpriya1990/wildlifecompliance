@@ -936,3 +936,21 @@ class CallEmailUserAction(models.Model):
 
     call_email = models.ForeignKey(CallEmail, related_name='action_logs')
 
+
+import reversion
+reversion.register(Classification, follow=['call_classification'])
+reversion.register(CallType, follow=['wildcare_species_types', 'call_type'])
+reversion.register(WildcareSpeciesType, follow=['wildcare_species_sub_types', 'wildcare_species_type'])
+reversion.register(WildcareSpeciesSubType, follow=['wildcare_species_sub_type'])
+reversion.register(Referrer, follow=['callemail_set'])
+reversion.register(ReportType, follow=['reporttype_set', 'call_schema'])
+reversion.register(Location, follow=['inspection_location', 'offence_location'])
+reversion.register(MapLayer, follow=[])
+#reversion.register(CallEmail_referrer, follow=[])
+reversion.register(CallEmail, follow=['location', 'form_data_records', 'documents', 'comms_logs', 'action_logs', 'legal_case_call_email', 'inspection_call_email', 'offence_call_eamil'])
+reversion.register(ComplianceFormDataRecord, follow=[])
+reversion.register(CallEmailDocument, follow=[])
+reversion.register(CallEmailLogDocument, follow=[])
+reversion.register(CallEmailLogEntry, follow=['documents'])
+reversion.register(CallEmailUserAction, follow=[])
+

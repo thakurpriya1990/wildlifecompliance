@@ -155,8 +155,6 @@ class InfringementPenaltyInvoice(RevisionedMixin):
         return None
 
 
-#import reversion
-#reversion.register(ApplicationFee, follow=['application_fee_invoices'])
-#reversion.register(ApplicationFeeInvoice)
-
+import reversion
+reversion.register(InfringementPenaltyInvoice, follow=[])
 
