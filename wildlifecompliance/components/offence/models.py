@@ -316,3 +316,13 @@ class OffenceCommsLogEntry(CommunicationsLogEntry):
     class Meta:
         app_label = 'wildlifecompliance'
 
+
+import reversion
+reversion.register(Offence, follow=['documents', 'allegedoffence_set', 'offender_set', 'action_logs', 'comms_logs', 'offence_sanction_outcomes', 'document_artifact_offence', 'offence_boe_roi', 'offence_pb_roi'])
+reversion.register(OffenceDocument, follow=[])
+reversion.register(AllegedOffence, follow=['sanction_outcome_alleged_committed_offences', 'allegedcommittedoffence_set'])
+reversion.register(Offender, follow=['sanction_outcome_offender', 'document_artifact_offender', 'offender_boe_roi', 'offender_pb_roi'])
+reversion.register(OffenceUserAction, follow=[])
+reversion.register(OffenceCommsLogDocument, follow=[])
+reversion.register(OffenceCommsLogEntry, follow=['documents'])
+

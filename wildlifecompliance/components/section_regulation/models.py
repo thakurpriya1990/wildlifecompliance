@@ -68,3 +68,10 @@ class PenaltyAmount(RevisionedMixin):
 
     def __str__(self):
         return '${} ({}:{})'.format(self.amount, self.date_of_enforcement, self.section_regulation)
+
+
+import reversion
+reversion.register(Act, follow=['section_regulations'])
+reversion.register(SectionRegulation, follow=['penalty_amounts', 'offence_set', 'allegedoffence_set', 'sanction_outcome_alleged_offences'])
+reversion.register(PenaltyAmount, follow=[])
+

@@ -390,9 +390,12 @@ export const callemailStore = {
                     }
                 }
 
-                if (crud === 'create' || crud === 'duplicate') {
+                if (crud === 'create') {
                     const createUrl = api_endpoints.call_email;
-                    savedCallEmail = await Vue.http.post(createUrl, payload)
+                    savedCallEmail = await Vue.http.post(createUrl, {});
+                } else if (crud === 'duplicate') {
+                    const createUrl = api_endpoints.call_email;
+                    savedCallEmail = await Vue.http.post(createUrl, payload);
                 } else if (close) {
                         const closeUrl = helpers.add_endpoint_join(
                         api_endpoints.call_email,

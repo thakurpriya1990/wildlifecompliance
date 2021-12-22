@@ -1108,8 +1108,32 @@ class ProsecutionBriefRecordOfInterview(models.Model):
                 label_text = 'Associated Document Object: ' + self.associated_doc_artifact.number
         return label_text
 
-#import reversion
-#reversion.register(LegalCaseRunningSheetEntry, follow=['user'])
-#reversion.register(LegalCase)
-#reversion.register(EmailUser)
 
+import reversion
+reversion.register(Artifact, follow=['comms_logs', 'action_logs', 'documents'])
+reversion.register(DocumentArtifactType, follow=['documentartifacttype_set'])
+reversion.register(PhysicalArtifactType, follow=['physicalartifacttype_set', 'physicalartifact_set'])
+reversion.register(PhysicalArtifactDisposalMethod, follow=['physicalartifact_set'])
+#reversion.register(DocumentArtifact_people_attending, follow=[])
+reversion.register(DocumentArtifact, follow=['comms_logs', 'action_logs', 'documents', 'document_artifact_statement', 'documentartifactlegalcases_set', 'briefofevidencedocumentartifacts_set', 'prosecutionbriefdocumentartifacts_set', 'physical_artifact_statement', 'statement_boe_other_statements', 'document_artifact_boe_other_statements', 'record_of_interview_boe_roi', 'document_artifact_boe_roi', 'statement_pb_other_statements', 'document_artifact_pb_other_statements', 'record_of_interview_pb_roi', 'document_artifact_pb_roi'])
+reversion.register(DocumentArtifactLegalCases, follow=[])
+reversion.register(BriefOfEvidenceDocumentArtifacts, follow=[])
+reversion.register(ProsecutionBriefDocumentArtifacts, follow=[])
+reversion.register(PhysicalArtifact, follow=['comms_logs', 'action_logs', 'documents', 'physicalartifactlegalcases_set', 'briefofevidencephysicalartifacts_set', 'prosecutionbriefphysicalartifacts_set', 'form_data_records', 'renderer_documents'])
+reversion.register(PhysicalArtifactLegalCases, follow=['physical_artifact', 'legal_case'])
+reversion.register(BriefOfEvidencePhysicalArtifacts, follow=[])
+reversion.register(ProsecutionBriefPhysicalArtifacts, follow=[])
+reversion.register(PhysicalArtifactFormDataRecord, follow=[])
+reversion.register(ArtifactCommsLogEntry, follow=['documents'])
+reversion.register(ArtifactCommsLogDocument, follow=[])
+reversion.register(ArtifactUserAction, follow=[])
+reversion.register(ArtifactDocument, follow=[])
+reversion.register(RendererDocument, follow=[])
+#reversion.register(BriefOfEvidenceOtherStatements_children, follow=[])
+reversion.register(BriefOfEvidenceOtherStatements, follow=['parents'])
+#reversion.register(BriefOfEvidenceRecordOfInterview_children, follow=[])
+reversion.register(BriefOfEvidenceRecordOfInterview, follow=['parents'])
+#reversion.register(ProsecutionBriefOtherStatements_children, follow=[])
+reversion.register(ProsecutionBriefOtherStatements, follow=['parents'])
+#reversion.register(ProsecutionBriefRecordOfInterview_children, follow=[])
+reversion.register(ProsecutionBriefRecordOfInterview, follow=['parents'])
