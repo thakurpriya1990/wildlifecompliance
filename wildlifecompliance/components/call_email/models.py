@@ -256,7 +256,7 @@ class WildcareSpeciesType(models.Model):
 
     def __str__(self):
         return self.get_species_name_display()
-
+        
 class WildcareSpeciesSubType(models.Model):
     WILDCARE_SPECIES_SUB_TYPE_CORELLA = 'corella'
     WILDCARE_SPECIES_SUB_TYPE_RED_TAILED_BLACK = 'red_tailed_black'
