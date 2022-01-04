@@ -245,6 +245,7 @@ class WildcareSpeciesType(models.Model):
     species_name = models.CharField(
         max_length=100,
         choices=WILDCARE_SPECIES_TYPE_CHOICES,
+        unique=True,
     )
 
     class Meta:
@@ -252,7 +253,7 @@ class WildcareSpeciesType(models.Model):
         verbose_name = 'CM_WildcareSpeciesType'
         verbose_name_plural = 'CM_WildcareSpeciesTypes'
         ordering = ['species_name']
-        unique_together = ['species_name','call_type']
+        #unique_together = ['species_name','call_type']
 
     def __str__(self):
         return self.get_species_name_display()
@@ -351,6 +352,7 @@ class WildcareSpeciesSubType(models.Model):
     species_sub_name = models.CharField(
         max_length=100,
         choices=WILDCARE_SPECIES_SUB_TYPE_CHOICES,
+        unique=True,
     )
 
     class Meta:
@@ -358,7 +360,7 @@ class WildcareSpeciesSubType(models.Model):
         verbose_name = 'CM_WildcareSpeciesSubType'
         verbose_name_plural = 'CM_WildcareSpeciesSubTypes'
         ordering = ['species_sub_name']
-        unique_together = ['species_sub_name','wildcare_species_type']
+        #unique_together = ['species_sub_name','wildcare_species_type']
 
     def __str__(self):
         return self.get_species_sub_name_display()
