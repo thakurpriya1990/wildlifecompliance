@@ -11,4 +11,5 @@ source venv/bin/activate &&
 git log --pretty=medium -30 > ./wlc_git_history &&
 docker image build --no-cache --tag $BUILD_TAG . &&
 git checkout working
-echo $BUILD_TAG
+echo $BUILD_TAG &&
+docker push $BUILD_TAG
