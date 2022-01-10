@@ -309,9 +309,9 @@
                               </div>
                             </div></div>
 
-                             <div class="col-sm-9 form-group"><div class="row">
-                              <label class="col-sm-4">Call Type</label>
-                              <div  class="col-sm-8">
+                             <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-3">Call Type</label>
+                              <div  class="col-sm-9">
                                 <div v-for="option in call_types">
                                   <input :disabled="readonlyForm"  @change="filterWildcareSpeciesType($event,option.display)" type="radio" v-bind:value="option.id" :id="'call_type_'+option.id" v-model="call_email.call_type_id">
                                    <label :for="'call_type_'+option.id">{{ option.display }}</label>
