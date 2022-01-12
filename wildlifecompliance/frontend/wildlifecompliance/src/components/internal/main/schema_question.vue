@@ -97,6 +97,9 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Section</label>
                         </div>
@@ -111,6 +114,9 @@
                                 <option v-for="(s, sid) in schemaSections" :value="s.value" v-bind:key="`section_${sid}`">{{s.label}}</option>
                             </select>                      
                         </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
                     </div>
                     <div class="row">
                         <div class="col-md-3">
@@ -166,6 +172,9 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Parent Answer</label>
                         </div>
@@ -177,6 +186,9 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Group</label>
                         </div>
@@ -186,6 +198,9 @@
                                 <option v-for="(g, gid) in schemaGroups" :value="g.value" v-bind:key="`g_${gid}`" >{{g.label}}</option>
                             </select>                            
                         </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">&nbsp; </div>
                     </div>
                     <div class="row">
                         <div class="col-md-3">
@@ -468,7 +483,10 @@ export default {
                 this.answerList = master.options;
                 let parent = this.parentList.find( q => q.value == q_id)
                 if (parent) {
-                    this.sectionQuestion.section_group = parent.group
+                    //this.sectionQuestion.section_group = parent.group
+                    if(parent.group){
+                        this.sectionQuestion.section_group = parent.group
+                    }
                 }
             } else {
                 this.sectionQuestion.parent_question = '';

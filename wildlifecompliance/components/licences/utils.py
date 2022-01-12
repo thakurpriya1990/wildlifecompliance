@@ -3,7 +3,7 @@ import json
 
 from abc import ABC
 
-from wildlifecompliance.components.licences.models import SectionQuestion
+from wildlifecompliance.components.licences.models import SectionQuestion, SectionGroup
 
 logger = logging.getLogger(__name__)
 # logger = logging
@@ -272,19 +272,50 @@ class LicenceSchemaUtility(LicenceUtility):
                     # check for Section Groupings.
                     if q.section_group \
                             and q.section_group not in option_groupings:
+                        #original code
+                        # q_group_children = self.get_group_children2(
+                        #     q, section, question_name)
 
-                        q_group_children = self.get_group_children2(
-                            q, section, question_name)
+                        # if q.section_group.repeatable:
+                        #     option_repeatable = ['isRepeatable']
 
-                        if q.section_group.repeatable:
-                            option_repeatable = ['isRepeatable']
+                        # option_children = q_group_children
+                        # option_type = q.section_group.TYPE_GROUP2
+                        # condition_question_count = len(q_group_children)
+                        # option_label = q.section_group.group_label
 
-                        option_children = q_group_children
-                        option_type = q.section_group.TYPE_GROUP2
-                        condition_question_count = len(q_group_children)
-                        option_label = q.section_group.group_label
+                        # option_groupings.append(q.section_group)
+                        #original code end
+                        #PA code begin
+                        if section_question.section_group:
+                            if section_question.section_group != q.section_group:
+                                q_group_children = self.get_group_children2(
+                                    q, section, question_name)
 
-                        option_groupings.append(q.section_group)
+                                if q.section_group.repeatable:
+                                    option_repeatable = ['isRepeatable']
+
+                                option_children = q_group_children
+                                option_type = q.section_group.TYPE_GROUP2
+                                condition_question_count = len(q_group_children)
+                                option_label = q.section_group.group_label
+
+                                option_groupings.append(q.section_group)
+                        else:
+                            no_parent_section_group=True
+                            q_group_children = self.get_group_children2(
+                                    q, section, question_name,no_parent_section_group)
+
+                            if q.section_group.repeatable:
+                                option_repeatable = ['isRepeatable']
+
+                            option_children = q_group_children
+                            option_type = q.section_group.TYPE_GROUP2
+                            condition_question_count = len(q_group_children)
+                            option_label = q.section_group.group_label
+
+                            option_groupings.append(q.section_group)
+
 
                     elif q.question.answer_type in declaration:
 
@@ -320,7 +351,7 @@ class LicenceSchemaUtility(LicenceUtility):
 
                         if q.question.children_questions.exists():
                             q_conditions = self.get_condition_children2(
-                                q.question, section, question_name
+                                q, q.question, section, question_name
                             )
                             child['conditions'] = q_conditions
 
@@ -438,7 +469,91 @@ class LicenceSchemaUtility(LicenceUtility):
     #             option_count += 1
     #     return conditions
 
-    def get_condition_children2(self, question, section, parent_name=''):
+    # def get_condition_children2_original(self, question, section, parent_name=''):
+    #     conditions = {}
+    #     # options = question.option.all().order_by(
+    #     #     '-wildlifecompliance_masterlistquestion_option.id'
+    #     # )
+    #     options = []
+    #     special_types = ['checkbox', ]
+    #     group_types = ['checkbox', 'radiobuttons', 'multi-select']
+    #     declaration = ['declaration']
+    #     option_count = 0
+
+    #     if len(question.get_options()) > 0:
+    #         for op in question.get_options():
+    #             op_dict = {
+    #                 'label': op.label,
+    #                 'value': op.label.replace(" ", "").lower(),
+    #                 'id': op.value,
+    #             }
+    #             options.append(op_dict)
+
+    #     for op in options:
+    #         condition_questions = SectionQuestion.objects.filter(
+    #             section=section,
+    #             parent_question=question,
+    #             parent_answer=op['id']
+    #         ).order_by('order')
+
+    #         if condition_questions:
+    #             option_section = []
+    #             option_children = []
+    #             condition_question_count = 1
+
+    #             for q in condition_questions:
+    #                 question_name = '{}-{}{}'.format(
+    #                     parent_name, op['label'].replace(" ", ""),
+    #                     condition_question_count
+    #                 )
+
+    #                 child = {
+    #                     'name': question_name,
+    #                     'type': q.question.answer_type,
+    #                     'label': q.question.question,
+    #                 }
+    #                 if q.question.answer_type in special_types:
+    #                     q_option_children = self.get_checkbox_option_children2(
+    #                         q, q.question, section, question_name
+    #                     )
+    #                     child['children'] = q_option_children
+    #                     child['type'] = 'group'
+
+    #                 elif q.question.answer_type in declaration:
+
+    #                     child['type'] = 'checkbox'
+
+    #                 else:
+    #                     if len(q.question.get_options()) > 0:
+    #                         q_options = self.get_options2(q, q.question)
+    #                         child['options'] = q_options
+
+    #                     if q.question.children_questions.exists():
+
+    #                         q_conditions = self.get_condition_children2(
+    #                             q.question, section, question_name
+    #                         )
+    #                         child['conditions'] = q_conditions
+
+    #                 if q.tag:
+    #                     for t in q.tag:
+    #                         if t == 'isRequired':
+    #                             if q.question.answer_type not in group_types:
+    #                                 child[t] = 'true'
+    #                         else:
+    #                             child[t] = 'true'
+
+    #                 option_children.append(child)
+    #                 condition_question_count += 1
+
+    #             option_section.append(option_children[0])
+    #             conditions[
+    #                 op['label'].replace(" ", "").lower()
+    #             ] = option_section
+    #             option_count += 1
+    #     return conditions
+
+    def get_condition_children2(self, section_question, question, section, parent_name=''):
         conditions = {}
         # options = question.option.all().order_by(
         #     '-wildlifecompliance_masterlistquestion_option.id'
@@ -468,6 +583,7 @@ class LicenceSchemaUtility(LicenceUtility):
             if condition_questions:
                 option_section = []
                 option_children = []
+                option_groupings=[]
                 condition_question_count = 1
 
                 for q in condition_questions:
@@ -481,7 +597,55 @@ class LicenceSchemaUtility(LicenceUtility):
                         'type': q.question.answer_type,
                         'label': q.question.question,
                     }
-                    if q.question.answer_type in special_types:
+
+                    if q.section_group \
+                            and q.section_group not in option_groupings:
+                        #original code
+                        # q_group_children = self.get_group_children2(
+                        #     q, section, question_name)
+
+                        # if q.section_group.repeatable:
+                        #     option_repeatable = ['isRepeatable']
+
+                        # option_children = q_group_children
+                        # option_type = q.section_group.TYPE_GROUP2
+                        # condition_question_count = len(q_group_children)
+                        # option_label = q.section_group.group_label
+
+                        # option_groupings.append(q.section_group)
+                        #original code end
+                        #PA code begin
+                        #If the parent question has same group as the question then group children are already generated.
+                        if section_question.section_group:
+                            if section_question.section_group != q.section_group:
+                                q_group_children = self.get_group_children2(
+                                    q, section, question_name)
+
+                                if q.section_group.repeatable:
+                                    option_repeatable = ['isRepeatable']
+
+                                option_children = q_group_children
+                                option_type = q.section_group.TYPE_GROUP2
+                                condition_question_count = len(q_group_children)
+                                option_label = q.section_group.group_label
+
+                                option_groupings.append(q.section_group)
+                        else:
+                            no_parent_section_group=True
+                            q_group_children = self.get_group_children2(
+                                    q, section, question_name,no_parent_section_group)
+
+                            if q.section_group.repeatable:
+                                option_repeatable = ['isRepeatable']
+
+                            option_children = q_group_children
+                            option_type = q.section_group.TYPE_GROUP2
+                            condition_question_count = len(q_group_children)
+                            option_label = q.section_group.group_label
+
+                            option_groupings.append(q.section_group)
+
+                    elif q.question.answer_type in special_types:
                         q_option_children = self.get_checkbox_option_children2(
                             q, q.question, section, question_name
                         )
@@ -500,7 +664,7 @@ class LicenceSchemaUtility(LicenceUtility):
                         if q.question.children_questions.exists():
 
                             q_conditions = self.get_condition_children2(
-                                q.question, section, question_name
+                                q, q.question, section, question_name
                             )
                             child['conditions'] = q_conditions
 
@@ -512,10 +676,20 @@ class LicenceSchemaUtility(LicenceUtility):
                             else:
                                 child[t] = 'true'
 
-                    option_children.append(child)
-                    condition_question_count += 1
+                    if not option_groupings:
+                        option_children.append(child)
+                        condition_question_count += 1
+                        option_type='group'
+                        option_label=''
 
-                option_section.append(option_children[0])
+                section_group_name=parent_name+'-'+op['label'].replace(" ","")+'Group'
+                option_section_dict={
+                    'name':section_group_name,
+                    'type': option_type,
+                    'label':option_label,
+                    'children': option_children
+                }
+                option_section.append(option_section_dict)
                 conditions[
                     op['label'].replace(" ", "").lower()
                 ] = option_section
@@ -612,7 +786,9 @@ class LicenceSchemaUtility(LicenceUtility):
     #     section_count += 1
     #     return grouped_children
 
-    def get_group_children2(self, question, section, parent_name=''):
+
+
+    def get_group_children2(self, question, section, parent_name='', no_parent_section_group=False):
         grouped_children = []
         # options = question.option.all().order_by(
         #     '-wildlifecompliance_masterlistquestion_option.id'
@@ -646,7 +822,7 @@ class LicenceSchemaUtility(LicenceUtility):
                 'label': q.question.question,
             }
 
-            if q.parent_answer:
+            if q.parent_answer and not no_parent_section_group:
                 # Question already added as part of option groupings.
                 continue
 
@@ -732,7 +908,7 @@ class LicenceSchemaUtility(LicenceUtility):
                 if q.question.children_questions.exists():
 
                     q_conditions = self.get_condition_children2(
-                        q.question, section, question_name
+                       q, q.question, section, question_name
                     )
                     child['conditions'] = q_conditions
 
@@ -1072,10 +1248,12 @@ class LicenceSchemaUtility(LicenceUtility):
 
                             sc['options'] = sq_options
 
+                    # if sq.question.children_questions.exists() \
+                    #         and sc['type'] != 'group':
                     if sq.question.children_questions.exists() \
-                            and sc['type'] != 'group':
+                            and (sc['type'] != 'group' and sc['type'] != SectionGroup.TYPE_GROUP2):
                         sq_children = self.get_condition_children2(
-                            sq.question, section, sq_name
+                            sq,sq.question, section, sq_name
                         )
                         if sq_children:
                             sc['conditions'] = sq_children
