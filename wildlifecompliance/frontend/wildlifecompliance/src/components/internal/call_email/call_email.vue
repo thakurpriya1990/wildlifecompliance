@@ -302,18 +302,18 @@
                                     </option>
                                 </select> -->
                               <div>
-                                <div v-for="option in classification_types" class="col-sm-2">
+                                <div v-for="option in classification_types" class="col-sm-3">
                                   <input :disabled="readonlyForm" type="radio" v-bind:value="option.id" v-bind:key="option.id" :id="'classification_'+option.id" v-model="call_email.classification_id">
                                   <label :for="'classification_'+option.id">{{ option.display }}</label>
                                 </div>
                               </div>
                             </div></div>
 
-                             <div class="col-sm-9 form-group"><div class="row">
-                              <label class="col-sm-4">Call Type</label>
-                              <div  class="col-sm-8">
+                             <div class="col-sm-12 form-group"><div class="row">
+                              <label class="col-sm-3">Call Type</label>
+                              <div  class="col-sm-9">
                                 <div v-for="option in call_types">
-                                  <input :disabled="readonlyForm"  @change="filterWildcareSpeciesType" type="radio" v-bind:value="option.id" :id="'call_type_'+option.id" v-model="call_email.call_type_id">
+                                  <input :disabled="readonlyForm"  @change="filterWildcareSpeciesType($event,option.display)" type="radio" v-bind:value="option.id" :id="'call_type_'+option.id" v-model="call_email.call_type_id">
                                    <label :for="'call_type_'+option.id">{{ option.display }}</label>
                                 </div>
                               </div>
@@ -363,11 +363,11 @@
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-3">Dead</label>
                               <div class="col-sm-2">
-                                <input :disabled="readonlyForm" id="deadYes" type="radio" v-model="call_email.dead" v-bind:value="true">
+                                <input :disabled="readonlyForm" id="deadYes" type="radio" v-model="call_email.dead" value="true">
                                 <label for="deadYes">Yes</label>
                               </div>
                               <div class="col-sm-2">
-                                <input :disabled="readonlyForm" id="deadNo" type="radio" v-model="call_email.dead" v-bind:value="false">
+                                <input :disabled="readonlyForm" id="deadNo" type="radio" v-model="call_email.dead" value="false">
                                 <label for="deadNo">No</label>
                               </div>
                             </div></div>
@@ -375,11 +375,11 @@
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-3">Euthanise</label>
                               <div class="col-sm-2">
-                                <input :disabled="readonlyForm" id="euthaniseYes" type="radio" v-model="call_email.euthanise" v-bind:value="true">
+                                <input :disabled="readonlyForm" id="euthaniseYes" type="radio" v-model="call_email.euthanise" value="true">
                                 <label for="euthaniseYes">Yes</label>
                               </div>
                               <div class="col-sm-2">
-                                <input :disabled="readonlyForm" id="euthaniseNo" type="radio" v-model="call_email.euthanise" v-bind:value="false">
+                                <input :disabled="readonlyForm" id="euthaniseNo" type="radio" v-model="call_email.euthanise" value="false">
                                 <label for="euthaniseNo">No</label>
                               </div>
                             </div></div>
@@ -602,12 +602,15 @@ export default {
         from: new Date(),
       },
       workflow_type: '',
+      lovCollection : {},
+      // get rid of these
       classification_types: [],
       call_types: [],
       wildcare_species_types: [],
       filter_wildcare_species_types: [],
       wildcare_species_sub_types: [],
       filter_wildcare_species_sub_types: [],
+      //
       speciesSubTypeDisabled: false,
       isKangarooFemale: false,
       entangled_choices: [],
@@ -919,7 +922,7 @@ export default {
           this.$refs.legal_case.isModalOpen = true
       });
     },
-    filterWildcareSpeciesType: function(event) {
+    filterWildcareSpeciesType: function(event,selected_call_type) {
       this.$nextTick(() => {
         if(event){
           this.call_email.species_name=null;
@@ -930,11 +933,18 @@ export default {
           call_type_id:null,
         }];
         this.filter_wildcare_species_sub_types=[];
-        for(let choice of this.wildcare_species_types){
-          if(choice.call_type_id === this.call_email.call_type_id)
-          {
-            this.filter_wildcare_species_types.push(choice);
+        if(selected_call_type !=="General Enquiry" && selected_call_type !=="Illegal Activity" && selected_call_type !==undefined)
+        {
+          for(let choice of this.wildcare_species_types){
+            if(choice.call_type_id === this.call_email.call_type_id)
+            {
+              this.filter_wildcare_species_types.push(choice);
+            }
           }
+        }
+        else
+        {
+          this.filter_wildcare_species_types=this.wildcare_species_types;
         }
         //---to reset pinky/Joey onchange of call type
         this.checkKangarooFemale();
@@ -1011,7 +1021,6 @@ export default {
             // new CallEmail
             savedCallEmail = await this.saveCallEmail({ crud: 'create'});
         }
-        console.log(savedCallEmail)
         // recalc hash after save
         this.calculateHash();
         if (savedCallEmail && savedCallEmail.ok && returnToDash === 'exit') {
@@ -1167,31 +1176,36 @@ export default {
     }
     // await this.loadComplianceAllocatedGroup(this.call_email.allocated_group_id);
     // load drop-down select lists
+    
+    /// large LOV(List Of Values) object
+    const lovResponse = await Vue.http.get('/api/lov_collection/lov_collection_choices/');
+    this.lovCollection = lovResponse.body;
+    console.log(this.lovCollection)
+
     // classification_types
-    //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
-    let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
-    Object.assign(this.classification_types, returned_classification_types.body);
+    //let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
+    Object.assign(this.classification_types, this.lovCollection.classification_types);
     // call_types
-    let returned_call_types = await Vue.http.get('/api/call_type/call_type_choices/');
-    Object.assign(this.call_types, returned_call_types.body);
+    //let returned_call_types = await Vue.http.get('/api/call_type/call_type_choices/');
+    Object.assign(this.call_types, this.lovCollection.call_type_choices);
     //Wildcare Species Types
-    let returned_wildcare_species_types = await Vue.http.get('/api/wildcare_species_type/wildcare_species_type_choices/');
-    Object.assign(this.wildcare_species_types, returned_wildcare_species_types.body);
+    //let returned_wildcare_species_types = await Vue.http.get('/api/wildcare_species_type/wildcare_species_type_choices/');
+    Object.assign(this.wildcare_species_types, this.lovCollection.wildcare_species_types);
     //Wildcare Species Sub Types
-    let returned_wildcare_species_sub_types = await Vue.http.get('/api/wildcare_species_sub_type/wildcare_species_sub_type_choices/');
-    Object.assign(this.wildcare_species_sub_types, returned_wildcare_species_sub_types.body);
+    //let returned_wildcare_species_sub_types = await Vue.http.get('/api/wildcare_species_sub_type/wildcare_species_sub_type_choices/');
+    Object.assign(this.wildcare_species_sub_types, this.lovCollection.wildcare_species_sub_types);
     // Entangled choices
-    let returned_entangled_choices = await Vue.http.get('/api/call_email/entangled_choices/');
-    Object.assign(this.entangled_choices, returned_entangled_choices.body);
+    //let returned_entangled_choices = await Vue.http.get('/api/call_email/entangled_choices/');
+    Object.assign(this.entangled_choices, this.lovCollection.entangled_choices);
     // Gender choices
-    let returned_gender_choices = await Vue.http.get('/api/call_email/gender_choices/');
-    Object.assign(this.gender_choices, returned_gender_choices.body);
+    //let returned_gender_choices = await Vue.http.get('/api/call_email/gender_choices/');
+    Object.assign(this.gender_choices, this.lovCollection.gender_choices);
     // Pinky/Joey choices
-    let returned_baby_kangaroo_choices = await Vue.http.get('/api/call_email/baby_kangaroo_choices/');
-    Object.assign(this.baby_kangaroo_choices, returned_baby_kangaroo_choices.body);
+    //let returned_baby_kangaroo_choices = await Vue.http.get('/api/call_email/baby_kangaroo_choices/');
+    Object.assign(this.baby_kangaroo_choices, this.lovCollection.baby_kangaroo_choices);
     // Age choices
-    let returned_age_choices = await Vue.http.get('/api/call_email/age_choices/');
-    Object.assign(this.age_choices, returned_age_choices.body);
+    //let returned_age_choices = await Vue.http.get('/api/call_email/age_choices/');
+    Object.assign(this.age_choices, this.lovCollection.age_choices);
     //report_types
     let returned_report_types = await cache_helper.getSetCacheList('CallEmail_ReportTypes', helpers.add_endpoint_json(
                     api_endpoints.report_types,

@@ -51,7 +51,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     SanctionOutcomeDocumentAccessLogSerializer
 from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
-from wildlifecompliance.helpers import is_internal
+from wildlifecompliance.helpers import is_authorised_to_modify, is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
 from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_REMEDIATION_NOTICE, SO_TYPE_INFRINGEMENT_NOTICE, \
     SO_TYPE_LETTER_OF_ADVICE, SO_TYPE_CAUTION_NOTICE
@@ -352,6 +352,10 @@ class RemediationActionViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 serializer = self._update_instance(request)
                 ra = serializer.instance
+                instance = self.get_object()
+
+                # Ensure status is Open and submbitter is same as offender.
+                is_authorised_to_modify(request, instance)
 
                 # Update status
                 serializer = RemediationActionUpdateStatusSerializer(serializer.instance, data={'status': RemediationAction.STATUS_SUBMITTED}, context={'request': request})

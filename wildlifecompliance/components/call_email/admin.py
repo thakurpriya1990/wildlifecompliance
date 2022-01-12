@@ -1,6 +1,6 @@
 from django.contrib import admin
 from ledger.accounts.models import EmailUser
-from wildlifecompliance.components.call_email import models
+from wildlifecompliance.components.call_email import models, forms
 from reversion.admin import VersionAdmin
 
 
@@ -41,9 +41,10 @@ class CallTypeAdmin(admin.ModelAdmin):
 
 @admin.register(models.WildcareSpeciesType)
 class WildcareSpeciesTypeAdmin(admin.ModelAdmin):
-    list_display = ['call_type', 'species_name']
+    list_display = ['species_name', 'call_type']
+    form = forms.WildcareSpeciesTypeAdminForm
 
 @admin.register(models.WildcareSpeciesSubType)
 class WildcareSpeciesSubTypeAdmin(admin.ModelAdmin):
-    list_display = ['wildcare_species_type', 'species_sub_name']
+    list_display = ['species_sub_name', 'wildcare_species_type']
 

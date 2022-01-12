@@ -95,7 +95,7 @@ class CallType(models.Model):
         max_length=50,
         choices=NAME_CHOICES,
         default=CALL_TYPE_AMPHIBIAN,
-        unique=True
+        unique=True,
     )
 
     class Meta:
@@ -241,10 +241,11 @@ class WildcareSpeciesType(models.Model):
         (WILDCARE_SPECIES_TYPE_OTHER, 'Other'),
     )
 
-    call_type=models.ForeignKey(CallType, on_delete=models.CASCADE , related_name='wildcare_species_types')
+    call_type=models.ForeignKey(CallType, on_delete=models.CASCADE , related_name='wildcare_species_types', blank=True, null=True)
     species_name = models.CharField(
         max_length=100,
         choices=WILDCARE_SPECIES_TYPE_CHOICES,
+        unique=True,
     )
 
     class Meta:
@@ -252,11 +253,11 @@ class WildcareSpeciesType(models.Model):
         verbose_name = 'CM_WildcareSpeciesType'
         verbose_name_plural = 'CM_WildcareSpeciesTypes'
         ordering = ['species_name']
-        unique_together = ['species_name','call_type']
+        #unique_together = ['species_name','call_type']
 
     def __str__(self):
         return self.get_species_name_display()
-
+        
 class WildcareSpeciesSubType(models.Model):
     WILDCARE_SPECIES_SUB_TYPE_CORELLA = 'corella'
     WILDCARE_SPECIES_SUB_TYPE_RED_TAILED_BLACK = 'red_tailed_black'
@@ -351,6 +352,7 @@ class WildcareSpeciesSubType(models.Model):
     species_sub_name = models.CharField(
         max_length=100,
         choices=WILDCARE_SPECIES_SUB_TYPE_CHOICES,
+        unique=True,
     )
 
     class Meta:
@@ -358,7 +360,7 @@ class WildcareSpeciesSubType(models.Model):
         verbose_name = 'CM_WildcareSpeciesSubType'
         verbose_name_plural = 'CM_WildcareSpeciesSubTypes'
         ordering = ['species_sub_name']
-        unique_together = ['species_sub_name','wildcare_species_type']
+        #unique_together = ['species_sub_name','wildcare_species_type']
 
     def __str__(self):
         return self.get_species_sub_name_display()
@@ -547,8 +549,8 @@ class CallEmail(RevisionedMixin):
         related_name="wildcare_species_sub_type"
     )
     species_name = models.CharField(max_length=50, blank=True, null=True)
-    dead = models.BooleanField(default=False)
-    euthanise = models.BooleanField(default=False)
+    dead = models.NullBooleanField()
+    euthanise = models.NullBooleanField()
     number_of_animals = models.CharField(max_length=100, blank=True, null=True)
     brief_nature_of_call = models.TextField(blank=True)
     entangled = MultiSelectField(max_length=40, choices=ENTANGLED_CHOICES, blank=True, null=True)
@@ -699,8 +701,6 @@ class CallEmail(RevisionedMixin):
 
     def close(self, request=None):
         close_record, parents = can_close_record(self, request)
-        print("close_record")
-        print(close_record)
         if close_record:
             self.status = self.STATUS_CLOSED
             self.log_user_action(
@@ -728,7 +728,6 @@ class CallEmail(RevisionedMixin):
 
     def add_referrers(self, request):
         referrers_selected = request.data.get('referrers_selected').split(",")
-        print(referrers_selected)
         for selection in referrers_selected:
             print(selection)
             try:
