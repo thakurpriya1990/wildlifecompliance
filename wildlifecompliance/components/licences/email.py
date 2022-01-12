@@ -1,6 +1,7 @@
 import logging
 
 from django.core.urlresolvers import reverse
+from django.conf import settings
 
 from wildlifecompliance.components.main.utils import (
     remove_url_internal_request,
@@ -30,7 +31,7 @@ def send_licence_renewal_notification(licence, purposes, request=None):
     '''
     email = LicenceRenewalNotificationEmail()
     # url = request.build_absolute_uri(reverse('external'))
-    url = ''
+    url = settings.SITE_URL + reverse('external')
 
     context = {
         'licence': licence,
