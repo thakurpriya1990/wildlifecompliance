@@ -37,46 +37,49 @@ else
                 max_value=$ii
             fi;
         done
-        echo $max_value
         INCREMENT=$((max_value+1))
     fi
 fi
 BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
-echo $INCREMENT
-echo $BUILD_TAG
 {
-    git checkout $DBCA_BRANCH
-} ||
-{
-    echo "ERROR: You must have your local code checked in and the DBCA branch set up on local with the 'dbca_' prefix.  Example Instructions:"
-    echo "git remote add dbca git@github.com:dbca-wa/wildlifecompliance.git"
-    echo "git checkout -b dbca_compliance_mgt_dev dbca/compliance_mgt_dev"
-    echo "$0 1"
-    exit 1
+    {
+        git checkout $DBCA_BRANCH
+    } ||
+    {
+        echo "ERROR: You must have your local code checked in and the DBCA branch set up on local with the 'dbca_' prefix.  Example Instructions:"
+        echo "git remote add dbca git@github.com:dbca-wa/wildlifecompliance.git"
+        echo "git checkout -b dbca_compliance_mgt_dev dbca/compliance_mgt_dev"
+        echo "$0 1"
+        exit 1
+    }
 } &&
 {
-    git pull &&
-    cd $REPO/frontend/$REPO/ &&
-    npm run build &&
-    cd ../../../ &&
-    source venv/bin/activate &&
-    ./manage_wc.py collectstatic --no-input &&
-    git log --pretty=medium -30 > ./wlc_git_history &&
-    docker image build --no-cache --tag $BUILD_TAG . &&
-    git checkout $CURRENT_BRANCH
-    echo $BUILD_TAG
-} ||
-{
-    git checkout $CURRENT_BRANCH
-    echo "ERROR: Docker build failed"
-    echo "$0 1"
-    exit 1
+    {
+        git pull &&
+        cd $REPO/frontend/$REPO/ &&
+        npm run build &&
+        cd ../../../ &&
+        source venv/bin/activate &&
+        ./manage_wc.py collectstatic --no-input &&
+        git log --pretty=medium -30 > ./wlc_git_history &&
+        docker image build --no-cache --tag $BUILD_TAG . &&
+        git checkout $CURRENT_BRANCH
+        echo $BUILD_TAG
+    } ||
+    {
+        git checkout $CURRENT_BRANCH
+        echo "ERROR: Docker build failed"
+        echo "$0 1"
+        exit 1
+    }
 } &&
 {
-    docker push $BUILD_TAG
-} || {
-    git checkout $CURRENT_BRANCH
-    echo "ERROR: Docker push failed"
-    echo "$0 1"
-    exit 1
+    {
+        docker push $BUILD_TAG
+    } || {
+        git checkout $CURRENT_BRANCH
+        echo "ERROR: Docker push failed"
+        echo "$0 1"
+        exit 1
+    }
 }
