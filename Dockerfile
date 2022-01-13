@@ -58,7 +58,7 @@ RUN apt-get install -yq vim
 FROM builder_base_wls as python_libs_wls
 WORKDIR /app
 COPY requirements.txt ./
-COPY wlc_git_history ./
+COPY git_history_recent ./
 RUN touch /app/rand_hash
 RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
   # Update the Django <1.11 bug in django/contrib/gis/geos/libgeos.py

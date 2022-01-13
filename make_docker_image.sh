@@ -58,8 +58,9 @@ BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
     npm run build &&
     cd ../../../ &&
     source venv/bin/activate &&
-    ./manage_wc.py collectstatic --no-input &&
-    git log --pretty=medium -30 > ./wlc_git_history &&
+    #./manage.py collectstatic --no-input &&
+    $(find . -maxdepth 1 -name "manage*.py") collectstatic --no-input &&
+    git log --pretty=medium -30 > ./git_history_recent &&
     docker image build --no-cache --tag $BUILD_TAG . &&
     git checkout $CURRENT_BRANCH
     echo $BUILD_TAG
