@@ -1,5 +1,12 @@
 #!/bin/bash
 ## sole parameter is an integer indicating incremental daily version
+
+if [ $# -lt 1 ]; then
+    echo "ERROR: Must specify integer indicating incremental daily version e.g."
+    echo "$0 1"
+    exit 1
+fi
+
 BUILD_TAG=dbcawa/wildlifecompliance:v$(date +%Y.%m.%d).$1
 git checkout dbca_compliance_mgt_dev &&
 {
