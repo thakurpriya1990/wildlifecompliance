@@ -20,66 +20,31 @@ if [[ $# -gt 1 ]]; then
     INCREMENT=$2
 else
     INCREMENT=1
-    #echo "docker output"
-    #echo $(docker images | awk '{print $1":"$2}' | grep $BUILD_TAG_NO_INCREMENT)
     if [[ $(docker images | awk '{print $1":"$2}' | grep $BUILD_TAG_NO_INCREMENT) ]]; then
-    #if [[ $(docker images | grep $BUILD_TAG_NO_INCREMENT | awk '{print $2}') ]]; then
-        #DAILY_IMAGE_INCREMENTS=$(docker images | awk '{print $1":"$2}' | grep $BUILD_TAG_NO_INCREMENT | cut -c $(${#REPO}+6)-)
         DAILY_IMAGE_INCREMENTS=$(docker images | awk '{print $1":"$2}' | grep $BUILD_TAG_NO_INCREMENT)
         declare -i I=0
         declare -A inc_array
         for DAILY in $DAILY_IMAGE_INCREMENTS;
         do
-            #echo "iNC"
-            #echo $DAILY
-            #echo $(echo $DAILY | cut -c $((${#REPO}+21))-)
             INC=$(echo $DAILY | cut -c $((${#REPO}+21))-)
             inc_array[$I]=$INC
-            #I=$(($I + 1))
             I=$(($I+1))
-            #echo " this is i"
-            #echo $I;
         done
-        #inc_array[1]=$((3+4))
-        #inc_array[2]=$((3*4))
-        #inc_array[3]=$((3+1))
-        #echo "inc_array"
-        #echo "zero"
-        #echo "${inc_array[0]}"
-        #echo "one"
-        #echo "${inc_array[1]}"
-        #echo "two"
-        #echo "${inc_array[2]}"
-        #echo "three"
-        #echo "${inc_array[3]}"
-        #echo "length"
-        #echo "${inc_array[@]}"
-        #echo "max"
-        #echo "${inc_array[@]}" | sort -nr | head -n1
-        #echo "ifs"
-        #echo $(sort <<<"${inc_array[@]}")
         declare -i max_value=0
         for ii in ${inc_array[@]};
         do
-            #echo "ii"
-            #echo $ii
             if [ $ii -gt $max_value ]; then
                 max_value=$ii
             fi;
         done
         echo $max_value
-        #echo "daily image increments"
-        #echo $DAILY_IMAGE_INCREMENTS
-        #exit # to remove
         INCREMENT=$((max_value+1))
     fi
 fi
-#BUILD_TAG=dbcawa/wildlifecompliance:v$(date +%Y.%m.%d).$1
 BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
 echo $INCREMENT
 echo $BUILD_TAG
 {
-    #git checkout dbca_compliance_mgt_dev
     git checkout $DBCA_BRANCH
 } ||
 {
@@ -88,7 +53,7 @@ echo $BUILD_TAG
     echo "git checkout -b dbca_compliance_mgt_dev dbca/compliance_mgt_dev"
     echo "$0 1"
     exit 1
-}
+} &&
 {
     git pull &&
     cd $REPO/frontend/$REPO/ &&
@@ -106,7 +71,7 @@ echo $BUILD_TAG
     echo "ERROR: Docker build failed"
     echo "$0 1"
     exit 1
-}
+} &&
 {
     docker push $BUILD_TAG
 } || {
