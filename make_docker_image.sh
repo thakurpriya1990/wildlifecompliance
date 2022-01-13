@@ -1,5 +1,6 @@
 #!/bin/bash
 ## first parameter is DBCA branch name, optional second parameter is an integer indicating incremental daily version
+set -e
 if [[ $# -lt 1 ]]; then
     echo "ERROR: DBCA branch must be specified"
     echo "$0 1"
@@ -41,7 +42,6 @@ else
     fi
 fi
 BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
-{
     {
         git checkout $DBCA_BRANCH
     } ||
@@ -52,8 +52,6 @@ BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
         echo "$0 1"
         exit 1
     }
-} &&
-{
     {
         git pull &&
         cd $REPO/frontend/$REPO/ &&
@@ -72,8 +70,6 @@ BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
         echo "$0 1"
         exit 1
     }
-} &&
-{
     {
         docker push $BUILD_TAG
     } || {
@@ -82,4 +78,3 @@ BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
         echo "$0 1"
         exit 1
     }
-}
