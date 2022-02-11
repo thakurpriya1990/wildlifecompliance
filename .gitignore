@@ -108,7 +108,8 @@ wildlifecompliance/static/wildlifecompliance_vue/*
 # npm locks
 # *-lock.json
 
-wlc_git_history
+git_history_recent
+wildlifecompliance/static/wildlifecompliance_vue/*
 
 # Jupyter lab
 .ipynb_checkpoints/

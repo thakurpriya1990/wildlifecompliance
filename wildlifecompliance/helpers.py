@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import logging
 
 from django.contrib.auth.models import Group
+from rest_framework import serializers
 from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
@@ -238,3 +239,23 @@ def get_all_officers():
                                        'payment_officer'])
     return EmailUser.objects.filter(
         groups__name__in=licence_officer_groups)
+
+def is_in_organisation_contacts(request, organisation):
+    return request.user.email in organisation.contacts.all().values_list('email', flat=True)
+
+
+def is_authorised_to_modify(request, instance):
+    authorised = True
+                
+    # Can only modify if Open (not overdue, submitted, accepted).
+    if instance.status not in ['open', 'overdue']:
+        raise serializers.ValidationError('The status of this application means it cannot be modified: {}'
+                                          .format(instance.status))
+
+    # Submitter must be the offence holder.
+    offender = instance.sanction_outcome.offender.person.email # organisation to be handled later
+    submitter = request.user.email
+    authorised &= offender == submitter
+
+    if not authorised:
+        raise serializers.ValidationError('You are not authorised to modify this application.')
