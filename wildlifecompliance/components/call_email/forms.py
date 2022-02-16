@@ -21,5 +21,5 @@ class WildcareSpeciesTypeAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(WildcareSpeciesTypeAdminForm, self).__init__(*args, **kwargs)
         if self.instance:
-            self.fields['call_type'].queryset = CallType.objects.exclude(name__in=["general_enquiry", "illegal_activity"])
+            self.fields['call_type'].queryset = CallType.objects.exclude(all_wildcare_species=True)
 

@@ -93,10 +93,11 @@ class CallType(models.Model):
 
     name = models.CharField(
         max_length=50,
-        choices=NAME_CHOICES,
-        default=CALL_TYPE_AMPHIBIAN,
+        #choices=NAME_CHOICES,
+        #default=CALL_TYPE_AMPHIBIAN,
         unique=True,
     )
+    all_wildcare_species = models.BooleanField(default=False)  # False to hide from the frontend options
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -104,8 +105,8 @@ class CallType(models.Model):
         verbose_name_plural = 'CM_CallTypes'
 
     def __str__(self):
-        return self.get_name_display()
-
+        return self.name
+        
 class WildcareSpeciesType(models.Model):
     WILDCARE_SPECIES_TYPE_CANETOAD = 'cane_toad'
     WILDCARE_SPECIES_TYPE_FROG = 'frog'
@@ -244,7 +245,7 @@ class WildcareSpeciesType(models.Model):
     call_type=models.ForeignKey(CallType, on_delete=models.CASCADE , related_name='wildcare_species_types', blank=True, null=True)
     species_name = models.CharField(
         max_length=100,
-        choices=WILDCARE_SPECIES_TYPE_CHOICES,
+        #choices=WILDCARE_SPECIES_TYPE_CHOICES,
         unique=True,
     )
 
@@ -256,7 +257,7 @@ class WildcareSpeciesType(models.Model):
         #unique_together = ['species_name','call_type']
 
     def __str__(self):
-        return self.get_species_name_display()
+        return self.species_name
         
 class WildcareSpeciesSubType(models.Model):
     WILDCARE_SPECIES_SUB_TYPE_CORELLA = 'corella'
@@ -351,7 +352,7 @@ class WildcareSpeciesSubType(models.Model):
     wildcare_species_type=models.ForeignKey(WildcareSpeciesType, on_delete=models.CASCADE , related_name='wildcare_species_sub_types')
     species_sub_name = models.CharField(
         max_length=100,
-        choices=WILDCARE_SPECIES_SUB_TYPE_CHOICES,
+        #choices=WILDCARE_SPECIES_SUB_TYPE_CHOICES,
         unique=True,
     )
 
@@ -363,7 +364,7 @@ class WildcareSpeciesSubType(models.Model):
         #unique_together = ['species_sub_name','wildcare_species_type']
 
     def __str__(self):
-        return self.get_species_sub_name_display()
+        return self.species_sub_name
 
 
 class Referrer(models.Model):

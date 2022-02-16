@@ -885,20 +885,21 @@ class LOVCollectionViewSet(viewsets.ModelViewSet):
         for choice in CallType.objects.all():
             call_type_choices.append({
                 'id': choice.id, 
-                'display': choice.get_name_display()
+                'display': choice.name,
+                'all_wildcare_species': choice.all_wildcare_species
                 })
         wildcare_species_types = []
         for choice in WildcareSpeciesType.objects.all():
             wildcare_species_types.append({
                 'id': choice.id,
-                'display': choice.get_species_name_display(),
+                'display': choice.species_name,
                 'call_type_id': choice.call_type_id
                 })
         wildcare_species_sub_types = []
         for choice in WildcareSpeciesSubType.objects.all():
             wildcare_species_sub_types.append({
                 'id': choice.id,
-                'display': choice.get_species_sub_name_display(),
+                'display': choice.species_sub_name,
                 'wildcare_species_type_id': choice.wildcare_species_type_id
                 })
         age_choices = []
@@ -955,7 +956,7 @@ class CallTypeViewSet(viewsets.ModelViewSet):
         #for choice in CallType.NAME_CHOICES:
             # res_obj.append({'id': choice[0], 'display': choice[1]});
         for choice in CallType.objects.all():
-            res_obj.append({'id': choice.id, 'display': choice.get_name_display()})
+            res_obj.append({'id': choice.id, 'display': choice.name})
         res_json = json.dumps(res_obj)
         return HttpResponse(res_json, content_type='application/json')
 
