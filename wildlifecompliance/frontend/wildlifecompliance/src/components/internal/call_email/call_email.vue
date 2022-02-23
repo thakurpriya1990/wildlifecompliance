@@ -388,13 +388,13 @@
                               <label class="col-sm-3">Female/ Male</label>
                               <div>
                                 <div v-for="option in gender_choices" class="col-sm-2">
-                                  <input :disabled="readonlyForm" type="checkbox" @change="checkKangarooFemale" :value="option.id" :id="'gender_'+option.id" v-bind:key="option.id" v-model="call_email.gender"/>
+                                  <input :disabled="readonlyForm" type="checkbox" @change="checkFemalePinkyJoey" :value="option.id" :id="'gender_'+option.id" v-bind:key="option.id" v-model="call_email.gender"/>
                                    <label :for="'gender_'+option.id" >{{ option.display }}</label>
                                 </div>
                               </div>
                             </div></div>
 
-                            <div v-if="isKangarooFemale" class="col-sm-12 form-group"><div class="row">
+                            <div v-if="isFemalePinkyJoey" class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-3">Pinky/ Joey</label>
                               <div>
                                 <div v-for="option in baby_kangaroo_choices" class="col-sm-2">
@@ -612,7 +612,7 @@ export default {
       filter_wildcare_species_sub_types: [],
       //
       speciesSubTypeDisabled: false,
-      isKangarooFemale: false,
+      isFemalePinkyJoey: false,
       entangled_choices: [],
       gender_choices: [],
       baby_kangaroo_choices: [],
@@ -926,19 +926,22 @@ export default {
       this.$nextTick(() => {
         if(event){
           this.call_email.species_name=null;
+          this.call_email.wildcare_species_type_id=null; //-----to remove the previous selection
         }
         this.filter_wildcare_species_types=[];
         this.filter_wildcare_species_types=[{
           id:null,
           display:"",
           call_type_id:null,
+          check_pinky_joey:false,
+          show_species_name_textbox:false,
         }];
         this.filter_wildcare_species_sub_types=[];
         //------show dependent species for call_type selected
         if(all_wildcare_species === false)
         {
           for(let choice of this.wildcare_species_types){
-            if(choice.call_type_id === this.call_email.call_type_id)
+            if(choice.call_type_id === this.call_email.call_type_id || choice.call_type_id === null)
             {
               this.filter_wildcare_species_types.push(choice);
             }
@@ -949,13 +952,14 @@ export default {
           this.filter_wildcare_species_types=this.wildcare_species_types; //------else show all species
         }
         //---to reset pinky/Joey onchange of call type
-        this.checkKangarooFemale();
+        this.checkFemalePinkyJoey();
       });
     },
     filterWildcareSpeciesSubType: function(event) {
       this.$nextTick(() => {
         if(event){
           this.call_email.species_name=null;
+          this.call_email.wildcare_species_sub_type_id=null; //-----to remove the previous selection
         }
         this.filter_wildcare_species_sub_types=[{
           id:null,
@@ -970,7 +974,7 @@ export default {
         }
         else if(this.call_email.wildcare_species_type_id){
           for(let choice of this.filter_wildcare_species_types){
-            if(choice.id === this.call_email.wildcare_species_type_id && choice.display.trim().toLowerCase() === 'other'){
+            if(choice.id === this.call_email.wildcare_species_type_id && choice.show_species_name_textbox === true){
               this.speciesSubTypeDisabled=true;
             }
           }
@@ -986,20 +990,20 @@ export default {
           }
         }
         //---to reset pinky/Joey onchange of species type
-        this.checkKangarooFemale();
+        this.checkFemalePinkyJoey();
       });
     },
-    checkKangarooFemale: function() {
-      this.isKangarooFemale=false;
+    checkFemalePinkyJoey: function() {
+      this.isFemalePinkyJoey=false;
       if(this.call_email && this.call_email.gender.includes("female") && this.call_email.wildcare_species_type_id){
         for(let choice of this.filter_wildcare_species_types){
-          if(choice.id === this.call_email.wildcare_species_type_id && choice.display.trim().toLowerCase() === 'kangaroo'){
-            this.isKangarooFemale=true;
+          if(choice.id === this.call_email.wildcare_species_type_id && choice.check_pinky_joey === true){
+            this.isFemalePinkyJoey=true;
           }
         }
       }
       //---to reset pinky/joey if uncheck female
-      if (!this.isKangarooFemale) {
+      if (!this.isFemalePinkyJoey) {
         this.call_email.baby_kangaroo=[];
       }
     },
@@ -1264,7 +1268,7 @@ export default {
     this.filterWildcareSpeciesType();
     this.$nextTick(function() {
         this.filterWildcareSpeciesSubType();
-        this.checkKangarooFemale();
+        this.checkFemalePinkyJoey();
     });
   },
   mounted: function() {

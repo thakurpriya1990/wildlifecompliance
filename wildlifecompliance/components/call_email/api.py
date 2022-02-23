@@ -882,7 +882,7 @@ class LOVCollectionViewSet(viewsets.ModelViewSet):
                 'display': choice.get_name_display()
                 })
         call_type_choices = []
-        for choice in CallType.objects.all():
+        for choice in CallType.objects.all().order_by('call_type_index'):
             call_type_choices.append({
                 'id': choice.id, 
                 'display': choice.name,
@@ -893,7 +893,9 @@ class LOVCollectionViewSet(viewsets.ModelViewSet):
             wildcare_species_types.append({
                 'id': choice.id,
                 'display': choice.species_name,
-                'call_type_id': choice.call_type_id
+                'call_type_id': choice.call_type_id,
+                'check_pinky_joey': choice.check_pinky_joey,
+                'show_species_name_textbox' : choice.show_species_name_textbox,
                 })
         wildcare_species_sub_types = []
         for choice in WildcareSpeciesSubType.objects.all():
@@ -940,69 +942,6 @@ class LOVCollectionViewSet(viewsets.ModelViewSet):
         res_json = json.dumps(res_json)
         return HttpResponse(res_json, content_type='application/json')
 
-class CallTypeViewSet(viewsets.ModelViewSet):
-    queryset = CallType.objects.all()
-    serializer_class = CallTypeSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            return CallType.objects.all()
-        return CallType.objects.none()
-
-    @list_route(methods=['GET', ])    
-    def call_type_choices(self, request, *args, **kwargs):
-        res_obj = [] 
-        #for choice in CallType.NAME_CHOICES:
-            # res_obj.append({'id': choice[0], 'display': choice[1]});
-        for choice in CallType.objects.all():
-            res_obj.append({'id': choice.id, 'display': choice.name})
-        res_json = json.dumps(res_obj)
-        return HttpResponse(res_json, content_type='application/json')
-
-class WildcareSpeciesTypeViewSet(viewsets.ModelViewSet):
-    queryset = WildcareSpeciesType.objects.all()
-    serializer_class = WildcareSpeciesTypeSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            return WildcareSpeciesType.objects.all()
-        return WildcareSpeciesType.objects.none()
-
-    @list_route(methods=['GET', ])
-    def wildcare_species_type_choices(self, request, *args, **kwargs):
-        res_obj = []
-        for choice in WildcareSpeciesType.objects.all():
-            res_obj.append({
-                'id': choice.id,
-                'display': choice.get_species_name_display(),
-                'call_type_id': choice.call_type_id
-                })
-        res_json = json.dumps(res_obj)
-        return HttpResponse(res_json, content_type='application/json')
-
-class WildcareSpeciesSubTypeViewSet(viewsets.ModelViewSet):
-    queryset = WildcareSpeciesSubType.objects.all()
-    serializer_class = WildcareSpeciesSubTypeSerializer
-
-    def get_queryset(self):
-        user = self.request.user
-        if is_internal(self.request):
-            return WildcareSpeciesSubType.objects.all()
-        return WildcareSpeciesSubType.objects.none()
-
-    @list_route(methods=['GET', ])
-    def wildcare_species_sub_type_choices(self, request, *args, **kwargs):
-        res_obj = []
-        for choice in WildcareSpeciesSubType.objects.all():
-            res_obj.append({
-                'id': choice.id,
-                'display': choice.get_species_sub_name_display(),
-                'wildcare_species_type_id': choice.wildcare_species_type_id
-                })
-        res_json = json.dumps(res_obj)
-        return HttpResponse(res_json, content_type='application/json')
 
 class ReferrerViewSet(viewsets.ModelViewSet):
     queryset = Referrer.objects.all()
