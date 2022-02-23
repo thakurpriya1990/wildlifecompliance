@@ -174,46 +174,25 @@ class ClassificationSerializer(serializers.ModelSerializer):
         return display_name
 
 class CallTypeSerializer(serializers.ModelSerializer):
-    call_type_display = serializers.SerializerMethodField()
-
     class Meta:
         model = CallType
         fields = (
             'id',
             'name',
-            'call_type_display',
         )
         read_only_fields = ('id', 'name', )
-
-    def get_call_type_display(self, obj):
-        display_name = ''
-        for choice in CallType.NAME_CHOICES:
-            if obj.name == choice[0]:
-                display_name = choice[1]
-        return display_name
-
 class WildcareSpeciesTypeSerializer(serializers.ModelSerializer):
-    wildcare_species_type_display = serializers.SerializerMethodField()
-
+ 
     class Meta:
         model = WildcareSpeciesType
         fields = (
             'id',
             'call_type_id',
             'species_name',
-            'wildcare_species_type_display',
         )
         read_only_fields = ('id', 'species_name', )
 
-    def get_wildcare_species_type_display(self, obj):
-        display_name = ''
-        for choice in WildcareSpeciesType.WILDCARE_SPECIES_TYPE_CHOICES:
-            if obj.name == choice[0]:
-                display_name = choice[1]
-        return display_name
-
 class WildcareSpeciesSubTypeSerializer(serializers.ModelSerializer):
-    wildcare_species_sub_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = WildcareSpeciesSubType
@@ -221,16 +200,8 @@ class WildcareSpeciesSubTypeSerializer(serializers.ModelSerializer):
             'id',
             'wildcare_species_type_id',
             'species_sub_name',
-            'wildcare_species_sub_type_display',
         )
         read_only_fields = ('id', 'species_sub_name', )
-
-    def get_wildcare_species_sub_type_display(self, obj):
-        display_name = ''
-        for choice in WildcareSpeciesSubType.WILDCARE_SPECIES_SUB_TYPE_CHOICES:
-            if obj.name == choice[0]:
-                display_name = choice[1]
-        return display_name
 
 
 class ReferrerSerializer(serializers.ModelSerializer):
