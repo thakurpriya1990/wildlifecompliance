@@ -14,9 +14,10 @@ if [[ $# -gt 1 ]] && ! [[ $2 =~ ^[0-9]+$ ]]; then
 fi
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-REPO=$(basename -s .git `git config --get remote.origin.url` | sed 's/-//g')
+#REPO=$(basename -s .git `git config --get remote.origin.url` | sed 's/-//g')
+REPO=$(awk '{split($0, arr, "\/"); print arr[2]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
 DBCA_BRANCH="dbca_"$1
-BUILD_TAG_NO_INCREMENT=dbcawa/$REPO:v$(date +%Y.%m.%d)
+BUILD_TAG_NO_INCREMENT=dbcawa/$REPO:$1_v$(date +%Y.%m.%d)
 if [[ $# -gt 1 ]]; then
     INCREMENT=$2
 else
@@ -27,7 +28,8 @@ else
         declare -A inc_array
         for DAILY in $DAILY_IMAGE_INCREMENTS;
         do
-            INC=$(echo $DAILY | cut -c $((${#REPO}+21))-)
+            #INC=$(echo $DAILY | cut -c $((${#REPO}+21))-)
+            INC=$(echo $DAILY | cut -c $((${#REPO}+${#1}+22))-)
             inc_array[$I]=$INC
             I=$(($I+1))
         done
@@ -41,7 +43,8 @@ else
         INCREMENT=$((max_value+1))
     fi
 fi
-BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
+#BUILD_TAG=dbcawa/$REPO:v$(date +%Y.%m.%d).$INCREMENT
+BUILD_TAG=$BUILD_TAG_NO_INCREMENT.$INCREMENT
 {
     git checkout $DBCA_BRANCH
 } ||
