@@ -333,7 +333,9 @@ class ApplicationFeePolicy(object):
 
         # application fee.
         activities_with_fees = [
-            a for a in application.activities if a.application_fee > 0]
+            a for a in application.activities
+            if a.application_fee > 0 or (a.application.application_type==Application.APPLICATION_TYPE_RENEWAL and a.has_payable_fees_at_issue())
+        ]
 
         for activity in activities_with_fees:
 
