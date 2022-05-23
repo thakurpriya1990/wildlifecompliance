@@ -892,7 +892,8 @@ export default {
             this.workflowBindId = timeNow.toString();
         }
     },
-    addWorkflow(workflow_type) {
+    async addWorkflow(workflow_type) {
+      await this.save();
       this.workflow_type = workflow_type;
       this.updateWorkflowBindId();
       this.$nextTick(() => {

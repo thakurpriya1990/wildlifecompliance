@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from django.db import models
+from django.contrib.gis.db.models import MultiPolygonField
 from django.db.models.query import QuerySet
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser
@@ -261,6 +262,27 @@ class SanctionOutcomeWordTemplate(models.Model):
 
     def __str__(self):
         return "Version: {}, {}".format(self.id, self._file.name)
+
+class DistrictGIS(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    district_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id', ]
+        app_label = 'wildlifecompliance'
+
+
+class RegionGIS(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    region_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id', ]
+        app_label = 'wildlifecompliance'
 
 
 import reversion

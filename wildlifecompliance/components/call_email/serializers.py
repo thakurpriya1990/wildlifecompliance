@@ -20,6 +20,7 @@ from wildlifecompliance.components.call_email.models import (
     #ComplianceWorkflowLogEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
+from wildlifecompliance.components.main.utils import get_region_district
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
@@ -466,6 +467,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
     user_is_volunteer = serializers.SerializerMethodField()
     volunteer_list = serializers.SerializerMethodField()
     current_user_id = serializers.SerializerMethodField()
+    region_district = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -529,10 +531,18 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'volunteer_list',
             'volunteer_id',
             'current_user_id',
+            'region_district',
         )
         read_only_fields = (
             'id', 
             )
+
+    def get_region_district(self, obj):
+        try:
+            res = get_region_district(obj.location.wkb_geometry_processed)
+            return res
+        except:
+            return ''
 
     def get_current_user_id(self, obj):
         return self.context.get('request', {}).user.id
