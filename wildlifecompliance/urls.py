@@ -43,6 +43,7 @@ from wildlifecompliance.components.wc_payments import views as payment_views
 from wildlifecompliance.components.legal_case import api as legal_case_api
 from wildlifecompliance.components.artifact import api as artifact_api
 
+from wildlifecompliance.management.default_data_manager import DefaultDataManager
 from wildlifecompliance.utils import are_migrations_running
 
 from ledger.urls import urlpatterns as ledger_patterns
@@ -308,6 +309,7 @@ urlpatterns = [
 
 if not are_migrations_running():
     CollectorManager()
+    DefaultDataManager()
 
 if settings.DEBUG:  # Serve media locally in development.
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
