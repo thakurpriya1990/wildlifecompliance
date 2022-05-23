@@ -1129,8 +1129,8 @@ class BaseApplicationSerializer(serializers.ModelSerializer):
             result = True
         elif not obj.licence:
             result = obj.can_user_edit
-        elif not obj.licence.has_proposed_purposes_in_current():
-            # no active purposes ie. licence is expired.
+        elif not obj.licence.has_proposed_purposes_in_current() and not obj.application_fee_paid:
+            # no active purposes ie. licence is expired, and never previously submitted.
             result = False
         else:
             result = obj.can_user_edit

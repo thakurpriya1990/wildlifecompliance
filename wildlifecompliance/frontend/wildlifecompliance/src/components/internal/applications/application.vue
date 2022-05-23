@@ -902,7 +902,8 @@ export default {
                         && activity.processing_status.name.match(/with officer/gi) // FIXME: required because of temporary status set below.
                 });                                                                // processing_status.id not related to processing_status.name
 
-            if (this.selected_activity_tab_workflow_state[this.selected_activity_tab_id] || !this.hasCurrentLicence){
+            //if (this.selected_activity_tab_workflow_state[this.selected_activity_tab_id] || !this.hasCurrentLicence){
+            if (this.selected_activity_tab_workflow_state[this.selected_activity_tab_id]){
                 // presentation frontend state is incomplete or no valid licence.
                 proposal = false;
             }

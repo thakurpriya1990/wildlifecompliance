@@ -1,0 +1,242 @@
+commit afc2fccc2b8a0fd3ed7dbd09f76550d09d3e91b4
+Merge: ac2321866 7f661136b
+Author: Jawaid Mushtaq <jawaid_mushtaq@yahoo.com>
+Date:   Wed Jan 12 16:11:06 2022 +0800
+
+    Merge branch 'compliance_mgt_dev' into dbca_compliance_mgt_dev
+
+commit 7f661136b6b6ad867ea35c3937a1cda87656acb3
+Merge: dcc1f7d69 aedd85e90
+Author: Jawaid Mushtaq <jawaid_mushtaq@yahoo.com>
+Date:   Wed Jan 12 13:43:10 2022 +0800
+
+    Merge branch 'graeme-enhancement-comp-man-dev' of https://github.com/GraemeMuller/wildlifecompliance into compliance_mgt_dev
+
+commit dcc1f7d6959e90dd850566da9dad0b150ea26296
+Merge: 15a977c01 1f44a6b55
+Author: Jawaid Mushtaq <jawaid_mushtaq@yahoo.com>
+Date:   Wed Jan 12 13:11:36 2022 +0800
+
+    Merge
+
+commit 15a977c015a6ac846405e9dc360ac813ce4d1da8
+Merge: ab60161c6 6abe79963
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Mon Jan 10 15:31:42 2022 +0800
+
+    Merge pull request #112 from thakurpriya1990/compliance_mgt_dev
+    
+    priya/compliance_mgt_dev => dbca/compliance_mgt_dev
+
+commit 6abe7996365b21a49443d379aaaadecd9b21e88b
+Merge: 89e45bdc0 3b8304f12
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Mon Jan 10 12:20:30 2022 +0800
+
+    Merge pull request #14 from thakurpriya1990/working
+    
+    priya/working => priya/compliance_mgt_dev
+
+commit 3b8304f12e470ed4c9e20286cd9c6102ea5d05fd
+Author: thakurpriya1990@gmail.com <thakurpriya1990@gmail.com>
+Date:   Mon Jan 10 12:17:38 2022 +0800
+
+    call_type css fixed
+
+commit ab60161c6f2f096962eca95c9924a02db023766b
+Merge: df95ebcb7 1eb95d579
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Tue Jan 4 11:55:05 2022 +0800
+
+    Merge pull request #111 from mintcoding/compliance_mgt_dev
+    
+    mintcoding/Compliance_mgt_dev to dbca/compliance_mgt_dev
+
+commit 1eb95d579ca03736717fe3f402833045838100b7
+Merge: 49f309590 9db2a69c3
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Tue Jan 4 11:54:09 2022 +0800
+
+    Merge pull request #80 from mintcoding/working
+    
+    working to compliance_mgt_dev
+
+commit 9db2a69c3e94726bca910c8f17b43e954c57beb9
+Author: Brendan Blackford <brendan.blackford@dbca.wa.gov.au>
+Date:   Tue Jan 4 11:52:57 2022 +0800
+
+    Update make_docker_image.sh
+
+commit 25a8425b5019f656bfbaffc20d55f3ae0006ef94
+Merge: 28f5bb4ce 49f309590
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Tue Jan 4 11:46:58 2022 +0800
+
+    Merge pull request #79 from mintcoding/compliance_mgt_dev
+    
+    Compliance_mgt_dev to working
+
+commit 49f309590f868bedcba47dd326f2cdfb6cb13c42
+Merge: 8773a2fd2 df95ebcb7
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Tue Jan 4 11:46:19 2022 +0800
+
+    Merge pull request #78 from dbca-wa/compliance_mgt_dev
+    
+    dbca/Compliance_mgt_dev to mintcoding/compliance_mgt_dev
+
+commit df95ebcb73c132a8653ec25e0e6027004c8a2551
+Merge: 0894d63e4 89e45bdc0
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Tue Jan 4 11:43:49 2022 +0800
+
+    Merge pull request #110 from thakurpriya1990/compliance_mgt_dev
+    
+    thakurpriya1990/compliance mgt dev => dbca/compliance_mgt_dev
+
+commit 89e45bdc0ed389be673ab5c7dab4ed94ad2fa448
+Merge: b19bd30ee 237280675
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Tue Jan 4 10:33:03 2022 +0800
+
+    Merge pull request #13 from thakurpriya1990/working
+    
+    Working
+
+commit 23728067534d1deaaa9e506757b553c4516dc143
+Author: thakurpriya1990@gmail.com <thakurpriya1990@gmail.com>
+Date:   Tue Jan 4 09:46:52 2022 +0800
+
+    Wildcare species set to unique constraint
+
+commit ba41438944dbd30f9f85a5b74930a42708216ee0
+Merge: ac2fc21df b19bd30ee
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Wed Dec 22 15:48:45 2021 +0800
+
+    Merge pull request #12 from thakurpriya1990/compliance_mgt_dev
+    
+    priya/compliance_mgt_dev to priya/working
+
+commit b19bd30ee0bf5433123f446ce2953d7f752150d6
+Merge: 8f573c4a4 0894d63e4
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Wed Dec 22 15:47:41 2021 +0800
+
+    Merge pull request #11 from dbca-wa/compliance_mgt_dev
+    
+    dbca/compliance_mgt_dev to priya/compliance_mgt_dev
+
+commit 0894d63e46226f22ff642704a6acd5c91e237ef9
+Merge: 2f029f155 8773a2fd2
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 15:36:58 2021 +0800
+
+    Merge pull request #109 from mintcoding/compliance_mgt_dev
+    
+    mintcoding/Compliance_mgt_dev to dbca/compliance_mgt_dev
+
+commit 8773a2fd21ba5661544f5a8e3bf3b9b7c8c89720
+Merge: 11427eb80 28f5bb4ce
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 15:36:14 2021 +0800
+
+    Merge pull request #77 from mintcoding/working
+    
+    working to compliance_mgt_dev
+
+commit 28f5bb4ce3116fb62d836a39612c72a052e54ae1
+Author: Brendan Blackford <brendan.blackford@dbca.wa.gov.au>
+Date:   Wed Dec 22 15:35:08 2021 +0800
+
+    Add custom WildcareSpeciesTypeAdminForm
+
+commit fde45d25b64a4df989be0a0d9a0a8bbb9a8acd99
+Merge: 3891dde05 11427eb80
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 15:22:08 2021 +0800
+
+    Merge pull request #76 from mintcoding/compliance_mgt_dev
+    
+    Compliance_mgt_dev to working
+
+commit 11427eb8097d99e2cd4d7e30a027e5b7260f93bd
+Merge: 18dc29d8c 2f029f155
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 15:21:16 2021 +0800
+
+    Merge pull request #75 from dbca-wa/compliance_mgt_dev
+    
+    dbca/Compliance_mgt_dev to mintcoding/compliance_mgt_dev
+
+commit 2f029f15547c7f855412124dd1a063457b505c89
+Merge: 1fccf2f9c 8f573c4a4
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 15:20:27 2021 +0800
+
+    Merge pull request #108 from thakurpriya1990/compliance_mgt_dev
+    
+    priya/compliance_mg_ dev => dbca/compliance_mgt_dev
+
+commit 8f573c4a45b8dc35503eeeb6cc328607bb5e9eea
+Merge: 0038ae9c7 ac2fc21df
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Wed Dec 22 15:17:45 2021 +0800
+
+    Merge pull request #10 from thakurpriya1990/working
+    
+    priya/working=>priya/compliance_mgt_dev
+
+commit ac2fc21df1410d0a75cdc5599c12415db12b5fc2
+Author: thakurpriya1990@gmail.com <thakurpriya1990@gmail.com>
+Date:   Wed Dec 22 15:15:12 2021 +0800
+
+    Resolve CallType hierarchy issue
+
+commit a333818062449e29b3dd70f5e40e98db0375fe95
+Merge: 5883fba69 0038ae9c7
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Wed Dec 22 10:51:14 2021 +0800
+
+    Merge pull request #9 from thakurpriya1990/compliance_mgt_dev
+    
+    priya/compliance_mgt_dev => priya/working
+
+commit 0038ae9c766d68759e799e98d3c025c18dbcdded
+Merge: fe8b6d73c 1fccf2f9c
+Author: thakurpriya1990 <89830271+thakurpriya1990@users.noreply.github.com>
+Date:   Wed Dec 22 10:50:11 2021 +0800
+
+    Merge pull request #8 from dbca-wa/compliance_mgt_dev
+    
+    dbca/compliance_mgt_dev=> priya/compliance_mgt_dev
+
+commit 5883fba692ae9871b63080da8adf8aec555e4dca
+Author: thakurpriya1990@gmail.com <thakurpriya1990@gmail.com>
+Date:   Wed Dec 22 10:46:12 2021 +0800
+
+    Resolve Call/Email test issues
+
+commit 1fccf2f9c7079b1d46d9d83da06ff367150eedca
+Merge: 90ba7320b 18dc29d8c
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 10:41:55 2021 +0800
+
+    Merge pull request #107 from mintcoding/compliance_mgt_dev
+    
+    mintcoding/Compliance_mgt_dev to dbca-wa/compliance_mgt_dev
+
+commit 18dc29d8c06160ecd076f89175289b8601f66dbb
+Merge: be8ed7939 3891dde05
+Author: Brendan Blackford <47347234+mintcoding@users.noreply.github.com>
+Date:   Wed Dec 22 10:41:06 2021 +0800
+
+    Merge pull request #74 from mintcoding/working
+    
+    Separate saveCallEmail create/duplicate options
+
+commit 3891dde05100b9ca238440a33389481cdd3c2bf1
+Author: Brendan Blackford <brendan.blackford@dbca.wa.gov.au>
+Date:   Wed Dec 22 10:40:12 2021 +0800
+
+    Separate saveCallEmail create/duplicate options
