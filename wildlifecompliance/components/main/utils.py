@@ -629,8 +629,8 @@ def to_local_tz(_date):
 
 def get_region_district(wkb_geometry):
     try:
-        regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-        districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+        regions = RegionGIS.objects.filter(wkb_geometry__contains=wkb_geometry)
+        districts = DistrictGIS.objects.filter(wkb_geometry__contains=wkb_geometry)
         text_arr = []
         if regions:
             text_arr.append(regions.first().region_name)
@@ -639,6 +639,26 @@ def get_region_district(wkb_geometry):
 
         ret_text = '/'.join(text_arr)
         return ret_text
+    except:
+        return ''
+
+def get_region_gis(wkb_geometry):
+    try:
+        regions = RegionGIS.objects.filter(wkb_geometry__contains=wkb_geometry)
+        if regions:
+            region_name = regions.first().region_name
+            return region_name
+        return ''
+    except:
+        return ''
+
+def get_district_gis(wkb_geometry):
+    try:
+        districts = DistrictGIS.objects.filter(wkb_geometry__contains=wkb_geometry)
+        if districts:
+            district_name = districts.first().district_name
+            return district_name
+        return ''
     except:
         return ''
 
