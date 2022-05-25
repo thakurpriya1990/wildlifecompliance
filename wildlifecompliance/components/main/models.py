@@ -63,9 +63,24 @@ class Sequence(models.Model):
             repr(self.name), repr(self.last))
 
 
-@python_2_unicode_compatible
 class Region(models.Model):
-    name = models.CharField(max_length=200, blank=False, unique=True)
+    name = models.CharField(max_length=255, unique=True)
+    #abbreviation = models.CharField(max_length=16, null=True, unique=True)
+    #ratis_id = models.IntegerField(default=-1)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+        app_label = 'wildlifecompliance'
+
+
+class District(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    #abbreviation = models.CharField(max_length=16, null=True, unique=True)
+    region = models.ForeignKey(Region, on_delete=models.PROTECT)
+    #ratis_id = models.IntegerField(default=-1)
 
     def __str__(self):
         return self.name

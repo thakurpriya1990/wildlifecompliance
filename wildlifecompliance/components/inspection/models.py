@@ -16,7 +16,8 @@ from wildlifecompliance.components.main.models import (
         Document,
         )
 from wildlifecompliance.components.main.related_item import can_close_record
-from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+from wildlifecompliance.components.users.models import CompliancePermissionGroup
+from wildlifecompliance.components.main.models import Region, District
 from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
@@ -150,16 +151,16 @@ class Inspection(RevisionedMixin):
             related_name='inspection_inspection_type',
             null=True
             )
-    region = models.ForeignKey(
-        RegionDistrict, 
-        related_name='inspection_region', 
-        null=True
-    )
-    district = models.ForeignKey(
-        RegionDistrict, 
-        related_name='inspection_district', 
-        null=True
-    )
+    #region = models.ForeignKey(
+    #    Region, 
+    #    related_name='inspection_region', 
+    #    null=True
+    #)
+    #district = models.ForeignKey(
+    #    District, 
+    #    related_name='inspection_district', 
+    #    null=True
+    #)
 
     class Meta:
         app_label = 'wildlifecompliance'
