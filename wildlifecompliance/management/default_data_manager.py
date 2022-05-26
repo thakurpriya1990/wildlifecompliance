@@ -10,7 +10,7 @@ from django.core.exceptions import MultipleObjectsReturned
 from ledger.settings_base import TIME_ZONE
 
 from wildlifecompliance import settings
-from wildlifecompliance.components.main.models import RegionGIS, DistrictGIS
+from wildlifecompliance.components.main.models import RegionGIS, DistrictGIS, Region
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class DefaultDataManager(object):
 
     def __init__(self):
 
-        # Region: store geometries
+        # RegionGIS: store geometries
         path_to_regions = os.path.join(settings.BASE_DIR, 'wildlifecompliance', 'static', 'wildlifecompliance', 'DBCA_regions.geojson')
         count = RegionGIS.objects.all().count()
         if not count > 0:
@@ -38,7 +38,7 @@ class DefaultDataManager(object):
                     region_obj.save()
                     logger.info("Created Region: {}".format(region['properties']['DRG_REGION_NAME']))
 
-        # District: store geometries
+        # DistrictGIS: store geometries
         path_to_districts = os.path.join(settings.BASE_DIR, 'wildlifecompliance', 'static', 'wildlifecompliance', 'DBCA_districts.geojson')
         count = DistrictGIS.objects.all().count()
         if not count > 0:
@@ -57,3 +57,7 @@ class DefaultDataManager(object):
                     district_obj.save()
                     logger.info("Created District: {}".format(district['properties']['DDT_DISTRICT_NAME']))
 
+        # Head Office Region
+        region, created = Region.objects.get_or_create(name=settings.HEAD_OFFICE_NAME)
+        if created:
+            logger.info("Created Head Office Region: {}".format(region.name))

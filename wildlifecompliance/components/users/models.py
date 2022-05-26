@@ -99,7 +99,7 @@ class DistrictCompliancePermissionGroupManager(models.Manager):
 
 class RegionCompliancePermissionGroupManager(models.Manager):
     def get_queryset(self):
-        return super(RegionCompliancePermissionGroupManager, self).get_queryset().filter(district__isnull=True)
+        return super(RegionCompliancePermissionGroupManager, self).get_queryset().filter(region__isnull=False, district__isnull=True)
 
 
 class CompliancePermissionGroup(Group):
@@ -109,6 +109,7 @@ class CompliancePermissionGroup(Group):
       #  blank=True)
     region = models.ForeignKey(Region, null=True)
     district = models.ForeignKey(District, null=True)
+    objects = models.Manager()
     district_groups = DistrictCompliancePermissionGroupManager()
     region_groups = RegionCompliancePermissionGroupManager()
 

@@ -74,6 +74,8 @@ class Region(models.Model):
     class Meta:
         ordering = ['name']
         app_label = 'wildlifecompliance'
+        verbose_name = 'CM_Region'
+        verbose_name_plural = 'CM_Regions'
 
 
 class District(models.Model):
@@ -88,6 +90,8 @@ class District(models.Model):
     class Meta:
         ordering = ['name']
         app_label = 'wildlifecompliance'
+        verbose_name = 'CM_District'
+        verbose_name_plural = 'CM_Districts'
 
 
 @python_2_unicode_compatible
