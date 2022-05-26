@@ -10,9 +10,9 @@
                               <label>Region</label>
                             </div>
                             <div class="col-sm-9">
-                              <select class="form-control col-sm-9" @change.prevent="updateDistricts()" v-model="region_id">
+                              <select class="form-control col-sm-9" @change.prevent="updateDistricts" v-model="regionId">
                                 <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
-                                  {{ option.display_name }} 
+                                  {{ option.name }} 
                                 </option>
                               </select>
                             </div>
@@ -24,9 +24,10 @@
                               <label>District</label>
                             </div>
                             <div class="col-sm-9">
-                              <select class="form-control" @change.prevent="updateAllocatedGroup()" v-model="district_id">
-                                <option  v-for="option in availableDistricts" :value="option.id" v-bind:key="option.id">
-                                  {{ option.display_name }} 
+                              <!--select class="form-control" @change.prevent="updateAllocatedGroup()" v-model="districtId"-->
+                              <select class="form-control" v-model="districtId">
+                                <option  v-for="option in availableDistricts" :value="option.district_id" v-bind:key="option.district_id">
+                                  {{ option.district_name }} 
                                 </option>
                               </select>
                             </div>
@@ -124,15 +125,15 @@ export default {
             processingDetails: false,
             form: null,
             regions: [],
-            regionDistricts: [],
+            //regionDistricts: [],
             availableDistricts: [],
             externalOrganisations: [],
             referrers: [],
             referrersSelected: [],
             workflowDetails: '',
             errorResponse: "",
-            region_id: null,
-            district_id: null,
+            regionId: null,
+            districtId: null,
             assigned_to_id: null,
             inspection_type_id: null,
             case_priority_id: null,
@@ -154,7 +155,7 @@ export default {
     validations: function() {
         if (this.workflow_type === 'allocate_for_follow_up') {
             return {
-                region_id: {
+                regionId: {
                     required,
                 },
                 assigned_to_id: {
@@ -165,7 +166,7 @@ export default {
             return {}
         } else {
             return {
-                region_id: {
+                regionId: {
                     required,
                 },
             }
@@ -227,6 +228,24 @@ export default {
               return "Close Call/Email";
         }
       },
+        selectedRegion: function() {
+            for (let region of this.regions) {
+                if (region.id === this.regionId) {
+                    return region
+                }
+            }
+        },
+
+        /*
+        availableDistricts: function() {
+            let districts = []
+            if (this.regionId) {
+                for (let district of this.selectedRegion) {
+                    districts.push(district)
+                }
+            }
+            return districts
+        },
       regionDistrictId: function() {
           if (this.district_id || this.region_id) {
               return this.district_id ? this.district_id : this.region_id;
@@ -234,6 +253,7 @@ export default {
               return null;
           }
       },
+      */
     },
     filters: {
       formatDate: function(data) {
@@ -247,6 +267,18 @@ export default {
       ...mapActions({
           loadAllocatedGroup: 'loadAllocatedGroup',
       }),
+        updateDistricts: function() {
+            this.$nextTick(() => {
+                this.availableDistricts = []
+                if (this.selectedRegion) {
+                    for (let district of this.selectedRegion.districts) {
+                        console.log(district)
+                        this.availableDistricts.push(district)
+                    }
+                }
+            })
+        },
+        /*
       updateDistricts: function() {
         // this.district_id = null;
         this.availableDistricts = [];
@@ -273,6 +305,7 @@ export default {
         // ensure security group members list is up to date
         this.updateAllocatedGroup();
       },
+        */
       updateAllocatedGroup: async function() {
           console.log("updateAllocatedGroup");
           this.errorResponse = "";
@@ -281,8 +314,8 @@ export default {
           if (this.workflow_type === 'forward_to_wildlife_protection_branch') {
               for (let record of this.regionDistricts) {
                   if (record.district === 'KENSINGTON') {
-                      this.district_id = null;
-                      this.region_id = record.id;
+                      this.districtId = null;
+                      this.regionId = record.id;
                   }
               }
           }
@@ -324,7 +357,7 @@ export default {
           this.$v.$touch();
           if (this.$v.$invalid) {
               this.errorResponse = 'Invalid form:\n';
-              if (this.$v.region_id.$invalid) {
+              if (this.$v.regionId.$invalid) {
                   this.errorResponse += 'Region is required\n';
               }
               if (this.$v.assigned_to_id && this.$v.assigned_to_id.$invalid) {
@@ -364,11 +397,11 @@ export default {
           this.workflow_type ? payload.append('workflow_type', this.workflow_type) : null;
           this.modalTitle ? payload.append('email_subject', this.modalTitle) : null;
           this.referrersSelected ? payload.append('referrers_selected', this.referrersSelected) : null;
-          this.district_id ? payload.append('district_id', this.district_id) : null;
+          this.districtId ? payload.append('district_id', this.districtId) : null;
           this.assigned_to_id ? payload.append('assigned_to_id', this.assigned_to_id) : null;
           this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
           this.case_priority_id ? payload.append('case_priority_id', this.case_priority_id) : null;
-          this.region_id ? payload.append('region_id', this.region_id) : null;
+          this.regionId ? payload.append('region_id', this.regionId) : null;
           this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
 
           let callEmailRes = await this.saveCallEmail({ crud: 'save', 'internal': true, close: true });
@@ -442,9 +475,17 @@ export default {
         
         //await this.$parent.updateAssignedToId('blank');
         // regions
-        let returned_regions = await cache_helper.getSetCacheList('Regions', '/api/region_district/get_regions/');
+        //let returned_regions = await cache_helper.getSetCacheList('Regions', '/api/region_district/get_regions/');
+        let returned_regions = await cache_helper.getSetCacheList('Regions', '/api/regions/');
         Object.assign(this.regions, returned_regions);
         // blank entry allows user to clear selection
+        this.regions.splice(0, 0, 
+            {
+              id: "", 
+              name: "",
+              districts: [],
+            });
+        /*
         this.regions.splice(0, 0, 
             {
               id: "", 
@@ -459,8 +500,9 @@ export default {
             api_endpoints.region_district
             );
         Object.assign(this.regionDistricts, returned_region_districts);
+        */
 
-        await this.updateAllocatedGroup();
+        //await this.updateAllocatedGroup();
 
         // referrers
         let returned_referrers = await cache_helper.getSetCacheList('CallEmail_Referrers', '/api/referrers.json');
@@ -472,9 +514,11 @@ export default {
               name: "",
             });
         // add call_email vuex region_id and district_id to local component
-        this.district_id = this.call_email.district_id;
-        this.region_id = this.call_email.region_id;
+        /*
+        this.districtId = this.call_email.districtId;
+        this.regionId = this.call_email.regionId;
         this.updateDistricts();
+        */
     },
     mounted: function() {
         this.form = document.forms.forwardForm;

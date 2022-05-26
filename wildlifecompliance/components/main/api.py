@@ -45,9 +45,11 @@ from wildlifecompliance.components.main.serializers import (
     DTSchemaPurposeSerializer,
     SchemaGroupSerializer,
     DTSchemaGroupSerializer,
+    RegionSerializer,
+    DistrictSerializer,
 )
 from wildlifecompliance.components.main.models import (
-    TemporaryDocumentCollection
+    TemporaryDocumentCollection, Region, District
 )
 from wildlifecompliance.components.main.process_document import save_document
 from wildlifecompliance.components.main.process_document import cancel_document
@@ -1364,3 +1366,24 @@ class OracleJob(views.APIView):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e[0]))
+
+
+class RegionViewSet(viewsets.ModelViewSet):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return Region.objects.all()
+        return Region.objects.none()
+
+
+class DistrictViewSet(viewsets.ModelViewSet):
+    queryset = District.objects.all()
+    serializer_class = DistrictSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return District.objects.all()
+        return District.objects.none()
+

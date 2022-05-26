@@ -289,16 +289,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)
-    #referrers_selected = serializer.ListField(
-     #   required=False, write_only=True, blank=True)
     email_user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -338,8 +334,6 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'report_type_id',
             'caller',
-            
-            #'referrer_selected',
             'referrer',
             'caller_phone_number',
             'anonymous_call',
@@ -355,13 +349,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'advice_details',
             'email_user',
             'email_user_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'volunteer_id',
         )
         read_only_fields = (
             'id', 
-            # 'status_display',
             'number', 
             'location',
             'classification',
@@ -515,12 +508,11 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'date_of_call',
             'time_of_call',
             'referrer',
-            # 'referrer_id',
             'advice_given',
             'advice_details',
             'email_user',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'user_in_group',
             'related_items',
             'selected_referrers',
@@ -769,14 +761,10 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)        
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)   
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    # allocated_to = serializers.ListField(
-    #     required=False, write_only=True, allow_empty=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -793,7 +781,6 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'baby_kangaroo',
             'age',
             'assigned_to_id',
-            # 'allocated_to',
             'allocated_group_id',
             'location_id',
             'classification_id',
@@ -804,7 +791,6 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'lodgement_date',
             'caller',
-            
             'report_type_id',
             'caller_phone_number',
             'anonymous_call',
@@ -816,9 +802,8 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'occurrence_time_end',
             'advice_given',
             'advice_details',
-            #'referrer_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'dead',
             'euthanise',
             'number_of_animals'
