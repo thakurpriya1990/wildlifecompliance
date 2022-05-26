@@ -1140,10 +1140,12 @@ export default {
         self.$nextTick(function() {
             self.initAwesompleteAllegedOffence();
         });
+        /*
         await this.constructRegionsAndDistricts();
         this.setRegionId(this.region_id);
         this.setDistrictId(this.district_id);
         this.setAllocatedGroupId(this.allocated_group_id);
+        */
     },
     mounted: function() {
         this.$nextTick(() => {

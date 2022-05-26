@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from django.db import models
+from django.contrib.gis.db.models import MultiPolygonField
 from django.db.models.query import QuerySet
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser
@@ -62,9 +63,10 @@ class Sequence(models.Model):
             repr(self.name), repr(self.last))
 
 
-@python_2_unicode_compatible
 class Region(models.Model):
-    name = models.CharField(max_length=200, blank=False, unique=True)
+    name = models.CharField(max_length=255, unique=True)
+    #abbreviation = models.CharField(max_length=16, null=True, unique=True)
+    #ratis_id = models.IntegerField(default=-1)
 
     def __str__(self):
         return self.name
@@ -72,6 +74,24 @@ class Region(models.Model):
     class Meta:
         ordering = ['name']
         app_label = 'wildlifecompliance'
+        verbose_name = 'CM_Region'
+        verbose_name_plural = 'CM_Regions'
+
+
+class District(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    #abbreviation = models.CharField(max_length=16, null=True, unique=True)
+    region = models.ForeignKey(Region, on_delete=models.PROTECT)
+    #ratis_id = models.IntegerField(default=-1)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_District'
+        verbose_name_plural = 'CM_Districts'
 
 
 @python_2_unicode_compatible
@@ -261,6 +281,27 @@ class SanctionOutcomeWordTemplate(models.Model):
 
     def __str__(self):
         return "Version: {}, {}".format(self.id, self._file.name)
+
+class DistrictGIS(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    district_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id', ]
+        app_label = 'wildlifecompliance'
+
+
+class RegionGIS(models.Model):
+    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
+    region_name = models.CharField(max_length=200, blank=True, null=True)
+    office = models.CharField(max_length=200, blank=True, null=True)
+    object_id = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ['object_id', ]
+        app_label = 'wildlifecompliance'
 
 
 import reversion

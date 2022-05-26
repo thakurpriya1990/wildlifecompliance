@@ -7,7 +7,8 @@ from django.db import transaction, models
 # from ledger.accounts.utils import get_app_label
 from wildlifecompliance.components.licences.models import LicenceActivity
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
-from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
+from wildlifecompliance.components.users.models import CompliancePermissionGroup
+from wildlifecompliance.components.main.models import Region, District
 
 from ledger.accounts.models import EmailUser
 
@@ -265,11 +266,11 @@ class ComplianceGroupCollector(PermissionCollector):
 
     COLLECTION_SOURCE = 'COMPLIANCE_PERMISSION_GROUPS'
 
-    def get_or_create_group(self, group_name, config, district=None):
+    def get_or_create_group(self, group_name, config, region=None, district=None):
         created = None
-        if settings.GROUP_PREFIX and settings.GROUP_PREFIX not in group_name:
+        if settings.COMPLIANCE_GROUP_PREFIX and settings.COMPLIANCE_GROUP_PREFIX not in group_name:
             group_name = "{prefix} - {name}".format(
-                prefix=settings.GROUP_PREFIX,
+                prefix=settings.COMPLIANCE_GROUP_PREFIX,
                 name=group_name
             )
         group = CompliancePermissionGroup.objects.filter(name=group_name).first()
@@ -283,14 +284,17 @@ class ComplianceGroupCollector(PermissionCollector):
             else:
                 # Check if groups with the same permissions (but a different name) already exist.
                 # Do not re-create groups that have been manually re-named by admins.
+                existing_groups = None
                 if config['permissions']:
                     groups_by_permission = CompliancePermissionGroup.objects.filter(permissions__codename__in=config['permissions'])
-                    if district is not None:
-                        groups_by_permission = groups_by_permission.filter(
-                            region_district__id=district.id)
-                    group = groups_by_permission.first()
-                if not group:
-                    group = created = CompliancePermissionGroup.objects.create(name=group_name)
+                    #if district is not None:
+                     #   groups_by_permission = groups_by_permission.filter(
+                      #      region_district__id=district.id)
+                    #group = groups_by_permission.first()
+                    if region or district:
+                        existing_groups = groups_by_permission.filter(region=region, district=district)
+                if not existing_groups:
+                    group, created = CompliancePermissionGroup.objects.get_or_create(name=group_name, region=region, district=district)
 
         if created:
             logger.info("Created compliance group: %s" % (group_name))
@@ -327,10 +331,16 @@ class ComplianceGroupCollector(PermissionCollector):
 
             for group_name, config in default_groups.items():
                 if config['per_district']:
-                    for region_district in RegionDistrict.objects.all():
-                        compliance_group_name = "{}: {}".format(group_name, region_district.display_name())
-                        group = self.get_or_create_group(compliance_group_name, config, region_district)
-                        group.region_district.add(region_district)
+                    #for region_district in RegionDistrict.objects.all():
+                    #    compliance_group_name = "{}: {}".format(group_name, region_district.display_name())
+                    #    group = self.get_or_create_group(compliance_group_name, config, region_district)
+                    #    group.region_district.add(region_district)
+                    for region in Region.objects.all():
+                        compliance_group_name = "{}: {}".format(group_name, region.name)
+                        group = self.get_or_create_group(compliance_group_name, config, region=region, district=None)
+                    for district in District.objects.all():
+                        compliance_group_name = "{}: {}".format(group_name, district.name)
+                        group = self.get_or_create_group(compliance_group_name, config, region=None, district=district)
                 else:
                     group = self.get_or_create_group(group_name, config)
     
