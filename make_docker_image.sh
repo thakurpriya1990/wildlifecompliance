@@ -26,7 +26,15 @@ BUILD_TAG=dbcawa/$REPO:$1_v$(date +%Y.%m.%d.%H.%M%S)
 {
     git pull &&
     cd $REPO/frontend/$REPO/ &&
-    npm run build &&
+    # Apply front end venv if it exists
+    { 
+        source venv/bin/activate && npm run build 
+        echo "INFO: Front end built with venv"
+    } || 
+    { 
+        npm run build
+        echo "INFO: Front end built without venv"
+    }
     cd ../../../ &&
     source venv/bin/activate &&
     python manage.py collectstatic --no-input &&
