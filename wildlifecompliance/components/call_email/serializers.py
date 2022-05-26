@@ -20,6 +20,7 @@ from wildlifecompliance.components.call_email.models import (
     #ComplianceWorkflowLogEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
+from wildlifecompliance.components.main.utils import get_region_gis, get_district_gis
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
@@ -288,16 +289,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)
-    #referrers_selected = serializer.ListField(
-     #   required=False, write_only=True, blank=True)
     email_user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -337,8 +334,6 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'report_type_id',
             'caller',
-            
-            #'referrer_selected',
             'referrer',
             'caller_phone_number',
             'anonymous_call',
@@ -354,13 +349,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'advice_details',
             'email_user',
             'email_user_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'volunteer_id',
         )
         read_only_fields = (
             'id', 
-            # 'status_display',
             'number', 
             'location',
             'classification',
@@ -466,6 +460,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
     user_is_volunteer = serializers.SerializerMethodField()
     volunteer_list = serializers.SerializerMethodField()
     current_user_id = serializers.SerializerMethodField()
+    region_gis = serializers.SerializerMethodField()
+    district_gis = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -512,12 +508,11 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'date_of_call',
             'time_of_call',
             'referrer',
-            # 'referrer_id',
             'advice_given',
             'advice_details',
             'email_user',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'user_in_group',
             'related_items',
             'selected_referrers',
@@ -529,10 +524,26 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'volunteer_list',
             'volunteer_id',
             'current_user_id',
+            'region_gis',
+            'district_gis',
         )
         read_only_fields = (
             'id', 
             )
+
+    def get_region_gis(self, obj):
+        try:
+            res = get_region_gis(obj.location.wkb_geometry)
+            return res
+        except Exception as e:
+            return ''
+
+    def get_district_gis(self, obj):
+        try:
+            res = get_district_gis(obj.location.wkb_geometry)
+            return res
+        except Exception as e:
+            return ''
 
     def get_current_user_id(self, obj):
         return self.context.get('request', {}).user.id
@@ -750,14 +761,10 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)        
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)   
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    # allocated_to = serializers.ListField(
-    #     required=False, write_only=True, allow_empty=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -774,7 +781,6 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'baby_kangaroo',
             'age',
             'assigned_to_id',
-            # 'allocated_to',
             'allocated_group_id',
             'location_id',
             'classification_id',
@@ -785,7 +791,6 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'lodgement_date',
             'caller',
-            
             'report_type_id',
             'caller_phone_number',
             'anonymous_call',
@@ -797,9 +802,8 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'occurrence_time_end',
             'advice_given',
             'advice_details',
-            #'referrer_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'dead',
             'euthanise',
             'number_of_animals'

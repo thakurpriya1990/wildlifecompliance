@@ -271,6 +271,7 @@ SITE_DOMAIN = env('SITE_DOMAIN')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 SITE_URL_WLC = env('SITE_URL_WLC')
 GROUP_PREFIX = env('GROUP_PREFIX', 'Wildlife Compliance')
+COMPLIANCE_GROUP_PREFIX = env('COMPLIANCE_GROUP_PREFIX', 'Compliance Management')
 EXT_USER_API_ROOT_URL = env('EXT_USER_API_ROOT_URL', None)
 EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
@@ -301,3 +302,4 @@ SO_TYPE_CHOICES = (
     (SO_TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
     (SO_TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
 )
+HEAD_OFFICE_NAME=env('HEAD_OFFICE_NAME', 'KENSINGTON')

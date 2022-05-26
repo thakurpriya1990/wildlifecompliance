@@ -37,6 +37,16 @@ class AdministrationAction(object):
         pass
 
 
+@admin.register(models.Region)
+class RegionAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(models.District)
+class DistrictAdmin(admin.ModelAdmin):
+    pass
+
+
 @admin.register(models.GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value']
