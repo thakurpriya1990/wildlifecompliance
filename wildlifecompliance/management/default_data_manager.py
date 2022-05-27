@@ -11,6 +11,7 @@ from ledger.settings_base import TIME_ZONE
 
 from wildlifecompliance import settings
 from wildlifecompliance.components.main.models import RegionGIS, DistrictGIS, Region
+from wildlifecompliance.components.call_email.models import Classification
 
 logger = logging.getLogger(__name__)
 
@@ -61,3 +62,16 @@ class DefaultDataManager(object):
         region, created = Region.objects.get_or_create(name=settings.HEAD_OFFICE_NAME)
         if created:
             logger.info("Created Head Office Region: {}".format(region.name))
+
+        # Call Email
+        # Classification
+        for item in Classification.NAME_CHOICES:
+            try:
+                classification, created = Classification.objects.get_or_create(name=item[0])
+                if created:
+                    #classification.description = item[1]
+                    #classification.save()
+                    logger.info("Created Call/Email Classification: {}".format(item[1]))
+            except Exception as e:
+                logger.error('{}, Call/Email Classification: {}'.format(e, item[1]))
+
