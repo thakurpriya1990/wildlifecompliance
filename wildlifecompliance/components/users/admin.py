@@ -9,6 +9,7 @@ class CompliancePermissionGroupAdmin(admin.ModelAdmin):
     list_display = ['name', 'display_name']
     #filter_horizontal = ('region_district',)
     form = forms.CompliancePermissionGroupAdminForm
+    readonly_fields = ('region', 'district')
 
     def has_delete_permission(self, request, obj=None):
         #return super(
@@ -30,9 +31,6 @@ class CompliancePermissionGroupAdmin(admin.ModelAdmin):
             del actions['delete_selected']
         return actions
 
-#@admin.register(models.RegionDistrict)
-#class RegionDistrictAdmin(admin.ModelAdmin):
- #   pass
 
 @admin.register(models.ComplianceManagementUserPreferences)
 class ComplianceManagementUserPreferencesAdmin(admin.ModelAdmin):
