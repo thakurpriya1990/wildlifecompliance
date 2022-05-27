@@ -11,12 +11,24 @@ class CompliancePermissionGroupAdmin(admin.ModelAdmin):
     form = forms.CompliancePermissionGroupAdminForm
 
     def has_delete_permission(self, request, obj=None):
-        return super(
-            CompliancePermissionGroupAdmin,
-            self).has_delete_permission(
-            request,
-            obj)
+        #return super(
+        #    CompliancePermissionGroupAdmin,
+        #    self).has_delete_permission(
+        #    request,
+        #    obj)
 
+        # disable delete
+        return False
+
+    def has_add_permission(self, request):
+        # disable add
+        return False
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if 'delete_selected' in actions:
+            del actions['delete_selected']
+        return actions
 
 #@admin.register(models.RegionDistrict)
 #class RegionDistrictAdmin(admin.ModelAdmin):
