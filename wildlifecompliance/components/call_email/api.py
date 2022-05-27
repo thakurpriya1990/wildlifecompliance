@@ -756,12 +756,13 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 if request.data.get('referrers_selected'):
                     instance.add_referrers(request)
 
-                instance.region_id = None if not request.data.get('region_id') else request.data.get('region_id')
-                instance.district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+                #instance.region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+                #instance.district_id = None if not request.data.get('district_id') else request.data.get('district_id')
                 instance.assigned_to_id = None if not request.data.get('assigned_to_id') else request.data.get('assigned_to_id')
                 instance.inspection_type_id = None if not request.data.get('inspection_type_id') else request.data.get('inspection_type_id')
                 instance.case_priority_id = None if not request.data.get('case_priority_id') else request.data.get('case_priority_id')
-                instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
+                # should be set by back end
+                #instance.allocated_group_id = None if not request.data.get('allocated_group_id') else request.data.get('allocated_group_id')
                 instance.advice_details = None if not request.data.get('advice_details') else request.data.get('advice_details')
 
                 instance.save()
