@@ -284,16 +284,15 @@ class ComplianceGroupCollector(PermissionCollector):
             else:
                 # Check if groups with the same permissions (but a different name) already exist.
                 # Do not re-create groups that have been manually re-named by admins.
-                existing_groups = None
+                #existing_groups = None
                 if config['permissions']:
                     groups_by_permission = CompliancePermissionGroup.objects.filter(permissions__codename__in=config['permissions'])
-                    #if district is not None:
-                     #   groups_by_permission = groups_by_permission.filter(
-                      #      region_district__id=district.id)
-                    #group = groups_by_permission.first()
                     if region or district:
-                        existing_groups = groups_by_permission.filter(region=region, district=district)
-                if not existing_groups:
+                        groups_by_permission = groups_by_permission.filter(region=region, district=district)
+                    group = groups_by_permission.first()
+                    #if region or district:
+                        #existing_groups = groups_by_permission.filter(region=region, district=district)
+                if not group:
                     group, created = CompliancePermissionGroup.objects.get_or_create(name=group_name, region=region, district=district)
 
         if created:

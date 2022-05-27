@@ -34,11 +34,11 @@ from wildlifecompliance.components.users.serializers import (
     EmailIdentitySerializer,
     EmailUserActionSerializer,
     MyUserDetailsSerializer,
-    #CompliancePermissionGroupSerializer,
+    CompliancePermissionGroupSerializer,
     ComplianceUserDetailsSerializer,
-    #CompliancePermissionGroupDetailedSerializer,
+    CompliancePermissionGroupDetailedSerializer,
     ComplianceUserDetailsOptimisedSerializer,
-    #CompliancePermissionGroupMembersSerializer,
+    CompliancePermissionGroupMembersSerializer,
     UpdateComplianceManagementUserPreferencesSerializer,
     ComplianceManagementSaveUserSerializer,
     ComplianceManagementUserSerializer,
@@ -849,7 +849,6 @@ class EmailIdentityViewSet(viewsets.ModelViewSet):
             queryset = queryset.exclude(user=exclude_user)
         return queryset
 
-"""
 class CompliancePermissionGroupViewSet(viewsets.ModelViewSet):
     queryset = CompliancePermissionGroup.objects.none()
     serializer_class = CompliancePermissionGroupSerializer
@@ -911,7 +910,41 @@ class CompliancePermissionGroupViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
-"""
+
+    @list_route(methods=['POST', ])
+    def get_compliance_group_by_region_district(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            group_permission = request.data.get('group_permission')
+            compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+            permission = Permission.objects.filter(codename=group_permission).filter(content_type_id=compliance_content_type.id).first()
+            group = CompliancePermissionGroup.objects.filter(region_district=instance).filter(permissions=permission).first()
+            print(group)
+
+            allocated_group = [{
+                'email': '',
+                'first_name': '',
+                'full_name': '',
+                'id': None,
+                'last_name': '',
+                'title': '',
+                }]
+            #serializer = ComplianceUserDetailsOptimisedSerializer(group.members, many=True)
+            serializer = CompliancePermissionGroupMembersSerializer(instance=group)
+            print(serializer.data)
+            for member in serializer.data['members']:
+                allocated_group.append(member)
+
+            return Response(data={'allocated_group': allocated_group, 'group_id': group.id})
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(repr(e.error_dict))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
 #class RegionDistrictViewSet(viewsets.ModelViewSet):
 #    queryset = RegionDistrict.objects.all()

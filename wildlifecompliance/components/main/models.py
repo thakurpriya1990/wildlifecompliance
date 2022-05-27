@@ -65,6 +65,7 @@ class Sequence(models.Model):
 
 class Region(models.Model):
     name = models.CharField(max_length=255, unique=True)
+    head_office = models.BooleanField(default=False)
     #abbreviation = models.CharField(max_length=16, null=True, unique=True)
     #ratis_id = models.IntegerField(default=-1)
 

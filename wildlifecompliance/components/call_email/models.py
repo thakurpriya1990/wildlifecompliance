@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
+from django.contrib.auth.models import Permission, ContentType
 from multiselectfield import MultiSelectField
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser, RevisionedMixin
@@ -422,6 +423,16 @@ class CallEmail(RevisionedMixin):
     # @property
     # def related_items(self):
     #     return get_related_items(self)
+
+    def set_allocated_group(self, permission_codename, region_id=None, district_id=None):
+        #import ipdb; ipdb.set_trace()
+        if district_id:
+            region_id = None
+        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+        permission = Permission.objects.filter(codename=permission_codename).filter(content_type_id=compliance_content_type.id).first()
+        self.allocated_group = CompliancePermissionGroup.objects.get(permissions=permission, region_id=region_id, district_id=district_id)
+        #request_data.update({'allocated_group_id': group.id})
+        self.save()
 
     def forward_to_regions(self, request):
         self.status = self.STATUS_OPEN
