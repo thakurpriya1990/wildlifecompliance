@@ -24,16 +24,13 @@ from wildlifecompliance.components.main.utils import get_region_gis, get_distric
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer
+    #CompliancePermissionGroupMembersSerializer
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from wildlifecompliance.components.main.fields import CustomChoiceField
 
 from wildlifecompliance.components.users.serializers import UserAddressSerializer
-from wildlifecompliance.components.users.models import (
-        CompliancePermissionGroup
-)
 from django.contrib.auth.models import Permission, ContentType
 
 
@@ -423,14 +420,14 @@ class CallEmailOptimisedSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
-class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
-    allocated_group = CompliancePermissionGroupMembersSerializer()
-
-    class Meta:
-        model = CallEmail
-        fields = (
-            'allocated_group',
-        )
+#class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
+#    allocated_group = CompliancePermissionGroupMembersSerializer()
+#
+#    class Meta:
+#        model = CallEmail
+#        fields = (
+#            'allocated_group',
+#        )
 
 
 class CallEmailSerializer(serializers.ModelSerializer):
@@ -571,19 +568,20 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_allocated_group(self, obj):
-        allocated_group = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-            }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
-            allocated_group.append(member)
+        return ''
+        #allocated_group = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #    }]
+        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        #for member in returned_allocated_group.data['members']:
+        #    allocated_group.append(member)
 
-        return allocated_group
+        #return allocated_group
 
     def get_related_items(self, obj):
         return get_related_items(obj)
@@ -640,24 +638,25 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_volunteer_list(self, obj):
-        volunteer_list = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-            }]
-        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup") 
-        # user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        permission = Permission.objects.filter(codename='volunteer').filter(content_type_id=compliance_content_type.id).first()
-        group = CompliancePermissionGroup.objects.filter(permissions=permission).first()
-        
-        returned_volunteer_list = CompliancePermissionGroupMembersSerializer(instance=group)
-        for member in returned_volunteer_list.data['members']:
-            volunteer_list.append(member)
+        return ''
+        #volunteer_list = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #    }]
+        #compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup") 
+        ## user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
+        #permission = Permission.objects.filter(codename='volunteer').filter(content_type_id=compliance_content_type.id).first()
+        #group = CompliancePermissionGroup.objects.filter(permissions=permission).first()
+        #
+        #returned_volunteer_list = CompliancePermissionGroupMembersSerializer(instance=group)
+        #for member in returned_volunteer_list.data['members']:
+        #    volunteer_list.append(member)
 
-        return volunteer_list
+        #return volunteer_list
 
 
 class CallEmailDatatableSerializer(serializers.ModelSerializer):

@@ -22,7 +22,7 @@ from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer
+    #CompliancePermissionGroupMembersSerializer
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
@@ -31,7 +31,7 @@ from wildlifecompliance.components.main.fields import CustomChoiceField
 from wildlifecompliance.components.offence.serializers import OffenceSerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer,
+    #CompliancePermissionGroupMembersSerializer,
     UserAddressSerializer,
 )
 from wildlifecompliance.components.artifact.serializers import (
@@ -672,19 +672,20 @@ class LegalCaseNoRunningSheetSerializer(serializers.ModelSerializer):
         return return_val
 
     def get_allocated_group(self, obj):
-        allocated_group = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-            }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
-            allocated_group.append(member)
+        return ''
+        #allocated_group = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #    }]
+        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        #for member in returned_allocated_group.data['members']:
+        #    allocated_group.append(member)
 
-        return allocated_group
+        #return allocated_group
 
 
 class BaseLegalCaseSerializer(serializers.ModelSerializer):
@@ -796,19 +797,20 @@ class BaseLegalCaseSerializer(serializers.ModelSerializer):
         return return_val
 
     def get_allocated_group(self, obj):
-        allocated_group = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-            }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
-            allocated_group.append(member)
+        return ''
+        #allocated_group = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #    }]
+        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        #for member in returned_allocated_group.data['members']:
+        #    allocated_group.append(member)
 
-        return allocated_group
+        #return allocated_group
 
 
 class LegalCaseBriefOfEvidenceSerializer(BaseLegalCaseSerializer):

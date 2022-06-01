@@ -98,9 +98,6 @@ from wildlifecompliance.components.legal_case.serializers import (
     CourtSerializer, 
     LegalCaseNoRunningSheetSerializer,
     CourtOutcomeTypeSerializer)
-from wildlifecompliance.components.users.models import (
-    CompliancePermissionGroup,    
-)
 from wildlifecompliance.components.organisations.models import (
     Organisation,    
 )

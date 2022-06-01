@@ -88,7 +88,7 @@ from wildlifecompliance.components.call_email.serializers import (
     SaveUserAddressSerializer,
     #InspectionTypeSerializer,
     # ExternalOrganisationSerializer,
-    CallEmailAllocatedGroupSerializer,
+    #CallEmailAllocatedGroupSerializer,
     UpdateAssignedToIdSerializer
     )
 # from utils import SchemaParser
