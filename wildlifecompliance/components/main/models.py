@@ -331,7 +331,7 @@ class CallEmailTriageGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_CallEmailTriageGroup'
-        verbose_name_plural = 'CM_CallEmail_Triage_Groups'
+        verbose_name_plural = 'CM CallEmail Triage Groups'
 
     def __str__(self):
         return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
@@ -341,27 +341,6 @@ class CallEmailTriageGroup(models.Model):
 
     def district_name(self):
         return self.district.name if self.district else None
-
-class VolunteerGroup(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT)
-    district = ChainedForeignKey(
-            District, 
-            on_delete=models.PROTECT,
-            chained_field='region',
-            chained_model_field='region',
-            show_all=False,
-            null=True,
-            )
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_Volunteer'
-        verbose_name_plural = 'CM_Volunteers'
-
-    def __str__(self):
-        return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
 
 
 class ManagerGroup(models.Model):
@@ -380,7 +359,7 @@ class ManagerGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_ManagerGroup'
-        verbose_name_plural = 'CM_Manager_Groups'
+        verbose_name_plural = 'CM Manager_Groups'
 
     def __str__(self):
         return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
@@ -402,10 +381,129 @@ class OfficerGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_OfficerGroup'
-        verbose_name_plural = 'CM_Officer_Groups'
+        verbose_name_plural = 'CM Officer Groups'
 
     def __str__(self):
         return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
+
+
+class VolunteerGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Volunteer Group'
+        verbose_name_plural = 'CM Volunteer Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class InfringementNoticeCoordinatorGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_InfringementNoticeCoordinatorGroup'
+        verbose_name_plural = 'CM Infringement Notice Coordinator Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ProsecutionCoordinatorGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM_ProsecutionCoordinatorGroup'
+        verbose_name_plural = 'CM Prosecution Coordinator Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ProsecutionManagerGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Prosecution Manager Group'
+        verbose_name_plural = 'CM Prosecution Manager Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ProsecutionCouncilGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Prosecution Council Group'
+        verbose_name_plural = 'CM Prosecution Council Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ComplianceManagementReadOnlyGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Compliance Management Read Only Group'
+        verbose_name_plural = 'CM Compliance Management Read Only Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ComplianceManagementCallEmailReadOnlyGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Compliance Management Call Email Read Only Group'
+        verbose_name_plural = 'CM Compliance Management Call Email Read Only Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class ComplianceManagementApprovedExternalUserGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Compliance Management Approved External User Group'
+        verbose_name_plural = 'CM Compliance Management Approved External User Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+class ComplianceAdminGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Compliance Admin Group'
+        verbose_name_plural = 'CM Compliance Admin Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
+class LicensingAdminGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Licensing Admin Group'
+        verbose_name_plural = 'CM Licensing Admin Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
 
 
 import reversion

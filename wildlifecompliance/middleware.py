@@ -8,7 +8,8 @@ from wildlifecompliance.management.securebase_manager import (
     SecureBaseUtils,
     SecureAuthorisationEnforcer,
 )
-#from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences, CompliancePermissionGroup
+from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences
+from wildlifecompliance.components.main.models import VolunteerGroup, ComplianceManagementCallEmailReadOnlyGroup
 from wildlifecompliance.helpers import (
         is_compliance_management_callemail_readonly_user, 
         is_compliance_management_approved_external_user,
@@ -29,18 +30,14 @@ class FirstTimeNagScreenMiddleware(object):
             # add CM Approved External users to CallEmail RO and volunteer groups
             if is_compliance_management_approved_external_user(request):
                 if not is_compliance_management_callemail_readonly_user(request):
-                    pass
-                    #compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
-                    #compliance_group.user_set.add(request.user)
+                    ComplianceManagementCallEmailReadOnlyGroup.objects.first().members.add(request.user)
                 if not is_compliance_management_volunteer(request):
-                    pass
-                    #compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
-                    #compliance_group.user_set.add(request.user)
+                    VolunteerGroup.objects.first().members.add(request.user)
             # Ensure CallEmail RO group users have prefer_compliance_management=True
-            #preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
-            #if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:
-            #    preference.prefer_compliance_management = True
-            #    preference.save()
+            preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
+            if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:
+                preference.prefer_compliance_management = True
+                preference.save()
 
         if SecureBaseUtils.is_wildlifelicensing_request(request):
             # Apply WildifeLicensing first-time checks.
