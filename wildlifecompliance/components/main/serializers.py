@@ -41,6 +41,7 @@ class RegionSerializer(serializers.ModelSerializer):
                 'id',
                 'name',
                 'districts',
+                'head_office',
                 )
 
     def get_districts(self, obj):

@@ -17,7 +17,7 @@ from wildlifecompliance.components.offence.models import Offence, Offender, Alle
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
 from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_INFRINGEMENT_NOTICE, SO_TYPE_CAUTION_NOTICE, \
@@ -142,7 +142,7 @@ class SanctionOutcome(models.Model):
     description = models.TextField(blank=True)
 
     assigned_to = models.ForeignKey(EmailUser, related_name='sanction_outcome_assigned_to', null=True)
-    allocated_group = models.ForeignKey(CompliancePermissionGroup, related_name='sanction_outcome_allocated_group', null=True)
+    #allocated_group = models.ForeignKey(CompliancePermissionGroup, related_name='sanction_outcome_allocated_group', null=True)
     # This field is used as recipient when manager returns a sanction outcome for amendment
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
@@ -416,11 +416,11 @@ class SanctionOutcome(models.Model):
 
         permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
 
-        # 3. Find groups which has the permission(s) determined above in the regionDistrict.
-        if per_district:
-            groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
-        else:
-            groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+        ## 3. Find groups which has the permission(s) determined above in the regionDistrict.
+        #if per_district:
+        #    groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
+        #else:
+        #    groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
 
         return groups.first()
 

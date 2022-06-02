@@ -252,7 +252,7 @@ export const userStore = {
         setCurrentUser({ dispatch, commit }, user) {
             commit(UPDATE_CURRENT_USER, user);
         },
-        async loadAllocatedGroup({}, {region_district_id, group_permission}) {
+        async loadAllocatedGroup({}, {group_permission, region_id, district_id}) {
             let url = helpers.add_endpoint_join(
                 api_endpoints.region_district,
                 region_district_id + '/get_compliance_group_by_region_district/'

@@ -42,7 +42,7 @@ from wildlifecompliance.components.offence.serializers import (
     UpdateAllegedCommittedOffenceSerializer)
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.helpers import is_internal
 
 
@@ -233,19 +233,19 @@ class OffenceViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @list_route(methods=['GET', ])
-    def can_user_create(self, request, *args, **kwargs):
-        # Determine permissions which allow the holder to create new offence
-        codename_who_can_create = 'officer'
-        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
-        permissions = Permission.objects.filter(codename=codename_who_can_create, content_type_id=compliance_content_type.id)
+    #@list_route(methods=['GET', ])
+    #def can_user_create(self, request, *args, **kwargs):
+    #    # Determine permissions which allow the holder to create new offence
+    #    codename_who_can_create = 'officer'
+    #    compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+    #    permissions = Permission.objects.filter(codename=codename_who_can_create, content_type_id=compliance_content_type.id)
 
-        # Find groups which has permissions determined above
-        allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
-        for allowed_group in allowed_groups.all():
-            if request.user in allowed_group.members:
-                return Response(True)
-        return Response(False)
+    #    # Find groups which has permissions determined above
+    #    allowed_groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+    #    for allowed_group in allowed_groups.all():
+    #        if request.user in allowed_group.members:
+    #            return Response(True)
+    #    return Response(False)
 
     @list_route(methods=['GET', ])
     def optimised(self, request, *args, **kwargs):

@@ -16,7 +16,7 @@ from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer
+    #CompliancePermissionGroupMembersSerializer
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
@@ -24,7 +24,7 @@ from wildlifecompliance.components.main.fields import CustomChoiceField
 
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer,
+    #CompliancePermissionGroupMembersSerializer,
     UserAddressSerializer,
 )
 from wildlifecompliance.components.offence.serializers import OrganisationSerializer
@@ -245,43 +245,45 @@ class InspectionSerializer(serializers.ModelSerializer):
         return team
 
     def get_allocated_group(self, obj):
-        allocated_group = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-            }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
-            allocated_group.append(member)
+        return ''
+        #allocated_group = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #    }]
+        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        #for member in returned_allocated_group.data['members']:
+        #    allocated_group.append(member)
 
-        return allocated_group
+        #return allocated_group
 
     def get_all_officers(self, obj):
-        all_officer_objs = []
-        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
-        permission = Permission.objects.filter(codename='officer').filter(content_type_id=compliance_content_type.id).first()
-        for group in permission.group_set.all():
-            for user in group.user_set.all():
-                all_officer_objs.append(user)
+        return []
+        #all_officer_objs = []
+        #compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+        #permission = Permission.objects.filter(codename='officer').filter(content_type_id=compliance_content_type.id).first()
+        #for group in permission.group_set.all():
+        #    for user in group.user_set.all():
+        #        all_officer_objs.append(user)
 
-        unique_officers = list(set(all_officer_objs))
-        sorted_unique_officers = sorted(unique_officers, key=lambda officer: officer.last_name)
+        #unique_officers = list(set(all_officer_objs))
+        #sorted_unique_officers = sorted(unique_officers, key=lambda officer: officer.last_name)
 
-        serialized_officers = IndividualSerializer(sorted_unique_officers, many=True)
-        returned_data = serialized_officers.data
-        blank_field = [{
-            'dob': '',
-            'email': '',
-            'full_name': '',
-            'id': None,
-            }]
+        #serialized_officers = IndividualSerializer(sorted_unique_officers, many=True)
+        #returned_data = serialized_officers.data
+        #blank_field = [{
+        #    'dob': '',
+        #    'email': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    }]
 
-        returned_data.insert(0, blank_field)
-        print(returned_data)
-        return returned_data
+        #returned_data.insert(0, blank_field)
+        #print(returned_data)
+        #return returned_data
 
     def get_inspection_report(self, obj):
         return [[r.name, r._file.url] for r in obj.report.all()]

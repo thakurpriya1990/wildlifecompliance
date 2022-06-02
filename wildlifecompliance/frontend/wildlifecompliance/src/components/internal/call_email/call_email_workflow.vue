@@ -269,6 +269,7 @@ export default {
       }),
         updateDistricts: function() {
             this.$nextTick(() => {
+                this.districtId = null;
                 this.availableDistricts = []
                 if (this.selectedRegion) {
                     for (let district of this.selectedRegion.districts) {
@@ -276,6 +277,13 @@ export default {
                         this.availableDistricts.push(district)
                     }
                 }
+                this.availableDistricts.splice(0, 0, 
+                {
+                  district_id: "", 
+                  district_name: "",
+                });
+                // ensure security group members list is up to date
+                this.updateAllocatedGroup();
             })
         },
         /*
@@ -312,17 +320,18 @@ export default {
           //this.allocatedGrouplength = 0;
           
           if (this.workflow_type === 'forward_to_wildlife_protection_branch') {
-              for (let record of this.regionDistricts) {
-                  if (record.district === 'KENSINGTON') {
-                      this.districtId = null;
+              for (let record of this.regions) {
+                  if (record.name === 'KENSINGTON') {
+                      //this.districtId = null;
                       this.regionId = record.id;
                   }
               }
           }
-          if (this.groupPermission && this.regionDistrictId) {
+          if (this.groupPermission && this.regionId) {
               let allocatedGroupResponse = await this.loadAllocatedGroup({
-                  region_district_id: this.regionDistrictId, 
-                  group_permission: this.groupPermission
+                  group_permission: this.groupPermission,
+                  region_id: this.regionId, 
+                  district_id: this.districtId, 
               });
               if (allocatedGroupResponse.ok) {
                   console.log(allocatedGroupResponse.body.allocated_group);
@@ -389,7 +398,6 @@ export default {
       sendData: async function(){        
           let post_url = '/api/call_email/' + this.call_email.id + '/workflow_action/'
           let payload = new FormData(this.form);
-          
           this.call_email.id ? payload.append('call_email_id', this.call_email.id) : null;
           this.workflowDetails ? payload.append('details', this.workflowDetails) : null;
           this.advice_details ? payload.append('advice_details', this.advice_details) : null;
@@ -402,7 +410,7 @@ export default {
           this.inspection_type_id ? payload.append('inspection_type_id', this.inspection_type_id) : null;
           this.case_priority_id ? payload.append('case_priority_id', this.case_priority_id) : null;
           this.regionId ? payload.append('region_id', this.regionId) : null;
-          this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
+          //this.allocated_group_id ? payload.append('allocated_group_id', this.allocated_group_id) : null;
 
           let callEmailRes = await this.saveCallEmail({ crud: 'save', 'internal': true, close: true });
           console.log(callEmailRes);

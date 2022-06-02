@@ -20,7 +20,7 @@ from wildlifecompliance.components.returns.models import Return
 from wildlifecompliance.components.main import utils
 from wildlifecompliance.exceptions import BindApplicationException
 from django.core.management import call_command
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 
 
 logger = logging.getLogger(__name__)

@@ -16,7 +16,7 @@ from wildlifecompliance.components.main.models import (
         Document,
         )
 from wildlifecompliance.components.main.related_item import can_close_record
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.main.models import Region, District
 from django.core.exceptions import ValidationError
 
@@ -131,11 +131,11 @@ class Inspection(RevisionedMixin):
         related_name='inspection_assigned_to',
         null=True
         )
-    allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='inspection_allocated_group', 
-        null=True
-        )
+    #allocated_group = models.ForeignKey(
+    #    CompliancePermissionGroup,
+    #    related_name='inspection_allocated_group', 
+    #    null=True
+    #    )
     inspection_team = models.ManyToManyField(
         EmailUser,
         # related_name='inspection_team',

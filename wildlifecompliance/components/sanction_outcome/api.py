@@ -49,7 +49,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
     SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
     SanctionOutcomeDocumentAccessLogSerializer
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_authorised_to_modify, is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -940,7 +940,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
                     # email_data = prepare_mail(request, instance, workflow_entry, send_mail)
-                    compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
+                    #compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
                     to_address = [user.email for user in compliance_group.members.all()]
                     cc = [request.user.email,]
                     bcc = None
