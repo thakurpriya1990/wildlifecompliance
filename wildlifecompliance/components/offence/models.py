@@ -12,7 +12,7 @@ from wildlifecompliance.components.inspection.models import Inspection
 from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry, Region, District
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
 
 
@@ -85,11 +85,11 @@ class Offence(RevisionedMixin):
         related_name='offence_assigned_to',
         null=True
     )
-    allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='offence_allocated_group',
-        null=True
-    )
+    #allocated_group = models.ForeignKey(
+    #    CompliancePermissionGroup,
+    #    related_name='offence_allocated_group',
+    #    null=True
+    #)
     #region = models.ForeignKey(Region, related_name='offence_region', null=True,)
     #district = models.ForeignKey(District, related_name='offence_district', null=True,)
 

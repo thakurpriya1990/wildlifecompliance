@@ -74,9 +74,6 @@ from wildlifecompliance.components.inspection.serializers import (
     EmailUserSerializer,
     InspectionTypeSchemaSerializer,
     InspectionOptimisedSerializer)
-from wildlifecompliance.components.users.models import (
-    CompliancePermissionGroup,    
-)
 from wildlifecompliance.components.organisations.models import (
     Organisation,    
 )

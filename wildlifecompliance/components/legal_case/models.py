@@ -17,7 +17,7 @@ from wildlifecompliance.components.main.models import (
         Document,
         )
 from wildlifecompliance.components.main.related_item import can_close_legal_case
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.users.models import Region, District
 from django.core.exceptions import ValidationError
 from treebeard.mp_tree import MP_Node
@@ -121,11 +121,11 @@ class LegalCase(RevisionedMixin):
         related_name='legal_case_assigned_to',
         null=True
         )
-    allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='legal_case_allocated_group', 
-        null=True
-        )
+    #allocated_group = models.ForeignKey(
+    #    CompliancePermissionGroup,
+    #    related_name='legal_case_allocated_group', 
+    #    null=True
+    #    )
     #region = models.ForeignKey(
     #    Region, 
     #    related_name='legal_case_region', 

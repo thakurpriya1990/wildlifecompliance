@@ -6,7 +6,7 @@ from wildlifecompliance.components.main.related_item import get_related_items
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer
+    #CompliancePermissionGroupMembersSerializer
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
@@ -14,7 +14,7 @@ from wildlifecompliance.components.main.fields import CustomChoiceField
 
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer,
+    #CompliancePermissionGroupMembersSerializer,
     UserAddressSerializer,
 )
 from wildlifecompliance.components.artifact.models import (

@@ -15,7 +15,7 @@ from wildlifecompliance.components.main.models import (
         Region,
         District
         )
-from wildlifecompliance.components.users.models import CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.offence.models import Offence, Offender
 from wildlifecompliance.components.legal_case.models import (
         LegalCase,

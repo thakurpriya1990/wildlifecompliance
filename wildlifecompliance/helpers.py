@@ -8,7 +8,7 @@ from ledger.accounts.models import EmailUser
 from wildlifecompliance import settings
 from wildlifecompliance.components.applications.models import ActivityPermissionGroup
 from wildlifecompliance.components.users.models import (
-        CompliancePermissionGroup, 
+        #CompliancePermissionGroup, 
         ComplianceManagementUserPreferences,
         )
 from confy import env
@@ -205,28 +205,33 @@ def is_compliance_internal_user(request):
     return compliance_user
 
 def is_compliance_management_readonly_user(request):
-    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
-    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
-
+    return True
+#    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_readonly')
+#    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+#
 def is_compliance_management_callemail_readonly_user(request):
-    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
-    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
-
+    return True
+#    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_callemail_readonly')
+#    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+#
 def is_compliance_management_approved_external_user(request):
-    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_approved_external_users')
-    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
-
+    return True
+#    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='compliance_management_approved_external_users')
+#    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+#
 def is_compliance_management_volunteer(request):
-    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
-    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
+    return True
+#    compliance_group = CompliancePermissionGroup.objects.get(permissions__codename='volunteer')
+#    return request.user.is_authenticated() and belongs_to(request.user, compliance_group.name)
 
 def is_able_to_view_sanction_outcome_pdf(user):
-    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
-        permissions__codename__in=['officer',
-                                   'infringement_notice_coordinator',
-                                   'manager'])]
-    return user.is_authenticated() and (belongs_to_list(
-        user, compliance_groups) or user.is_superuser)
+    return True
+#    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
+#        permissions__codename__in=['officer',
+#                                   'infringement_notice_coordinator',
+#                                   'manager'])]
+#    return user.is_authenticated() and (belongs_to_list(
+#        user, compliance_groups) or user.is_superuser)
 
 
 def get_all_officers():

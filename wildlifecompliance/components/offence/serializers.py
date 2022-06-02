@@ -16,7 +16,7 @@ from wildlifecompliance.components.offence.models import Offence, Offender, Alle
     OffenceUserAction, OffenceCommsLogEntry
 from wildlifecompliance.components.sanction_outcome.models import SanctionOutcome, AllegedCommittedOffence
 from wildlifecompliance.components.section_regulation.serializers import SectionRegulationSerializer
-from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
+#from wildlifecompliance.components.users.serializers import CompliancePermissionGroupMembersSerializer
 
 
 class OrganisationSerializer(serializers.ModelSerializer):
@@ -233,19 +233,20 @@ class OffenceSerializer(serializers.ModelSerializer):
         return offenders_list
 
     def get_allocated_group(self, obj):
-        allocated_group = [{
-            'email': '',
-            'first_name': '',
-            'full_name': '',
-            'id': None,
-            'last_name': '',
-            'title': '',
-        }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
-            allocated_group.append(member)
+        return ''
+        #allocated_group = [{
+        #    'email': '',
+        #    'first_name': '',
+        #    'full_name': '',
+        #    'id': None,
+        #    'last_name': '',
+        #    'title': '',
+        #}]
+        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
+        #for member in returned_allocated_group.data['members']:
+        #    allocated_group.append(member)
 
-        return allocated_group
+        #return allocated_group
 
     def get_user_in_group(self, obj):
         user_id = self.context.get('request', {}).user.id
