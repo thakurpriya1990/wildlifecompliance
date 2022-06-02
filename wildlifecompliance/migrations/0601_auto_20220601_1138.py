@@ -8,7 +8,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0034_auto_20220601_1138'),
+        #('accounts', '0034_auto_20220601_1138'),
         ('wildlifecompliance', '0600_remove_region_head_office'),
     ]
 
