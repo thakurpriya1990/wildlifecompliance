@@ -76,138 +76,138 @@ CUSTOM_GROUP_PERMISSIONS = {
     
 }
 
-COMPLIANCE_PERMISSION_GROUPS = [
-    {
-        'name': 'Triage Call/Email',
-        'per_district': True,
-        'permissions': ['triage_call_email']
-    },
-    {
-        'name': 'Officer',
-        'per_district': True,
-        'permissions': ['officer']
-    },
-    {
-        'name': 'Manager',
-        'per_district': True,
-        'permissions': ['manager']
-    },
-    {
-        'name': 'Volunteer',
-        'per_district': False,
-        'permissions': ['volunteer']
-    },
-    {
-        'name': 'Infringement Notice Coordinator',
-        'per_district': False,
-        'permissions': ['infringement_notice_coordinator']
-    },
-    {
-        'name': 'Prosecution Coordinator',
-        'per_district': False,
-        'permissions': ['prosecution_coordinator']
-    },
-    {
-        'name': 'Prosecution Manager',
-        'per_district': False,
-        'permissions': ['prosecution_manager']
-    },
-    {
-        'name': 'Prosecution Council',
-        'per_district': False,
-        'permissions': ['prosecution_council']
-    },
-    {
-        'name': 'Compliance Management Read-Only',
-        'per_district': False,
-        'permissions': ['compliance_management_readonly']
-    },
-    {
-        'name': 'Compliance Management Call/Email Read-Only',
-        'per_district': False,
-        'permissions': ['compliance_management_callemail_readonly']
-    },
-    {
-        'name': 'Compliance Management Approved External Users',
-        'per_district': False,
-        'permissions': ['compliance_management_approved_external_users']
-    },
-    {
-        'name': 'Wildlife Compliance Admin - Compliance',
-        'per_district': False,
-        'permissions': ['wildlife_compliance_admin_compliance']
-    },
-    {
-        'name': 'Wildlife Compliance Admin - Licensing',
-        'per_district': False,
-        'permissions': ['wildlife_compliance_admin_licensing']
-    },
-]
-
-COMPLIANCE_GROUP_PERMISSIONS = {
-    'triage_call_email': {
-        'name': 'Triage Call/Email',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'officer': {
-        'name': 'Officer',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'manager': {
-        'name': 'Manager',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'volunteer': {
-        'name': 'Volunteer',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'infringement_notice_coordinator': {
-        'name': 'Infringement Notice Coordinator',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'prosecution_coordinator': {
-        'name': 'Prosecution Coordinator',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'prosecution_council': {
-        'name': 'Prosecution Council',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'prosecution_manager': {
-        'name': 'Prosecution Manager',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'compliance_management_readonly': {
-        'name': 'Compliance Management Read-Only',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'compliance_management_callemail_readonly': {
-        'name': 'Compliance Management Call/Email Read-Only',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'compliance_management_approved_external_users': {
-        'name': 'Compliance Management Approved External Users',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'wildlife_compliance_admin_compliance': {
-        'name': 'Wildlife Compliance Admin - Compliance',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-    'wildlife_compliance_admin_licensing': {
-        'name': 'Wildlife Compliance Admin - Licensing',
-        'app_label': 'wildlifecompliance',
-        'model': 'compliancepermissiongroup',
-    },
-}
+#COMPLIANCE_PERMISSION_GROUPS = [
+#    {
+#        'name': 'Triage Call/Email',
+#        'per_district': True,
+#        'permissions': ['triage_call_email']
+#    },
+#    {
+#        'name': 'Officer',
+#        'per_district': True,
+#        'permissions': ['officer']
+#    },
+#    {
+#        'name': 'Manager',
+#        'per_district': True,
+#        'permissions': ['manager']
+#    },
+#    {
+#        'name': 'Volunteer',
+#        'per_district': False,
+#        'permissions': ['volunteer']
+#    },
+#    {
+#        'name': 'Infringement Notice Coordinator',
+#        'per_district': False,
+#        'permissions': ['infringement_notice_coordinator']
+#    },
+#    {
+#        'name': 'Prosecution Coordinator',
+#        'per_district': False,
+#        'permissions': ['prosecution_coordinator']
+#    },
+#    {
+#        'name': 'Prosecution Manager',
+#        'per_district': False,
+#        'permissions': ['prosecution_manager']
+#    },
+#    {
+#        'name': 'Prosecution Council',
+#        'per_district': False,
+#        'permissions': ['prosecution_council']
+#    },
+#    {
+#        'name': 'Compliance Management Read-Only',
+#        'per_district': False,
+#        'permissions': ['compliance_management_readonly']
+#    },
+#    {
+#        'name': 'Compliance Management Call/Email Read-Only',
+#        'per_district': False,
+#        'permissions': ['compliance_management_callemail_readonly']
+#    },
+#    {
+#        'name': 'Compliance Management Approved External Users',
+#        'per_district': False,
+#        'permissions': ['compliance_management_approved_external_users']
+#    },
+#    {
+#        'name': 'Wildlife Compliance Admin - Compliance',
+#        'per_district': False,
+#        'permissions': ['wildlife_compliance_admin_compliance']
+#    },
+#    {
+#        'name': 'Wildlife Compliance Admin - Licensing',
+#        'per_district': False,
+#        'permissions': ['wildlife_compliance_admin_licensing']
+#    },
+#]
+#
+#COMPLIANCE_GROUP_PERMISSIONS = {
+#    'triage_call_email': {
+#        'name': 'Triage Call/Email',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'officer': {
+#        'name': 'Officer',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'manager': {
+#        'name': 'Manager',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'volunteer': {
+#        'name': 'Volunteer',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'infringement_notice_coordinator': {
+#        'name': 'Infringement Notice Coordinator',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'prosecution_coordinator': {
+#        'name': 'Prosecution Coordinator',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'prosecution_council': {
+#        'name': 'Prosecution Council',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'prosecution_manager': {
+#        'name': 'Prosecution Manager',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'compliance_management_readonly': {
+#        'name': 'Compliance Management Read-Only',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'compliance_management_callemail_readonly': {
+#        'name': 'Compliance Management Call/Email Read-Only',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'compliance_management_approved_external_users': {
+#        'name': 'Compliance Management Approved External Users',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'wildlife_compliance_admin_compliance': {
+#        'name': 'Wildlife Compliance Admin - Compliance',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#    'wildlife_compliance_admin_licensing': {
+#        'name': 'Wildlife Compliance Admin - Licensing',
+#        'app_label': 'wildlifecompliance',
+#        'model': 'compliancepermissiongroup',
+#    },
+#}
