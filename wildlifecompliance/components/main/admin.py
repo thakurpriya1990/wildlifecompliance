@@ -46,6 +46,29 @@ class RegionAdmin(admin.ModelAdmin):
 class DistrictAdmin(admin.ModelAdmin):
     pass
 
+@admin.register(models.CallEmailTriageGroup)
+class CallEmailTriageGroupAdmin(admin.ModelAdmin):
+    #list_display = ['name', 'region_name', 'district_name' ]
+    filter_horizontal = ('members',)
+    form = forms.CallEmailTriageGroupAdminForm
+
+@admin.register(models.VolunteerGroup)
+class VolunteerGroupAdmin(admin.ModelAdmin):
+    #list_display = ['name', 'region_name', 'district_name' ]
+    filter_horizontal = ('members',)
+    form = forms.VolunteerGroupAdminForm
+
+@admin.register(models.OfficerGroup)
+class OfficerGroupAdmin(admin.ModelAdmin):
+    #list_display = ['name', 'region_name', 'district_name' ]
+    filter_horizontal = ('members',)
+    form = forms.OfficerGroupAdminForm
+
+@admin.register(models.ManagerGroup)
+class ManagerGroupAdmin(admin.ModelAdmin):
+    #list_display = ['name', 'region_name', 'district_name' ]
+    filter_horizontal = ('members',)
+    form = forms.ManagerGroupAdminForm
 
 @admin.register(models.GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):

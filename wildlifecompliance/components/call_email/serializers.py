@@ -294,8 +294,8 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
     #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    allocated_group_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #allocated_group_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
     volunteer_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
 
@@ -446,7 +446,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
     email_user = EmailUserSerializer(read_only=True)
     # allocated_group = CallEmailAllocatedGroupSerializer(many=True)
     # allocated_group = CompliancePermissionGroupMembersSerializer()
-    allocated_group = serializers.SerializerMethodField()
+    #allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     selected_referrers = serializers.SerializerMethodField()
@@ -472,8 +472,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'age',
             # 'status_display',
             'assigned_to_id',
-            'allocated_group',
-            'allocated_group_id',
+            #'allocated_group',
+            #'allocated_group_id',
             'location',
             'location_id',
             'classification',
@@ -546,26 +546,28 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return self.context.get('request', {}).user.id
 
     def get_user_in_group(self, obj):
-        user_id = self.context.get('request', {}).user.id
+        return True
+        #user_id = self.context.get('request', {}).user.id
 
-        if obj.allocated_group:
-           for member in obj.allocated_group.members:
-               if user_id == member.id:
-                  return True
-        
-        return False
+        #if obj.allocated_group:
+        #   for member in obj.allocated_group.members:
+        #       if user_id == member.id:
+        #          return True
+        #
+        #return False
 
     def get_can_user_action(self, obj):
-        user_id = self.context.get('request', {}).user.id
+        return True
+        #user_id = self.context.get('request', {}).user.id
 
-        if user_id == obj.assigned_to_id:
-            return True
-        elif obj.allocated_group and not obj.assigned_to_id:
-           for member in obj.allocated_group.members:
-               if user_id == member.id:
-                  return True
-        
-        return False
+        #if user_id == obj.assigned_to_id:
+        #    return True
+        #elif obj.allocated_group and not obj.assigned_to_id:
+        #   for member in obj.allocated_group.members:
+        #       if user_id == member.id:
+        #          return True
+        #
+        #return False
 
     def get_allocated_group(self, obj):
         return ''
@@ -603,39 +605,42 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_can_user_edit_form(self, obj):
-        user_id = self.context.get('request', {}).user.id
+        return True
+        #user_id = self.context.get('request', {}).user.id
 
-        if obj.status == 'draft':
-            if user_id == obj.assigned_to_id:
-                return True
-            elif obj.allocated_group and not obj.assigned_to_id:
-               for member in obj.allocated_group.members:
-                   if user_id == member.id:
-                      return True
-        
-        return False
+        #if obj.status == 'draft':
+        #    if user_id == obj.assigned_to_id:
+        #        return True
+        #    elif obj.allocated_group and not obj.assigned_to_id:
+        #       for member in obj.allocated_group.members:
+        #           if user_id == member.id:
+        #              return True
+        #
+        #return False
 
     def get_can_user_search_person(self, obj):
-        user_id = self.context.get('request', {}).user.id
+        return True
+        #user_id = self.context.get('request', {}).user.id
 
-        if obj.status == 'open':
-            if user_id == obj.assigned_to_id:
-                return True
-            elif obj.allocated_group and not obj.assigned_to_id:
-               for member in obj.allocated_group.members:
-                   if user_id == member.id:
-                      return True
-        
-        return False
+        #if obj.status == 'open':
+        #    if user_id == obj.assigned_to_id:
+        #        return True
+        #    elif obj.allocated_group and not obj.assigned_to_id:
+        #       for member in obj.allocated_group.members:
+        #           if user_id == member.id:
+        #              return True
+        #
+        #return False
 
     def get_user_is_volunteer(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        for group in user.groups.all():
-            for permission in group.permissions.all():
-                if permission.codename == 'volunteer':
-                    return True
-        # return false if 'volunteer' is not a permission of any group the user belongs to
-        return False
+        return True
+        #user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
+        #for group in user.groups.all():
+        #    for permission in group.permissions.all():
+        #        if permission.codename == 'volunteer':
+        #            return True
+        ## return false if 'volunteer' is not a permission of any group the user belongs to
+        #return False
 
     def get_volunteer_list(self, obj):
         return ''
@@ -701,21 +706,22 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
         view_url = '<a href=/internal/call_email/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/call_email/' + str(obj.id) + '>Process</a>'
         returned_url = ''
+        return process_url
 
-        if obj.status == 'closed':
-            returned_url = view_url
-        elif user_id == obj.assigned_to_id:
-            returned_url = process_url
-        elif (obj.allocated_group
-                and not obj.assigned_to_id):
-            for member in obj.allocated_group.members:
-                if user_id == member.id:
-                    returned_url = process_url
+        #if obj.status == 'closed':
+        #    returned_url = view_url
+        #elif user_id == obj.assigned_to_id:
+        #    returned_url = process_url
+        #elif (obj.allocated_group
+        #        and not obj.assigned_to_id):
+        #    for member in obj.allocated_group.members:
+        #        if user_id == member.id:
+        #            returned_url = process_url
 
-        if not returned_url:
-            returned_url = view_url
+        #if not returned_url:
+        #    returned_url = view_url
 
-        return returned_url
+        #return returned_url
     
     def get_user_is_volunteer(self, obj):
         user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
@@ -766,8 +772,8 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
     #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    allocated_group_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #allocated_group_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = CallEmail
@@ -780,7 +786,7 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'baby_kangaroo',
             'age',
             'assigned_to_id',
-            'allocated_group_id',
+            #'allocated_group_id',
             'location_id',
             'classification_id',
             'call_type_id',
