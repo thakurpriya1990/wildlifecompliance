@@ -10,7 +10,13 @@ from django.core.exceptions import MultipleObjectsReturned
 from ledger.settings_base import TIME_ZONE
 
 from wildlifecompliance import settings
-from wildlifecompliance.components.main.models import RegionGIS, DistrictGIS, Region
+from wildlifecompliance.components.main.models import (
+        RegionGIS, DistrictGIS, Region,
+        VolunteerGroup, InfringementNoticeCoordinatorGroup, ProsecutionCoordinatorGroup,
+        ProsecutionManagerGroup, ProsecutionCouncilGroup, ComplianceManagementReadOnlyGroup,
+        ComplianceManagementCallEmailReadOnlyGroup, ComplianceManagementApprovedExternalUserGroup,
+        ComplianceAdminGroup, LicensingAdminGroup,
+        )
 from wildlifecompliance.components.call_email.models import Classification
 
 logger = logging.getLogger(__name__)
@@ -74,4 +80,36 @@ class DefaultDataManager(object):
                     logger.info("Created Call/Email Classification: {}".format(item[1]))
             except Exception as e:
                 logger.error('{}, Call/Email Classification: {}'.format(e, item[1]))
+
+        # Set up CM security Groups without Region/District
+        if not VolunteerGroup.objects.exists():
+            VolunteerGroup.objects.create()
+            logger.info("Created Volunteer Group")
+        if not InfringementNoticeCoordinatorGroup.objects.exists():
+            InfringementNoticeCoordinatorGroup.objects.create()
+            logger.info("Created Infringement Notice Coordinator Group")
+        if not ProsecutionCoordinatorGroup.objects.exists():
+            ProsecutionCoordinatorGroup.objects.create()
+            logger.info("Created Prosecution Coordinator Group")
+        if not ProsecutionManagerGroup.objects.exists():
+            ProsecutionManagerGroup.objects.create()
+            logger.info("Created Prosecution Manager Group")
+        if not ProsecutionCouncilGroup.objects.exists():
+            ProsecutionCouncilGroup.objects.create()
+            logger.info("Created Prosecution Council Group")
+        if not ComplianceManagementReadOnlyGroup.objects.exists():
+            ComplianceManagementReadOnlyGroup.objects.create()
+            logger.info("Created Compliance Management Read Only Group")
+        if not ComplianceManagementCallEmailReadOnlyGroup.objects.exists():
+            ComplianceManagementCallEmailReadOnlyGroup.objects.create()
+            logger.info("Created Compliance Management Call Email Read Only Group")
+        if not ComplianceManagementApprovedExternalUserGroup.objects.exists():
+            ComplianceManagementApprovedExternalUserGroup.objects.create()
+            logger.info("Created Compliance Management Approved External User Group")
+        if not ComplianceAdminGroup.objects.exists():
+            ComplianceAdminGroup.objects.create()
+            logger.info("Created Compliance Admin Group")
+        if not LicensingAdminGroup.objects.exists():
+            LicensingAdminGroup.objects.create()
+            logger.info("Created Licensing Admin Group")
 
