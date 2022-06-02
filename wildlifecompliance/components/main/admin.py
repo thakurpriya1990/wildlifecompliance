@@ -53,12 +53,6 @@ class CallEmailTriageGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
     form = forms.CallEmailTriageGroupAdminForm
 
-@admin.register(models.VolunteerGroup)
-class VolunteerGroupAdmin(admin.ModelAdmin):
-    #list_display = ['name', 'region_name', 'district_name' ]
-    filter_horizontal = ('members',)
-    form = forms.VolunteerGroupAdminForm
-
 @admin.register(models.OfficerGroup)
 class OfficerGroupAdmin(admin.ModelAdmin):
     #list_display = ['name', 'region_name', 'district_name' ]
@@ -70,6 +64,25 @@ class ManagerGroupAdmin(admin.ModelAdmin):
     #list_display = ['name', 'region_name', 'district_name' ]
     filter_horizontal = ('members',)
     form = forms.ManagerGroupAdminForm
+
+
+@admin.register(models.VolunteerGroup)
+class VolunteerGroupAdmin(admin.ModelAdmin):
+    filter_horizontal = ('members',)
+    actions = None
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "members":
+            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+            kwargs["required"] = False
+        return super(VolunteerGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return True if models.VolunteerGroup.objects.count() == 0 else False
+
+    def has_delete_permission(self, request, obj=None):
+        return False 
 
 
 @admin.register(models.InfringementNoticeCoordinatorGroup)

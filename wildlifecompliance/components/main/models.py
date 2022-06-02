@@ -342,27 +342,6 @@ class CallEmailTriageGroup(models.Model):
     def district_name(self):
         return self.district.name if self.district else None
 
-class VolunteerGroup(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT)
-    district = ChainedForeignKey(
-            District, 
-            on_delete=models.PROTECT,
-            chained_field='region',
-            chained_model_field='region',
-            show_all=False,
-            null=True,
-            )
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_Volunteer'
-        verbose_name_plural = 'CM Volunteers'
-
-    def __str__(self):
-        return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
-
 
 class ManagerGroup(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -408,13 +387,25 @@ class OfficerGroup(models.Model):
         return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
 
 
+class VolunteerGroup(models.Model):
+    members = models.ManyToManyField(EmailUser)
+
+    class Meta:
+        app_label = 'wildlifecompliance'
+        verbose_name = 'CM Volunteer Group'
+        verbose_name_plural = 'CM Volunteer Group'
+
+    def __str__(self):
+        return self._meta.verbose_name
+
+
 class InfringementNoticeCoordinatorGroup(models.Model):
     members = models.ManyToManyField(EmailUser)
 
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_InfringementNoticeCoordinatorGroup'
-        verbose_name_plural = 'CM Infringement Notice Coordinator Groups'
+        verbose_name_plural = 'CM Infringement Notice Coordinator Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -426,7 +417,7 @@ class ProsecutionCoordinatorGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_ProsecutionCoordinatorGroup'
-        verbose_name_plural = 'CM Prosecution Coordinator Groups'
+        verbose_name_plural = 'CM Prosecution Coordinator Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -438,7 +429,7 @@ class ProsecutionManagerGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Prosecution Manager Group'
-        verbose_name_plural = 'CM Prosecution Manager Groups'
+        verbose_name_plural = 'CM Prosecution Manager Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -450,7 +441,7 @@ class ProsecutionCouncilGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Prosecution Council Group'
-        verbose_name_plural = 'CM Prosecution Council Groups'
+        verbose_name_plural = 'CM Prosecution Council Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -462,7 +453,7 @@ class ComplianceManagementReadOnlyGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Compliance Management Read Only Group'
-        verbose_name_plural = 'CM Compliance Management Read Only Groups'
+        verbose_name_plural = 'CM Compliance Management Read Only Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -474,7 +465,7 @@ class ComplianceManagementCallEmailReadOnlyGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Compliance Management Call Email Read Only Group'
-        verbose_name_plural = 'CM Compliance Management Call Email Read Only Groups'
+        verbose_name_plural = 'CM Compliance Management Call Email Read Only Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -486,7 +477,7 @@ class ComplianceManagementApprovedExternalUserGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Compliance Management Approved External User Group'
-        verbose_name_plural = 'CM Compliance Management Approved External User Groups'
+        verbose_name_plural = 'CM Compliance Management Approved External User Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -497,7 +488,7 @@ class ComplianceAdminGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Compliance Admin Group'
-        verbose_name_plural = 'CM Compliance Admin Groups'
+        verbose_name_plural = 'CM Compliance Admin Group'
 
     def __str__(self):
         return self._meta.verbose_name
@@ -509,7 +500,7 @@ class LicensingAdminGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM Licensing Admin Group'
-        verbose_name_plural = 'CM Licensing Admin Groups'
+        verbose_name_plural = 'CM Licensing Admin Group'
 
     def __str__(self):
         return self._meta.verbose_name
