@@ -317,8 +317,10 @@ export default {
       updateAllocatedGroup: async function() {
           console.log("updateAllocatedGroup");
           this.errorResponse = "";
+          //this.allocatedGroup = []
+          Vue.set(this, 'allocatedGroup', []);
           //this.allocatedGrouplength = 0;
-          
+          /*
           if (this.workflow_type === 'forward_to_wildlife_protection_branch') {
               for (let record of this.regions) {
                   if (record.name === 'KENSINGTON') {
@@ -327,20 +329,22 @@ export default {
                   }
               }
           }
+          */
           if (this.groupPermission && this.regionId) {
-              let allocatedGroupResponse = await this.loadAllocatedGroup({
-                  group_permission: this.groupPermission,
-                  region_id: this.regionId, 
-                  district_id: this.districtId, 
-              });
-              if (allocatedGroupResponse.ok) {
-                  console.log(allocatedGroupResponse.body.allocated_group);
+              try {
+                  let allocatedGroupResponse = await this.loadAllocatedGroup({
+                      workflow_type: this.workflow_type,
+                      region_id: this.regionId,
+                      district_id: this.districtId,
+                  });
+                  console.log(allocatedGroupResponse.body);
                   //this.allocatedGroup = Object.assign({}, allocatedGroupResponse.body.allocated_group);
-                  Vue.set(this, 'allocatedGroup', allocatedGroupResponse.body.allocated_group);
+                  Vue.set(this, 'allocatedGroup', allocatedGroupResponse.body);
                   this.allocated_group_id = allocatedGroupResponse.body.group_id;
-              } else {
+              } catch(error) {
+                  console.log(error)
                   // Display http error response on modal
-                  this.errorResponse = allocatedGroupResponse.statusText;
+                  this.errorResponse = error.body[0];
               }
               // Display empty group error on modal
               if (!this.errorResponse &&

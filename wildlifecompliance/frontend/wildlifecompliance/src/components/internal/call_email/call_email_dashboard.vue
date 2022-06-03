@@ -261,7 +261,7 @@
                 console.log("newCallId");
                 console.log(newCallId);
 
-                this.$router.push({
+                await this.$router.push({
                     name: 'view-call-email', 
                     params: {call_email_id: newCallId}
                     });

@@ -12,7 +12,8 @@ from ledger.licence.models import LicenceType
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
-        Document
+        Document,
+        CallEmailTriageGroup, OfficerGroup, ManagerGroup,
         )
 from wildlifecompliance.components.main.related_item import can_close_record
 #from wildlifecompliance.components.users.models import CompliancePermissionGroup
@@ -435,34 +436,53 @@ class CallEmail(RevisionedMixin):
     #    self.save()
 
     def forward_to_regions(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        self.allocated_group =  CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN
         self.log_user_action(
-            CallEmailUserAction.ACTION_FORWARD_TO_REGIONS.format(self.number), 
+            CallEmailUserAction.ACTION_FORWARD_TO_REGIONS.format(self.number),
             request)
         self.save()
 
     def forward_to_wildlife_protection_branch(self, request):
+        self.allocated_group = CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True))
         self.status = self.STATUS_OPEN
         self.log_user_action(
-            CallEmailUserAction.ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH.format(self.number), 
+            CallEmailUserAction.ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH.format(self.number),
             request)
         self.save()
 
     def allocate_for_follow_up(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_FOLLOWUP
         self.log_user_action(
-                CallEmailUserAction.ACTION_ALLOCATE_FOR_FOLLOWUP.format(self.number), 
+                CallEmailUserAction.ACTION_ALLOCATE_FOR_FOLLOWUP.format(self.number),
                 request)
         self.save()
 
     def allocate_for_inspection(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_INSPECTION
         self.log_user_action(
-                CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number), 
+                CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number),
                 request)
         self.save()
 
     def allocate_for_case(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_CASE
         self.log_user_action(
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number),

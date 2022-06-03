@@ -312,7 +312,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'age',
             'assigned_to_id',
             # 'allocated_to',
-            'allocated_group_id',
+            #'allocated_group_id',
             # 'status_display',
             'schema',
             'location',
