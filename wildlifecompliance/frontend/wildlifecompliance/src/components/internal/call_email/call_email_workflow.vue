@@ -11,6 +11,7 @@
                             </div>
                             <div class="col-sm-9">
                               <select class="form-control col-sm-9" @change.prevent="updateDistricts" v-model="regionId">
+                              <!--select class="form-control col-sm-9" @change.prevent="updateAllocatedGroup" v-model="regionId"-->
                                 <option  v-for="option in regions" :value="option.id" v-bind:key="option.id">
                                   {{ option.name }} 
                                 </option>
@@ -24,8 +25,9 @@
                               <label>District</label>
                             </div>
                             <div class="col-sm-9">
-                              <!--select class="form-control" @change.prevent="updateAllocatedGroup()" v-model="districtId"-->
-                              <select class="form-control" v-model="districtId">
+                              <select class="form-control" @change.prevent="updateAllocatedGroup()" v-model="districtId">
+                              <!--select class="form-control" v-model="districtId"-->
+                              <option value=""></option>
                                 <option  v-for="option in availableDistricts" :value="option.district_id" v-bind:key="option.district_id">
                                   {{ option.district_name }} 
                                 </option>
@@ -126,7 +128,7 @@ export default {
             form: null,
             regions: [],
             //regionDistricts: [],
-            availableDistricts: [],
+            //availableDistricts: [],
             externalOrganisations: [],
             referrers: [],
             referrersSelected: [],
@@ -235,7 +237,11 @@ export default {
                 }
             }
         },
-
+        availableDistricts: function() {
+            if (this.selectedRegion) {
+                return this.selectedRegion.districts
+            }
+        }
         /*
         availableDistricts: function() {
             let districts = []
@@ -246,14 +252,7 @@ export default {
             }
             return districts
         },
-      regionDistrictId: function() {
-          if (this.district_id || this.region_id) {
-              return this.district_id ? this.district_id : this.region_id;
-          } else {
-              return null;
-          }
-      },
-      */
+        */
     },
     filters: {
       formatDate: function(data) {
@@ -267,6 +266,7 @@ export default {
       ...mapActions({
           loadAllocatedGroup: 'loadAllocatedGroup',
       }),
+        /*
         updateDistricts: function() {
             this.$nextTick(() => {
                 this.districtId = null;
@@ -286,7 +286,6 @@ export default {
                 this.updateAllocatedGroup();
             })
         },
-        /*
       updateDistricts: function() {
         // this.district_id = null;
         this.availableDistricts = [];
@@ -314,6 +313,10 @@ export default {
         this.updateAllocatedGroup();
       },
         */
+      updateDistricts: async function() {
+          this.districtId = "";
+          await this.updateAllocatedGroup()
+      },
       updateAllocatedGroup: async function() {
           console.log("updateAllocatedGroup");
           this.errorResponse = "";
@@ -497,6 +500,19 @@ export default {
               name: "",
               districts: [],
             });
+        // Set regionId and districtId based on GIS lookup
+        if (this.call_email && this.call_email.region_gis) {
+            const region = this.regions.find(obj => obj.name === this.call_email.region_gis)
+            if (region) {
+                this.regionId = region.id
+                if (this.call_email.district_gis) {
+                    const district = region.districts.find(obj => obj.district_name === this.call_email.district_gis)
+                    if (district) {
+                        this.districtId = district.district_id
+                    }
+                }
+            }
+        }
         /*
         this.regions.splice(0, 0, 
             {
@@ -534,8 +550,9 @@ export default {
     },
     mounted: function() {
         this.form = document.forms.forwardForm;
-        this.$nextTick(() => {
+        this.$nextTick(async() => {
             this.addEventListeners();
+            await this.updateAllocatedGroup();
         });
     }
 };

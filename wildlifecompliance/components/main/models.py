@@ -507,8 +507,6 @@ class LicensingAdminGroup(models.Model):
         return self._meta.verbose_name
 
 def get_group_members(workflow_type, region_id=None, district_id=None):
-    if district_id:
-        region_id = None
     if workflow_type == 'forward_to_regions':
         return CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id).members
     elif workflow_type == 'forward_to_wildlife_protection_branch':

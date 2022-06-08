@@ -894,6 +894,7 @@ export default {
     },
     async addWorkflow(workflow_type) {
       //await this.save();
+      await this.saveCallEmail({ crud: 'save', internal: true });
       this.workflow_type = workflow_type;
       this.updateWorkflowBindId();
       this.$nextTick(() => {
