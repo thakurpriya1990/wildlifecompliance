@@ -163,7 +163,7 @@
                               <input :readonly="readonlyForm" class="form-control" v-model="call_email.caller"/>
                             </div></div>
                             <div class="col-sm-4 form-group"><div class="row">
-                              <label class="col-sm-12">Caller contact number</label>
+                              <label class="col-sm-12">Caller contact information</label>
                             <input :readonly="readonlyForm" class="form-control" v-model="call_email.caller_phone_number"/>
                             </div></div>
                             
@@ -175,13 +175,13 @@
                                 <label class="col-sm-1" for="anon_no">No</label>
                             </div></div>
             
-                            <div class="col-sm-12 form-group"><div class="row">
+                            <!--div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-4">Caller wishes to remain anonymous?</label>
                                 <input :disabled="readonlyForm" class="col-sm-1" id="call_anon_yes" type="radio" v-model="call_email.caller_wishes_to_remain_anonymous" v-bind:value="true">
                                 <label class="col-sm-1" for="call_anon_yes">Yes</label>
                                 <input :disabled="readonlyForm" class="col-sm-1" id="call_anon_no" type="radio" v-model="call_email.caller_wishes_to_remain_anonymous" v-bind:value="false">
                                 <label class="col-sm-1" for="call_anon_no">No</label>
-                            </div></div>
+                            </div></div-->
             
                             <div v-show="statusId !=='draft'">
                                 <SearchPersonOrganisation 
