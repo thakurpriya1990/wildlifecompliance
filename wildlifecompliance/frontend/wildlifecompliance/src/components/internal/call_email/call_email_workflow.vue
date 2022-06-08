@@ -338,7 +338,7 @@ export default {
                   let allocatedGroupResponse = await this.loadAllocatedGroup({
                       workflow_type: this.workflow_type,
                       region_id: this.regionId,
-                      district_id: this.districtId,
+                      district_id: this.districtId ? this.districtId : null,
                   });
                   console.log(allocatedGroupResponse.body);
                   //this.allocatedGroup = Object.assign({}, allocatedGroupResponse.body.allocated_group);
