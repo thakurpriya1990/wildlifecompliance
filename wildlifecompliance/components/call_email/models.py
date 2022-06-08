@@ -7,6 +7,7 @@ from django.db.models import Max
 from django.contrib.auth.models import Permission, ContentType
 from multiselectfield import MultiSelectField
 from django.utils.encoding import python_2_unicode_compatible
+from rest_framework import serializers
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.main.models import (
@@ -436,6 +437,8 @@ class CallEmail(RevisionedMixin):
     #    self.save()
 
     def forward_to_regions(self, request):
+        if not self.location:
+            raise serializers.ValidationError({"Location": "must be recorded"})
         region_id = None if not request.data.get('region_id') else request.data.get('region_id')
         district_id = None if not request.data.get('district_id') else request.data.get('district_id')
         self.allocated_group =  CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id)
@@ -446,6 +449,8 @@ class CallEmail(RevisionedMixin):
         self.save()
 
     def forward_to_wildlife_protection_branch(self, request):
+        if not self.location:
+            raise serializers.ValidationError({"Location": "must be recorded"})
         self.allocated_group = CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True))
         self.status = self.STATUS_OPEN
         self.log_user_action(
