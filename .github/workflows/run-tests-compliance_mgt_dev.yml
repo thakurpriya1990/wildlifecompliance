@@ -1,0 +1,86 @@
+name: "Run Django unit tests"
+
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ compliance_mgt_dev ]
+  pull_request:
+    branches: [ compliance_mgt_dev ]
+  workflow_dispatch:
+
+jobs:
+  run_tests:
+    name: Run Django Tests
+    runs-on: ubuntu-20.04
+    env:
+      DATABASE_URL: postgis://postgres:postgres@localhost:5432/postgres
+      DEBIAN_FRONTEND: noninteractive
+      DEBUG: True
+      TZ: Australia/Perth
+      EMAIL_HOST: "smtp"
+      DEFAULT_FROM_EMAIL: 'no-reply@dbca.wa.gov.au'
+      NOTIFICATION_EMAIL: 'this@that.com'
+      NON_PROD_EMAIL: 'that@this.com'
+      PRODUCTION_EMAIL: False
+      EMAIL_INSTANCE: 'DEV'
+      SECRET_KEY: "ThisisNotRealKey"
+      SITE_PREFIX: 'wls-tst'
+      SITE_DOMAIN: 'dbca.wa.gov.au'
+      OSCAR_SHOP_NAME: 'Department of Biodiversity, Conservation and Attractions'
+      BPAY_ALLOWED: False
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@compliance_mgt_dev
+        #- name: Set up Python
+        #  uses: actions/setup-python@v2
+        #  with:
+        #    python-version: 3.9.6
+      - name: Install software
+        run: |
+            apt-get clean &&
+            apt-get update &&
+            apt-get upgrade -y &&
+
+            apt-get install --no-install-recommends -y wget git libmagic-dev gcc \
+                binutils libproj-dev gdal-bin python3-setuptools python3-pip tzdata cron \
+                rsyslog &&
+            apt-get install --no-install-recommends -y libpq-dev patch &&
+            apt-get install --no-install-recommends -y python3-gevent \
+                software-properties-common &&
+
+            add-apt-repository ppa:deadsnakes/ppa &&
+            apt-get update &&
+            apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils &&
+
+            ln -s /usr/bin/python3.7 /usr/bin/python &&
+            python -m pip install --upgrade pip &&
+            python3.7 -m pip install --no-cache-dir -r requirements.txt \
+            && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
+      - name: Apply patch
+        run: |
+            libgeos.py.patch /app/
+            patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
+            rm /app/libgeos.py.patch
+      - name: Configure timezone
+        run: |
+            echo "Australia/Perth" > /etc/timezone
+            TZ=Australia/Perth
+            ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+          #  run: |
+          #      #psql postgresql://postgres:postgres@localhost:5432/template1 -c 'CREATE EXTENSION citext'
+          #    psql postgresql://postgres:postgres@localhost:5432/postgres -c 'CREATE EXTENSION postgis'
+      - name: Run tests
+        run: |
+            #source .venv/bin/activate
+          python manage.py collectstatic
+          python manage.py test
