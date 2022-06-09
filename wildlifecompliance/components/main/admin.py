@@ -40,8 +40,11 @@ class AdministrationAction(object):
 
 @admin.register(models.Region)
 class RegionAdmin(admin.ModelAdmin):
-    pass
+    readonly_fields = ('head_office',)
 
+    def has_delete_permission(self, request, obj=None):
+        if obj and not obj.head_office:
+            return True
 
 @admin.register(models.District)
 class DistrictAdmin(admin.ModelAdmin):

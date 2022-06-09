@@ -123,8 +123,8 @@ def in_dbca_domain(request):
 
 def is_departmentUser(request):
     return request.user.is_authenticated() and (
-            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) #or
-            #is_compliance_management_approved_external_user(request)
+            ((is_model_backend(request) or settings.ALLOW_EMAIL_ADMINS) and in_dbca_domain(request)) or
+            is_compliance_management_approved_external_user(request)
             )
 
 
@@ -183,6 +183,16 @@ def prefer_compliance_management(request):
             ret_value = True
 
     return ret_value
+
+
+def is_compliance_management_user(request):
+    compliance_user = False
+    if request.user.is_authenticated() and (
+            is_compliance_management_readonly_user(request) or 
+            is_compliance_management_callemail_readonly_user(request)
+            ):
+        compliance_user = True
+    return compliance_user
 
 
 def is_compliance_internal_user(request):

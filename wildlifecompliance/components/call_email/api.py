@@ -508,7 +508,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     new_instance = serializer.save()
-                    new_instance.set_allocated_group('volunteer')
+                    #new_instance.set_allocated_group('volunteer')
                     new_instance.log_user_action(
                             CallEmailUserAction.ACTION_CREATE_CALL_EMAIL.format(
                             new_instance.number), request)
@@ -732,8 +732,8 @@ class CallEmailViewSet(viewsets.ModelViewSet):
 
                 # Set CallEmail status depending on workflow type
                 workflow_type = request.data.get('workflow_type')
-                region_id = None if not request.data.get('region_id') else request.data.get('region_id')
-                district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+                #region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+                #district_id = None if not request.data.get('district_id') else request.data.get('district_id')
                 instance.assigned_to_id = None if not request.data.get('assigned_to_id') else request.data.get('assigned_to_id')
                 instance.inspection_type_id = None if not request.data.get('inspection_type_id') else request.data.get('inspection_type_id')
                 instance.case_priority_id = None if not request.data.get('case_priority_id') else request.data.get('case_priority_id')
@@ -742,19 +742,19 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 instance.advice_details = None if not request.data.get('advice_details') else request.data.get('advice_details')
 
                 if workflow_type == 'forward_to_regions':
-                    instance.set_allocated_group('triage_call_email', region_id=region_id, district_id=district_id)
+                    #instance.set_allocated_group('triage_call_email', region_id=region_id, district_id=district_id)
                     instance.forward_to_regions(request)
                 elif workflow_type == 'forward_to_wildlife_protection_branch':
-                    instance.set_allocated_group('triage_call_email', region_id=region_id, district_id=district_id)
+                    #instance.set_allocated_group('triage_call_email', region_id=region_id, district_id=district_id)
                     instance.forward_to_wildlife_protection_branch(request)
                 elif workflow_type == 'allocate_for_follow_up':
-                    instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
+                    #instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
                     instance.allocate_for_follow_up(request)
                 elif workflow_type == 'allocate_for_inspection':
-                    instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
+                    #instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
                     instance.allocate_for_inspection(request)
                 elif workflow_type == 'allocate_for_case':
-                    instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
+                    #instance.set_allocated_group('officer', region_id=region_id, district_id=district_id)
                     instance.allocate_for_case(request)
                 elif workflow_type == 'close':
                     instance.close(request)
