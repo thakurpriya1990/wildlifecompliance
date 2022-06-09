@@ -1,7 +1,7 @@
 name: "Run Django unit tests"
 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push or pull request events but only for the compliance_mgt_dev branch
   push:
     branches: [ compliance_mgt_dev ]
   pull_request:
@@ -41,10 +41,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@compliance_mgt_dev
-        #- name: Set up Python
-        #  uses: actions/setup-python@v2
-        #  with:
-        #    python-version: 3.9.6
       - name: Install software
         run: |
             apt-get clean &&
@@ -76,11 +72,7 @@ jobs:
             echo "Australia/Perth" > /etc/timezone
             TZ=Australia/Perth
             ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-          #  run: |
-          #      #psql postgresql://postgres:postgres@localhost:5432/template1 -c 'CREATE EXTENSION citext'
-          #    psql postgresql://postgres:postgres@localhost:5432/postgres -c 'CREATE EXTENSION postgis'
       - name: Run tests
         run: |
-            #source .venv/bin/activate
           python manage.py collectstatic
           python manage.py test
