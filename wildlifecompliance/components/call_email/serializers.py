@@ -20,6 +20,7 @@ from wildlifecompliance.components.call_email.models import (
     #ComplianceWorkflowLogEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
+from wildlifecompliance.components.main.models import Region, District
 from wildlifecompliance.components.main.utils import get_region_gis, get_district_gis
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
@@ -312,7 +313,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'age',
             'assigned_to_id',
             # 'allocated_to',
-            'allocated_group_id',
+            #'allocated_group_id',
             # 'status_display',
             'schema',
             'location',
@@ -531,16 +532,22 @@ class CallEmailSerializer(serializers.ModelSerializer):
     def get_region_gis(self, obj):
         try:
             res = get_region_gis(obj.location.wkb_geometry)
-            return res
+            region_list = Region.objects.filter(name__iexact=res)
+            if region_list:
+                return region_list[0].name
         except Exception as e:
             return ''
+        return ''
 
     def get_district_gis(self, obj):
         try:
             res = get_district_gis(obj.location.wkb_geometry)
-            return res
+            district_list = District.objects.filter(name__iexact=res)
+            if district_list:
+                return district_list[0].name
         except Exception as e:
             return ''
+        return ''
 
     def get_current_user_id(self, obj):
         return self.context.get('request', {}).user.id

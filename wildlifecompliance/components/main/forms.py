@@ -88,6 +88,7 @@ class GroupAdminFormTemplate(forms.ModelForm):
             self.fields['district'].widget.can_add_related=False
             self.fields['district'].widget.can_change_related=False
             self.fields['district'].widget.can_delete_related=False
+            self.fields['district'].required=False
 
     def clean(self):
         print(self.Meta)

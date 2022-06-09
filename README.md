@@ -44,13 +44,19 @@ required environment variables at run time. Example content:
     NON_PROD_EMAIL='comma@separated.email,listfor@nonproduction.emails'
     TSC_AUTH="Token pd12312313dd12321313asdd21321312344123s"
 
+# Compliance Management (CM)
+
+This section contains information specific to the Compliance Management project.
+
+## TODOs
+
+Note 20220603: RegionDistrict has been replaced with Region, District. 
+In addition, CompliancePermissionGroup model has been dropped as CM permissions are no longer generated via `management/permissions_manager.py`
+As a result, the security model for all entities must be updated.  This has only been done for CallEmail.
+
 # Wildlife Licensing
 
 This section contains information specific to the Wildlife Licensing projects.
-
-# Compliance Management 
-
-This section contains information specific to the Compliance Management project.
 
 ## Creating Licence Types
 

@@ -65,9 +65,9 @@ class DefaultDataManager(object):
                     logger.info("Created District: {}".format(district['properties']['DDT_DISTRICT_NAME']))
 
         ## Head Office Region
-        #region, created = Region.objects.get_or_create(name=settings.HEAD_OFFICE_NAME, head_office=True)
-        #if created:
-        #    logger.info("Created Head Office Region: {}".format(region.name))
+        region, created = Region.objects.get_or_create(name=settings.HEAD_OFFICE_NAME, head_office=True)
+        if created:
+            logger.info("Created Head Office Region: {}".format(region.name))
 
         # Call Email
         # Classification
