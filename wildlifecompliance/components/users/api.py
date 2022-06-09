@@ -23,7 +23,11 @@ from wildlifecompliance.components.users.models import (
         #CompliancePermissionGroup, 
         ComplianceManagementUserPreferences,
         )
-from wildlifecompliance.helpers import is_customer, is_internal, is_compliance_management_callemail_readonly_user
+from wildlifecompliance.helpers import (
+        is_customer, is_internal, is_compliance_management_callemail_readonly_user,
+        is_compliance_management_volunteer, is_compliance_management_readonly_user, 
+        is_compliance_management_callemail_readonly_user, prefer_compliance_management,
+        )
 from wildlifecompliance.components.users.serializers import (
     UserSerializer,
     DTUserSerializer,
@@ -121,17 +125,10 @@ class GetComplianceUserDetails(views.APIView):
         if returned_data.get('id'):
             user_id = returned_data.get('id')
             user = EmailUser.objects.get(id=user_id)
-            
-            
-            compliance_permissions = []
-            for group in user.groups.all():
-                for permission in group.permissions.all():
-                    compliance_permissions.append(permission.codename)
-                returned_data.update({ 'base_compliance_permissions': compliance_permissions })
-            if 'volunteer' in compliance_permissions:
-                returned_data.update({'is_volunteer': True})
-            else:
-                returned_data.update({'is_volunteer': False})
+        returned_data.update({'is_internal': is_internal(request)})
+        returned_data.update({'is_volunteer': is_compliance_management_volunteer(request)})
+        returned_data.update({'is_readonly_user': is_compliance_management_readonly_user(request)})
+        returned_data.update({'is_callemail_readonly_user': is_compliance_management_callemail_readonly_user(request)})
         return Response(returned_data)
 
 

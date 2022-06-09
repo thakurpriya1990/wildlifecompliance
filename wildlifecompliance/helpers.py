@@ -185,6 +185,16 @@ def prefer_compliance_management(request):
     return ret_value
 
 
+def is_compliance_management_user(request):
+    compliance_user = False
+    if request.user.is_authenticated() and (
+            is_compliance_management_readonly_user(request) or 
+            is_compliance_management_callemail_readonly_user(request)
+            ):
+        compliance_user = True
+    return compliance_user
+
+
 def is_compliance_internal_user(request):
     compliance_user = False
     if request.user.is_authenticated() and (

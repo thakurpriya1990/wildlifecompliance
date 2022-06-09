@@ -14,6 +14,7 @@ from wildlifecompliance.helpers import (
         is_compliance_management_callemail_readonly_user, 
         is_compliance_management_approved_external_user,
         is_compliance_management_volunteer,
+        is_compliance_management_user,
         )
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,7 @@ class FirstTimeNagScreenMiddleware(object):
                 preference.prefer_compliance_management = True
                 preference.save()
 
+        #if not is_compliance_management_user(request) and SecureBaseUtils.is_wildlifelicensing_request(request):
         if SecureBaseUtils.is_wildlifelicensing_request(request):
             # Apply WildifeLicensing first-time checks.
             first_time_nag = SecureAuthorisationEnforcer(request)
