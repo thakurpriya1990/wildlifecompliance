@@ -11,7 +11,8 @@ on:
 jobs:
   run_tests:
     name: Run Django Tests
-    runs-on: ubuntu-20.04
+    #runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgis://postgres:postgres@localhost:5432/postgres
       DEBIAN_FRONTEND: noninteractive
@@ -40,39 +41,49 @@ jobs:
         options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout repo
-        uses: actions/checkout@compliance_mgt_dev
+        uses: actions/checkout@v2
       - name: Install software
         run: |
-            apt-get clean &&
-            apt-get update &&
-            apt-get upgrade -y &&
+            echo $(PGPASSWORD='postgres' psql -h localhost -U postgres -p 5432 postgres -c 'select version();') &&
+            sudo apt-add-repository --yes ppa:ubuntugis/ubuntugis-unstable
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends --yes gdal-bin libgdal-dev
 
-            apt-get install --no-install-recommends -y wget git libmagic-dev gcc \
-                binutils libproj-dev gdal-bin python3-setuptools python3-pip tzdata cron \
-                rsyslog &&
-            apt-get install --no-install-recommends -y libpq-dev patch &&
-            apt-get install --no-install-recommends -y python3-gevent \
-                software-properties-common &&
+            sudo add-apt-repository ppa:deadsnakes/ppa &&
+            sudo apt-get update &&
+            sudo apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils virtualenv &&
+            virtualenv -p python3.7 venv &&
+            echo $(pwd) &&
+            echo $(ls -la) &&
+            
+            touch .env
+            source venv/bin/activate &&
+            echo $(python --version) &&
 
-            add-apt-repository ppa:deadsnakes/ppa &&
-            apt-get update &&
-            apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils &&
-
-            ln -s /usr/bin/python3.7 /usr/bin/python &&
             python -m pip install --upgrade pip &&
-            python3.7 -m pip install --no-cache-dir -r requirements.txt \
-            && rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/*
+            python -m pip install --no-cache-dir -r requirements.txt
+            echo $(PGPASSWORD='postgres' psql -h localhost -U postgres -p 5432 postgres -c 'select version();')
+
+            #sudo rm -rf /var/lib/{apt,dpkg,cache,log}/ /tmp/* /var/tmp/* &&
+
       - name: Apply patch
         run: |
-            libgeos.py.patch /app/
-            patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos.py /app/libgeos.py.patch
-            rm /app/libgeos.py.patch
-      - name: Configure timezone
-        run: |
-            echo "Australia/Perth" > /etc/timezone
-            TZ=Australia/Perth
-            ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+            #echo ${{ job.services.postgres.ports['5432'] }}
+            echo $(PGPASSWORD='postgres' psql -h localhost -U postgres -p 5432 postgres -c 'select version();') &&
+            echo $(pwd) &&
+            echo $(ls -la venv) &&
+            echo $(tail ./venv/lib/python3.7/site-packages/django/contrib/gis/geos/libgeos.py) &&
+            patch ./venv/lib/python3.7/site-packages/django/contrib/gis/geos/libgeos.py libgeos.py.patch &&
+            source venv/bin/activate &&
+            #echo $(python manage_wc.py dbshell -- -c 'select version();')
+            echo $(python manage_wc.py check)
+            #- name: Configure timezone
+            #run: |
+            #    sudo echo "Australia/Perth" > /etc/timezone
+            #    TZ=Australia/Perth
+            #    sudo ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && sudo echo $TZ > /etc/timezone
       - name: Run tests
         run: |
-          python manage.py collectstatic
-          python manage.py test
+            source venv/bin/activate &&
+            python manage_wc.py collectstatic --no-input &&
+            python manage_wc.py test wildlifecompliance/tests
