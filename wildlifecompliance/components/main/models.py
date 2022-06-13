@@ -360,7 +360,7 @@ class ManagerGroup(models.Model):
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_ManagerGroup'
-        verbose_name_plural = 'CM Manager_Groups'
+        verbose_name_plural = 'CM Manager Groups'
 
     def __str__(self):
         return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)

@@ -1,0 +1,69 @@
+name: "Run Django unit tests"
+
+on:
+  # Triggers the workflow on push or pull request events but only for the compliance_mgt_dev branch
+  push:
+    branches: [ compliance_mgt_dev ]
+  pull_request:
+    branches: [ compliance_mgt_dev ]
+  workflow_dispatch:
+
+jobs:
+  run_tests:
+    name: Run Django Tests
+    runs-on: ubuntu-20.04
+    #runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgis://postgres:postgres@localhost:5432/postgres
+      DEBIAN_FRONTEND: noninteractive
+      DEBUG: True
+      TZ: Australia/Perth
+      EMAIL_HOST: "smtp"
+      DEFAULT_FROM_EMAIL: 'no-reply@dbca.wa.gov.au'
+      NOTIFICATION_EMAIL: 'this@that.com'
+      NON_PROD_EMAIL: 'that@this.com'
+      PRODUCTION_EMAIL: False
+      EMAIL_INSTANCE: 'DEV'
+      SECRET_KEY: "ThisisNotRealKey"
+      SITE_PREFIX: 'wls-tst'
+      SITE_DOMAIN: 'dbca.wa.gov.au'
+      OSCAR_SHOP_NAME: 'Department of Biodiversity, Conservation and Attractions'
+      BPAY_ALLOWED: False
+
+    services:
+      postgres:
+        image: postgis/postgis:13-3.1-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --mount type=tmpfs,destination=/var/lib/postgresql/data --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Install software
+        run: |
+            sudo apt-add-repository --yes ppa:ubuntugis/ubuntugis-unstable
+            sudo apt-get update
+            sudo apt-get install --no-install-recommends --yes gdal-bin libgdal-dev
+
+            sudo add-apt-repository ppa:deadsnakes/ppa &&
+            sudo apt-get update &&
+            sudo apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils virtualenv &&
+            virtualenv -p python3.7 venv &&
+
+            touch .env
+            source venv/bin/activate &&
+
+            python -m pip install --upgrade pip &&
+            python -m pip install --no-cache-dir -r requirements.txt
+
+      - name: Apply patch
+        run: |
+            patch ./venv/lib/python3.7/site-packages/django/contrib/gis/geos/libgeos.py libgeos.py.patch
+      - name: Run tests
+        run: |
+            source venv/bin/activate &&
+            python manage_wc.py collectstatic --no-input &&
+            python manage_wc.py test wildlifecompliance/tests
