@@ -8,7 +8,14 @@ from datetime import datetime, timedelta
 from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.main.models import (
         SystemMaintenance, CallEmailTriageGroup, Region, District,
-        VolunteerGroup, OfficerGroup, ManagerGroup,
+        VolunteerGroup, OfficerGroup, ManagerGroup, InfringementNoticeCoordinatorGroup,
+        ComplianceManagementCallEmailReadOnlyGroup,
+        ComplianceManagementReadOnlyGroup,
+        ComplianceManagementApprovedExternalUserGroup,
+        ComplianceAdminGroup,
+        ProsecutionCoordinatorGroup,
+        ProsecutionManagerGroup,
+        ProsecutionCouncilGroup,
         )
 
 
@@ -67,7 +74,7 @@ class SystemMaintenanceAdminForm(forms.ModelForm):
         return cleaned_data
 
 
-class GroupAdminFormTemplate(forms.ModelForm):
+class RegionDistrictGroupAdminFormTemplate(forms.ModelForm):
     #region = forms.ModelChoiceField(widget=RelatedFieldWidgetWrapper(can_add_related=False))
     #district = forms.ModelChoiceField(queryset=District.objects.filter(region=region), required=False)
 
@@ -106,7 +113,39 @@ class GroupAdminFormTemplate(forms.ModelForm):
                 pass
 
 
-class CallEmailTriageGroupAdminForm(GroupAdminFormTemplate):
+class GroupAdminFormTemplate(forms.ModelForm):
+    #region = forms.ModelChoiceField(widget=RelatedFieldWidgetWrapper(can_add_related=False))
+    #district = forms.ModelChoiceField(queryset=District.objects.filter(region=region), required=False)
+
+    class Meta:
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance:
+            #import ipdb; ipdb.set_trace()
+            #print(self.fields['region'].widget.__dict__)
+            #print(self.fields['region']['widget'].__dict__)
+            self.fields['members'].queryset = EmailUser.objects.filter(is_staff=True)
+            self.fields['members'].required = False
+
+    def clean(self):
+        print(self.Meta)
+        print(self.Meta.__dict__)
+        super().clean()
+        if self.instance and self.Meta.model.objects.all().exists():
+            try:
+                original_members = self.Meta.model.objects.get(id=self.instance.id).members.all()
+                current_members = self.cleaned_data.get('members')
+                for o in original_members:
+                    if o not in current_members:
+                        if self.instance.member_is_assigned(o):
+                            raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
+            except:
+                pass
+
+
+class CallEmailTriageGroupAdminForm(RegionDistrictGroupAdminFormTemplate):
     class Meta:
         model = CallEmailTriageGroup
         fields = '__all__'
@@ -118,14 +157,73 @@ class VolunteerGroupAdminForm(GroupAdminFormTemplate):
         fields = '__all__'
 
 
-class ManagerGroupAdminForm(GroupAdminFormTemplate):
+class ManagerGroupAdminForm(RegionDistrictGroupAdminFormTemplate):
     class Meta:
         model = ManagerGroup
         fields = '__all__'
 
 
-class OfficerGroupAdminForm(GroupAdminFormTemplate):
+class OfficerGroupAdminForm(RegionDistrictGroupAdminFormTemplate):
     class Meta:
         model = OfficerGroup
+        fields = '__all__'
+
+
+class VolunteerGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = VolunteerGroup
+        fields = '__all__'
+
+
+class InfringementNoticeCoordinatorGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = InfringementNoticeCoordinatorGroup
+        fields = '__all__'
+
+
+class ProsecutionCoordinatorGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ProsecutionCoordinatorGroup
+        fields = '__all__'
+
+
+class ProsecutionManagerGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ProsecutionManagerGroup
+        fields = '__all__'
+
+
+class ProsecutionCouncilGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ProsecutionCouncilGroup
+        fields = '__all__'
+
+
+class ComplianceManagementReadOnlyGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ComplianceManagementReadOnlyGroup
+        fields = '__all__'
+
+
+class ComplianceManagementCallEmailReadOnlyGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ComplianceManagementCallEmailReadOnlyGroup
+        fields = '__all__'
+
+
+class ComplianceManagementApprovedExternalUserGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ComplianceManagementApprovedExternalUserGroup
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(ComplianceManagementApprovedExternalUserGroupAdminForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['members'].queryset = EmailUser.objects.filter(is_staff=False)
+
+
+class ComplianceAdminGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = ComplianceAdminGroup
         fields = '__all__'
 
