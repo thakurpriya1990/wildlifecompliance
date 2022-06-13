@@ -72,166 +72,119 @@ class ManagerGroupAdmin(admin.ModelAdmin):
 @admin.register(models.VolunteerGroup)
 class VolunteerGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(VolunteerGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.VolunteerGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.VolunteerGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
-
+        return False
 
 @admin.register(models.InfringementNoticeCoordinatorGroup)
 class InfringementNoticeCoordinatorGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(InfringementNoticeCoordinatorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.InfringementNoticeCoordinatorGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.InfringementNoticeCoordinatorGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
+
 
 @admin.register(models.ProsecutionCoordinatorGroup)
 class ProsecutionCoordinatorGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ProsecutionCoordinatorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.ProsecutionCoordinatorGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.ProsecutionCoordinatorGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
+
 
 @admin.register(models.ProsecutionManagerGroup)
 class ProsecutionManagerGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ProsecutionManagerGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.ProsecutionManagerGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.ProsecutionManagerGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
+
 
 @admin.register(models.ProsecutionCouncilGroup)
 class ProsecutionCouncilGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ProsecutionCouncilGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.ProsecutionCouncilGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.ProsecutionCouncilGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
+
 
 @admin.register(models.ComplianceManagementReadOnlyGroup)
 class ComplianceManagementReadOnlyGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ComplianceManagementReadOnlyGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.ComplianceManagementReadOnlyGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.ComplianceManagementReadOnlyGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
 
 @admin.register(models.ComplianceManagementCallEmailReadOnlyGroup)
 class ComplianceManagementCallEmailReadOnlyGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ComplianceManagementCallEmailReadOnlyGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    form = forms.ComplianceManagementCallEmailReadOnlyGroupAdminForm
 
     def has_add_permission(self, request):
         return True if models.ComplianceManagementCallEmailReadOnlyGroup.objects.count() == 0 else False
 
     def has_delete_permission(self, request, obj=None):
-        return False 
+        return False
+
+
+class ComplianceManagementApprovedExternalUserGroupInline(admin.TabularInline):
+    model = models.ComplianceManagementApprovedExternalUserGroup.members.through
+    search_fields = ['email',]
+    #model = EmailUser
+    extra = 0
+    raw_id_fields = ('emailuser',)
+    verbose_name = "Approved External User"
+    verbose_name_plural = "Approved External Users"
+
 
 @admin.register(models.ComplianceManagementApprovedExternalUserGroup)
 class ComplianceManagementApprovedExternalUserGroupAdmin(admin.ModelAdmin):
-    filter_horizontal = ('members',)
-    actions = None
+    #search_fields = ['members__email',]
+    #list_display = ('id',)
+    #inlines = [ExternalUserGroupPermissionInline]
+    inlines = [ComplianceManagementApprovedExternalUserGroupInline]
+    #inlines = [EmailUserInline]
+    exclude = ('members',)
+    #inlines = [admin.TabularInline]
+    #filter_horizontal = ('members',)
+    #search
+    #form = forms.ComplianceManagementApprovedExternalUserGroupAdminForm
+    #raw_id_fields = ('members',)
 
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ComplianceManagementApprovedExternalUserGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def has_add_permission(self, request):
         return True if models.ComplianceManagementApprovedExternalUserGroup.objects.count() == 0 else False
 
-    def has_delete_permission(self, request, obj=None):
-        return False 
-
-
 @admin.register(models.ComplianceAdminGroup)
 class ComplianceAdminGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(ComplianceAdminGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-    def has_add_permission(self, request):
-        return True if models.ComplianceAdminGroup.objects.count() == 0 else False
-
-    def has_delete_permission(self, request, obj=None):
-        return False 
+    form = forms.ComplianceAdminGroupAdminForm
 
 
 @admin.register(models.LicensingAdminGroup)
