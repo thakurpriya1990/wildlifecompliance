@@ -9,7 +9,7 @@ from wildlifecompliance.management.securebase_manager import (
     SecureAuthorisationEnforcer,
 )
 from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences
-from wildlifecompliance.components.main.models import VolunteerGroup, ComplianceManagementCallEmailReadOnlyGroup
+#from wildlifecompliance.components.main.models import VolunteerGroup, ComplianceManagementCallEmailReadOnlyGroup
 from wildlifecompliance.helpers import (
         is_compliance_management_callemail_readonly_user, 
         is_compliance_management_approved_external_user,
@@ -29,11 +29,11 @@ class FirstTimeNagScreenMiddleware(object):
         if request.method == 'GET' and request.user.is_authenticated(
         ) and 'api' not in request.path and 'admin' not in request.path:
             # add CM Approved External users to CallEmail RO and volunteer groups
-            if is_compliance_management_approved_external_user(request):
-                if not is_compliance_management_callemail_readonly_user(request):
-                    ComplianceManagementCallEmailReadOnlyGroup.objects.first().members.add(request.user)
-                if not is_compliance_management_volunteer(request):
-                    VolunteerGroup.objects.first().members.add(request.user)
+            #if is_compliance_management_approved_external_user(request):
+            #    if not is_compliance_management_callemail_readonly_user(request):
+            #        ComplianceManagementCallEmailReadOnlyGroup.objects.first().members.add(request.user)
+            #    if not is_compliance_management_volunteer(request):
+            #        VolunteerGroup.objects.first().members.add(request.user)
             # Ensure CallEmail RO group users have prefer_compliance_management=True
             preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
             if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:

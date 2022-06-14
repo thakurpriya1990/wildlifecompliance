@@ -3,8 +3,10 @@ import logging
 from datetime import datetime
 
 from django.db import models
+from django.conf import settings
 from django.contrib.gis.db.models import MultiPolygonField
 from django.db.models.query import QuerySet
+from django.core.exceptions import ValidationError
 from django.utils.encoding import python_2_unicode_compatible
 from ledger.accounts.models import EmailUser
 import os
@@ -315,9 +317,13 @@ class RegionGIS(models.Model):
         return "{}: {}".format(self.id, self.region_name)
 
 
-class CallEmailTriageGroup(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT)
+class ComplianceManagementSystemGroup(models.Model):
+
+    #name = models.CharField(max_length=150, unique=True)
+    name = models.CharField(
+        max_length=200,
+        choices=settings.GROUP_NAME_CHOICES)
+    region = models.ForeignKey(Region, null=True, on_delete=models.PROTECT)
     district = ChainedForeignKey(
             District, 
             on_delete=models.PROTECT,
@@ -327,196 +333,62 @@ class CallEmailTriageGroup(models.Model):
             null=True,
             )
 
-    members = models.ManyToManyField(EmailUser)
+    class Meta:
+        app_label = 'wildlifecompliance'
+        unique_together = [['name', 'region', 'district']]
+        verbose_name = 'CM_Compliance Management System Group'
+        verbose_name_plural = 'CM_Compliance Management System Groups'
+
+    #def save(self, *args, **kwargs):
+    #    print(self.id)
+    #    if ComplianceManagementSystemGroup.objects.filter(name=self.name) and self.name in [
+    #        settings.GROUP_VOLUNTEER,
+    #        settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR,
+    #        settings.GROUP_PROSECUTION_COORDINATOR,
+    #        settings.GROUP_PROSECUTION_MANAGER,
+    #        settings.GROUP_PROSECUTION_COUNCIL,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER,
+    #        settings.GROUP_COMPLIANCE_ADMIN
+    #        ]:
+    #        raise ValidationError("System Group {} already exists".format(self.name))
+    #    super(ComplianceManagementSystemGroup, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "{}, {}, {}".format(self.name, self.region, self.district)
+
+    def natural_key(self):
+        return (self.name,)
+
+    def get_members(self):
+        return [perm.emailuser for perm in self.compliancemanagementsystemgrouppermission_set.all()]
+
+
+class ComplianceManagementSystemGroupPermission(models.Model):
+    group = models.ForeignKey(ComplianceManagementSystemGroup, on_delete=models.PROTECT)
+    emailuser = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, db_constraint=False)
+    active = models.BooleanField(default=True)
 
     class Meta:
         app_label = 'wildlifecompliance'
-        verbose_name = 'CM_CallEmailTriageGroup'
-        verbose_name_plural = 'CM CallEmail Triage Groups'
 
     def __str__(self):
-        return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
+        return str(self.group)
 
-    def region_name(self):
-        return self.region.name
-
-    def district_name(self):
-        return self.district.name if self.district else None
-
-
-class ManagerGroup(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT)
-    district = ChainedForeignKey(
-            District, 
-            on_delete=models.PROTECT,
-            chained_field='region',
-            chained_model_field='region',
-            show_all=False,
-            null=True,
-            )
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_ManagerGroup'
-        verbose_name_plural = 'CM Manager Groups'
-
-    def __str__(self):
-        return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
-
-
-class OfficerGroup(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    region = models.ForeignKey(Region, on_delete=models.PROTECT)
-    district = ChainedForeignKey(
-            District, 
-            on_delete=models.PROTECT,
-            chained_field='region',
-            chained_model_field='region',
-            show_all=False,
-            null=True,
-            )
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_OfficerGroup'
-        verbose_name_plural = 'CM Officer Groups'
-
-    def __str__(self):
-        return "{}: {}, {}, {}".format(self.name, self.id, self.region, self.district)
-
-
-class VolunteerGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Volunteer Group'
-        verbose_name_plural = 'CM Volunteer Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class InfringementNoticeCoordinatorGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_InfringementNoticeCoordinatorGroup'
-        verbose_name_plural = 'CM Infringement Notice Coordinator Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ProsecutionCoordinatorGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM_ProsecutionCoordinatorGroup'
-        verbose_name_plural = 'CM Prosecution Coordinator Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ProsecutionManagerGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Prosecution Manager Group'
-        verbose_name_plural = 'CM Prosecution Manager Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ProsecutionCouncilGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Prosecution Council Group'
-        verbose_name_plural = 'CM Prosecution Council Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ComplianceManagementReadOnlyGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Compliance Management Read Only Group'
-        verbose_name_plural = 'CM Compliance Management Read Only Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ComplianceManagementCallEmailReadOnlyGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Compliance Management Call Email Read Only Group'
-        verbose_name_plural = 'CM Compliance Management Call Email Read Only Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class ComplianceManagementApprovedExternalUserGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Compliance Management Approved External User Group'
-        verbose_name_plural = 'CM Compliance Management Approved External User Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-class ComplianceAdminGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Compliance Admin Group'
-        verbose_name_plural = 'CM Compliance Admin Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
-
-
-class LicensingAdminGroup(models.Model):
-    members = models.ManyToManyField(EmailUser)
-
-    class Meta:
-        app_label = 'wildlifecompliance'
-        verbose_name = 'CM Licensing Admin Group'
-        verbose_name_plural = 'CM Licensing Admin Group'
-
-    def __str__(self):
-        return self._meta.verbose_name
 
 def get_group_members(workflow_type, region_id=None, district_id=None):
     if workflow_type == 'forward_to_regions':
-        return CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id).members
+        #return CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id).members
+        return ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region_id=region_id, district_id=district_id).get_members()
     elif workflow_type == 'forward_to_wildlife_protection_branch':
-        return CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True)).members
-    elif workflow_type == 'allocate_for_follow_up':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
-    elif workflow_type == 'allocate_for_inspection':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
-    elif workflow_type == 'allocate_for_case':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+        return ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=Region.objects.get(head_office=True)).get_members()
+    #elif workflow_type == 'allocate_for_follow_up':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+    #elif workflow_type == 'allocate_for_inspection':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+    #elif workflow_type == 'allocate_for_case':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
 
 
 import reversion
