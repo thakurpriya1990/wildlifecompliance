@@ -186,18 +186,25 @@ class ComplianceAdminGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
     form = forms.ComplianceAdminGroupAdminForm
 
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return True if models.ComplianceAdminGroup.objects.count() == 0 else False
+
 
 @admin.register(models.LicensingAdminGroup)
-class LicensingGroupAdmin(admin.ModelAdmin):
+class LicensingAdminGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
-    actions = None
+    form = forms.LicensingAdminGroupAdminForm
+    #actions = None
 
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-            kwargs["required"] = False
-        return super(LicensingAdminGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
+    #def formfield_for_manytomany(self, db_field, request, **kwargs):
+    #    if db_field.name == "members":
+    #        #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
+    #        kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+    #        kwargs["required"] = False
+    #    return super(LicensingAdminGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
 
     def has_add_permission(self, request):
         return True if models.LicensingAdminGroup.objects.count() == 0 else False

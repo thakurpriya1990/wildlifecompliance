@@ -13,6 +13,7 @@ from wildlifecompliance.components.main.models import (
         ComplianceManagementReadOnlyGroup,
         ComplianceManagementApprovedExternalUserGroup,
         ComplianceAdminGroup,
+        LicensingAdminGroup,
         ProsecutionCoordinatorGroup,
         ProsecutionManagerGroup,
         ProsecutionCouncilGroup,
@@ -225,5 +226,11 @@ class ComplianceManagementApprovedExternalUserGroupAdminForm(GroupAdminFormTempl
 class ComplianceAdminGroupAdminForm(GroupAdminFormTemplate):
     class Meta:
         model = ComplianceAdminGroup
+        fields = '__all__'
+
+
+class LicensingAdminGroupAdminForm(GroupAdminFormTemplate):
+    class Meta:
+        model = LicensingAdminGroup
         fields = '__all__'
 
