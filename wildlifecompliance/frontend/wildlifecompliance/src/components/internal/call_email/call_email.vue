@@ -102,22 +102,16 @@
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
-                        <div v-if="statusId ==='open' && canUserAction" class="row action-button">
+                        <!-- Following 3 actions are temporarily commented out  -->
+                        <!--div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="allocateForFollowUp" @click="addWorkflow('allocate_for_follow_up')" class="btn btn-primary btn-block" >
                                   Allocate for Follow Up
                                 </a>
                           </div>
                         </div>
-                        <!-- <div class="row">
-                          <div class="col-sm-12"/>
-                        </div> -->
                         <div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
-                                <!--a ref="allocateForInspection" @click="addWorkflow('allocate_for_inspection')" class="btn btn-primary btn-block"-->
                                 <a ref="allocateForInspection" @click="allocateForInspection()" class="btn btn-primary btn-block" >
                                   Allocate for Inspection
                                 </a>
@@ -125,12 +119,11 @@
                         </div>
                         <div v-if="statusId ==='open' && canUserAction" class="row action-button">
                           <div class="col-sm-12">
-                                <!--a ref="allocateForInspection" @click="addWorkflow('allocate_for_inspection')" class="btn btn-primary btn-block"-->
                                 <a ref="allocateForLegalCase" @click="allocateForLegalCase()" class="btn btn-primary btn-block" >
                                   Allocate for Case
                                 </a>
                           </div>
-                        </div>
+                        </div-->
                         <div v-if="closeButtonVisibility && canUserAction" class="row action-button">
                           <div class="col-sm-12">
                                 <a ref="close" @click="addWorkflow('close')" class="btn btn-primary btn-block">

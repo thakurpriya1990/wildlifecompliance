@@ -8,14 +8,15 @@ from django.contrib.auth.models import Group
 from django.contrib.gis.geos import GEOSGeometry, fromfile
 from django.core.exceptions import MultipleObjectsReturned
 from ledger.settings_base import TIME_ZONE
+from django.conf import settings
 
 from wildlifecompliance import settings
 from wildlifecompliance.components.main.models import (
-        RegionGIS, DistrictGIS, Region,
-        VolunteerGroup, InfringementNoticeCoordinatorGroup, ProsecutionCoordinatorGroup,
-        ProsecutionManagerGroup, ProsecutionCouncilGroup, ComplianceManagementReadOnlyGroup,
-        ComplianceManagementCallEmailReadOnlyGroup, ComplianceManagementApprovedExternalUserGroup,
-        ComplianceAdminGroup, LicensingAdminGroup,
+        RegionGIS, DistrictGIS, Region, ComplianceManagementSystemGroup,
+        #VolunteerGroup, InfringementNoticeCoordinatorGroup, ProsecutionCoordinatorGroup,
+        #ProsecutionManagerGroup, ProsecutionCouncilGroup, ComplianceManagementReadOnlyGroup,
+        #ComplianceManagementCallEmailReadOnlyGroup, ComplianceManagementApprovedExternalUserGroup,
+        #ComplianceAdminGroup, LicensingAdminGroup,
         )
 from wildlifecompliance.components.call_email.models import Classification
 
@@ -81,35 +82,36 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, Call/Email Classification: {}'.format(e, item[1]))
 
-        # Set up CM security Groups without Region/District
-        if not VolunteerGroup.objects.exists():
-            VolunteerGroup.objects.create()
-            logger.info("Created Volunteer Group")
-        if not InfringementNoticeCoordinatorGroup.objects.exists():
-            InfringementNoticeCoordinatorGroup.objects.create()
-            logger.info("Created Infringement Notice Coordinator Group")
-        if not ProsecutionCoordinatorGroup.objects.exists():
-            ProsecutionCoordinatorGroup.objects.create()
-            logger.info("Created Prosecution Coordinator Group")
-        if not ProsecutionManagerGroup.objects.exists():
-            ProsecutionManagerGroup.objects.create()
-            logger.info("Created Prosecution Manager Group")
-        if not ProsecutionCouncilGroup.objects.exists():
-            ProsecutionCouncilGroup.objects.create()
-            logger.info("Created Prosecution Council Group")
-        if not ComplianceManagementReadOnlyGroup.objects.exists():
-            ComplianceManagementReadOnlyGroup.objects.create()
-            logger.info("Created Compliance Management Read Only Group")
-        if not ComplianceManagementCallEmailReadOnlyGroup.objects.exists():
-            ComplianceManagementCallEmailReadOnlyGroup.objects.create()
-            logger.info("Created Compliance Management Call Email Read Only Group")
-        if not ComplianceManagementApprovedExternalUserGroup.objects.exists():
-            ComplianceManagementApprovedExternalUserGroup.objects.create()
-            logger.info("Created Compliance Management Approved External User Group")
-        if not ComplianceAdminGroup.objects.exists():
-            ComplianceAdminGroup.objects.create()
-            logger.info("Created Compliance Admin Group")
-        if not LicensingAdminGroup.objects.exists():
-            LicensingAdminGroup.objects.create()
-            logger.info("Created Licensing Admin Group")
 
+        # Set up CM security Groups without Region/District
+        created = None
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_VOLUNTEER)
+        if created:
+            logger.info("Created Volunteer Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR)
+        if created:
+            logger.info("Created Infringement Notice Coordinator Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_PROSECUTION_COORDINATOR)
+        if created:
+            logger.info("Created Prosecution Coordinator Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_PROSECUTION_MANAGER)
+        if created:
+            logger.info("Created Prosecution Manager Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_PROSECUTION_COUNCIL)
+        if created:
+            logger.info("Created Prosecution Council Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY)
+        if created:
+            logger.info("Created Compliance Management Read Only Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY)
+        if created:
+            logger.info("Created Compliance Management Call Email Read Only Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER)
+        if created:
+            logger.info("Created Compliance Management Approved External User Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_ADMIN)
+        if created:
+            logger.info("Created Compliance Admin Group")
+        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_LICENSING_ADMIN)
+        if created:
+            logger.info("Created Licensing Admin Group")
