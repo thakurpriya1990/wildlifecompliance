@@ -339,20 +339,21 @@ class ComplianceManagementSystemGroup(models.Model):
         verbose_name = 'CM_Compliance Management System Group'
         verbose_name_plural = 'CM_Compliance Management System Groups'
 
-    def save(self, *args, **kwargs):
-        if ComplianceManagementSystemGroup.objects.filter(name=self.name) and self.name in [
-            settings.GROUP_VOLUNTEER,
-            settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR,
-            settings.GROUP_PROSECUTION_COORDINATOR,
-            settings.GROUP_PROSECUTION_MANAGER,
-            settings.GROUP_PROSECUTION_COUNCIL,
-            settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY,
-            settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY,
-            settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER,
-            settings.GROUP_COMPLIANCE_ADMIN
-            ]:
-            raise ValidationError("System Group {} already exists".format(self.name))
-        super(ComplianceManagementSystemGroup, self).save(*args, **kwargs)
+    #def save(self, *args, **kwargs):
+    #    print(self.id)
+    #    if ComplianceManagementSystemGroup.objects.filter(name=self.name) and self.name in [
+    #        settings.GROUP_VOLUNTEER,
+    #        settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR,
+    #        settings.GROUP_PROSECUTION_COORDINATOR,
+    #        settings.GROUP_PROSECUTION_MANAGER,
+    #        settings.GROUP_PROSECUTION_COUNCIL,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY,
+    #        settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER,
+    #        settings.GROUP_COMPLIANCE_ADMIN
+    #        ]:
+    #        raise ValidationError("System Group {} already exists".format(self.name))
+    #    super(ComplianceManagementSystemGroup, self).save(*args, **kwargs)
 
     def __str__(self):
         return "{}, {}, {}".format(self.name, self.region, self.district)
@@ -360,9 +361,12 @@ class ComplianceManagementSystemGroup(models.Model):
     def natural_key(self):
         return (self.name,)
 
+    def get_members(self):
+        return [perm.emailuser for perm in self.compliancemanagementsystemgrouppermission_set.all()]
+
 
 class ComplianceManagementSystemGroupPermission(models.Model):
-    compliance_management_system_group = models.ForeignKey(ComplianceManagementSystemGroup, on_delete=models.PROTECT)
+    group = models.ForeignKey(ComplianceManagementSystemGroup, on_delete=models.PROTECT)
     emailuser = models.ForeignKey(EmailUser, on_delete=models.PROTECT, blank=True, null=True, db_constraint=False)
     active = models.BooleanField(default=True)
 
@@ -370,20 +374,21 @@ class ComplianceManagementSystemGroupPermission(models.Model):
         app_label = 'wildlifecompliance'
 
     def __str__(self):
-        return str(self.compliance_management_system_group)
+        return str(self.group)
 
 
 def get_group_members(workflow_type, region_id=None, district_id=None):
     if workflow_type == 'forward_to_regions':
-        return CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id).members
+        #return CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id).members
+        return ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region_id=region_id, district_id=district_id).get_members()
     elif workflow_type == 'forward_to_wildlife_protection_branch':
-        return CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True)).members
-    elif workflow_type == 'allocate_for_follow_up':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
-    elif workflow_type == 'allocate_for_inspection':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
-    elif workflow_type == 'allocate_for_case':
-        return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+        return ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=Region.objects.get(head_office=True)).get_members()
+    #elif workflow_type == 'allocate_for_follow_up':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+    #elif workflow_type == 'allocate_for_inspection':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
+    #elif workflow_type == 'allocate_for_case':
+    #    return OfficerGroup.objects.get(region_id=region_id, district_id=district_id).members
 
 
 import reversion

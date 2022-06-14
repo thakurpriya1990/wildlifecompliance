@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import logging
 from django.db import models
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
@@ -442,7 +443,8 @@ class CallEmail(RevisionedMixin):
             raise serializers.ValidationError({"Location": "must be recorded"})
         region_id = None if not request.data.get('region_id') else request.data.get('region_id')
         district_id = None if not request.data.get('district_id') else request.data.get('district_id')
-        self.allocated_group =  CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id)
+        #self.allocated_group =  CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id)
+        self.allocated_group =  ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN
         self.log_user_action(
             CallEmailUserAction.ACTION_FORWARD_TO_REGIONS.format(self.number),
@@ -452,7 +454,8 @@ class CallEmail(RevisionedMixin):
     def forward_to_wildlife_protection_branch(self, request):
         if not self.location:
             raise serializers.ValidationError({"Location": "must be recorded"})
-        self.allocated_group = CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True))
+        self.allocated_group =  ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=Region.objects.get(head_office=True))
+        #self.allocated_group = CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True))
         self.status = self.STATUS_OPEN
         self.log_user_action(
             CallEmailUserAction.ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH.format(self.number),

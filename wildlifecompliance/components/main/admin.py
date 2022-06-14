@@ -69,6 +69,19 @@ class ComplianceManagementGroupAdminFormTemplate(django_forms.ModelForm):
             self.fields['district'].widget.can_change_related=False
             self.fields['district'].widget.can_delete_related=False
             self.fields['district'].required=False
+            if self.instance.name in [
+                settings.GROUP_VOLUNTEER,
+                settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR,
+                settings.GROUP_PROSECUTION_COORDINATOR,
+                settings.GROUP_PROSECUTION_MANAGER,
+                settings.GROUP_PROSECUTION_COUNCIL,
+                settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY,
+                settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY,
+                settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER,
+                settings.GROUP_COMPLIANCE_ADMIN
+                ]:
+                self.fields['region'].disabled=True
+                self.fields['district'].disabled=True
 
 
 def ComplianceManagementPermissionTemplate(model_instance):
@@ -82,19 +95,16 @@ def ComplianceManagementPermissionTemplate(model_instance):
             super(ComplianceManagementSystemGroupPermissionInline, self).__init__(*args, **kwargs)
             self.model_instance = model_instance
 
-        def formfield_for_foreignkey(self, db_field, request, **kwargs):
-            #print(db_field)
-            if self.model_instance.name == settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER and db_field.name == "emailuser":
-                print("external")
-                print(EmailUser.objects.filter(is_staff=False).count())
-                kwargs["queryset"] = EmailUser.objects.filter(is_staff=False)
-                #db_field.queryset = EmailUser.objects.filter(is_staff=False)
-            elif db_field.name == "emailuser":
-                print("internal")
-                print(EmailUser.objects.filter(is_staff=True).count())
-                kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-                #db_field.queryset = EmailUser.objects.filter(is_staff=True)
-            return super(ComplianceManagementSystemGroupPermissionInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+        #def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        #    if self.model_instance.name == settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER and db_field.name == "emailuser":
+        #        print("external")
+        #        print(EmailUser.objects.filter(is_staff=False).count())
+        #        kwargs["queryset"] = EmailUser.objects.filter(is_staff=False)
+        #    elif db_field.name == "emailuser":
+        #        print("internal")
+        #        print(EmailUser.objects.filter(is_staff=True).count())
+        #        kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
+        #    return super(ComplianceManagementSystemGroupPermissionInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
     return ComplianceManagementSystemGroupPermissionInline
 
 
