@@ -48,6 +48,11 @@ def is_model_backend(context):
     return wildlifecompliance_helpers.is_model_backend(request)
 
 @register.simple_tag(takes_context=True)
+def is_compliance_management_user(context):
+    request = context['request']
+    return wildlifecompliance_helpers.is_compliance_management_user(request)
+
+@register.simple_tag(takes_context=True)
 def is_compliance_internal_user(context):
     request = context['request']
     return wildlifecompliance_helpers.is_compliance_internal_user(request)

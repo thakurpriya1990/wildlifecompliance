@@ -49,14 +49,7 @@
         {% block menu %}
             <div class="container-fluid">
                 <div class="row">
-                    
-                    {% if request.session.is_new %}
-                        <nav class="navbar navbar-default hidden">
-                    {% elif request.session.new_to_wildlifecompliance %}
-                        <nav class="navbar navbar-default hidden">
-                    {% else %}
-                        <nav class="navbar navbar-default">
-                    {% endif %}
+                    <nav class="navbar navbar-default">
                         <div class="container">
                             <div class="navbar-header">
                                 <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
