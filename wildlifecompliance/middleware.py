@@ -33,9 +33,9 @@ class FirstTimeNagScreenMiddleware(object):
             # add CM Approved External users to CallEmail RO and volunteer groups
             if is_compliance_management_approved_external_user(request):
                 if not is_compliance_management_callemail_readonly_user(request):
-                    ComplianceManagementSystemGroupGroup.objects.get(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY).add_member(request.user)
+                    ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY).add_member(request.user)
                 if not is_compliance_management_volunteer(request):
-                    ComplianceManagementSystemGroupGroup.objects.get(name=settings.GROUP_VOLUNTEER).add_member(request.user)
+                    ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER).add_member(request.user)
             # Ensure CallEmail RO group users have prefer_compliance_management=True
             preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
             if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:

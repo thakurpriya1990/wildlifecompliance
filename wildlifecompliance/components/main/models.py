@@ -346,7 +346,7 @@ class ComplianceManagementSystemGroup(models.Model):
         return [perm.emailuser for perm in self.compliancemanagementsystemgrouppermission_set.all()]
 
     def add_member(self, user):
-        self.compliancemanagementsystemgrouppermission_set.add(user)
+        ComplianceManagementSystemGroupPermission.objects.create(group=self,emailuser=user)
 
 
 class ComplianceManagementSystemGroupPermission(models.Model):
