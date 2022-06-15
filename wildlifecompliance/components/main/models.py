@@ -339,27 +339,8 @@ class ComplianceManagementSystemGroup(models.Model):
         verbose_name = 'CM_Compliance Management System Group'
         verbose_name_plural = 'CM_Compliance Management System Groups'
 
-    #def save(self, *args, **kwargs):
-    #    print(self.id)
-    #    if ComplianceManagementSystemGroup.objects.filter(name=self.name) and self.name in [
-    #        settings.GROUP_VOLUNTEER,
-    #        settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR,
-    #        settings.GROUP_PROSECUTION_COORDINATOR,
-    #        settings.GROUP_PROSECUTION_MANAGER,
-    #        settings.GROUP_PROSECUTION_COUNCIL,
-    #        settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY,
-    #        settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY,
-    #        settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER,
-    #        settings.GROUP_COMPLIANCE_ADMIN
-    #        ]:
-    #        raise ValidationError("System Group {} already exists".format(self.name))
-    #    super(ComplianceManagementSystemGroup, self).save(*args, **kwargs)
-
     def __str__(self):
-        return "{}, {}, {}".format(self.name, self.region, self.district)
-
-    def natural_key(self):
-        return (self.name,)
+        return "{}, {}, {}".format(self.get_name_display(), self.region, self.district)
 
     def get_members(self):
         return [perm.emailuser for perm in self.compliancemanagementsystemgrouppermission_set.all()]

@@ -373,12 +373,11 @@ class CallEmail(RevisionedMixin):
     #    related_name='callemail_district', 
     #    null=True
     #)
-    #allocated_group = models.ForeignKey(
-    #    CompliancePermissionGroup,
-    #    related_name='callemail_allocated_group', 
-    #    null=True
-    #)
-    
+    allocated_group = models.ForeignKey(
+        ComplianceManagementSystemGroup,
+        null=True
+    )
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_Call/Email'

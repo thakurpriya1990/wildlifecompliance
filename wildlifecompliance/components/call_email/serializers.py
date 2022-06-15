@@ -713,22 +713,22 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
         view_url = '<a href=/internal/call_email/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/call_email/' + str(obj.id) + '>Process</a>'
         returned_url = ''
-        return process_url
+        #return process_url
 
-        #if obj.status == 'closed':
-        #    returned_url = view_url
-        #elif user_id == obj.assigned_to_id:
-        #    returned_url = process_url
-        #elif (obj.allocated_group
-        #        and not obj.assigned_to_id):
-        #    for member in obj.allocated_group.members:
-        #        if user_id == member.id:
-        #            returned_url = process_url
+        if obj.status == 'closed':
+            returned_url = view_url
+        elif user_id == obj.assigned_to_id:
+            returned_url = process_url
+        elif (obj.allocated_group
+                and not obj.assigned_to_id):
+            for member in obj.allocated_group.get_members():
+                if user_id == member.id:
+                    returned_url = process_url
 
-        #if not returned_url:
-        #    returned_url = view_url
+        if not returned_url:
+            returned_url = view_url
 
-        #return returned_url
+        return returned_url
     
     def get_user_is_volunteer(self, obj):
         user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
