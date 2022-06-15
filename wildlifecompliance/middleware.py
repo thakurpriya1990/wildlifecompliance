@@ -3,6 +3,7 @@ import logging
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect
 from django.utils.http import urlquote_plus
+from django.conf import settings
 
 from wildlifecompliance.management.securebase_manager import (
     SecureBaseUtils,
@@ -10,6 +11,7 @@ from wildlifecompliance.management.securebase_manager import (
 )
 from wildlifecompliance.components.users.models import ComplianceManagementUserPreferences
 #from wildlifecompliance.components.main.models import VolunteerGroup, ComplianceManagementCallEmailReadOnlyGroup
+from wildlifecompliance.components.main.models import ComplianceManagementSystemGroup
 from wildlifecompliance.helpers import (
         is_compliance_management_callemail_readonly_user, 
         is_compliance_management_approved_external_user,
@@ -31,9 +33,9 @@ class FirstTimeNagScreenMiddleware(object):
             # add CM Approved External users to CallEmail RO and volunteer groups
             if is_compliance_management_approved_external_user(request):
                 if not is_compliance_management_callemail_readonly_user(request):
-                    ComplianceManagementCallEmailReadOnlyGroup.objects.first().members.add(request.user)
+                    ComplianceManagementSystemGroupGroup.objects.get(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY).add_member(request.user)
                 if not is_compliance_management_volunteer(request):
-                    VolunteerGroup.objects.first().members.add(request.user)
+                    ComplianceManagementSystemGroupGroup.objects.get(name=settings.GROUP_VOLUNTEER).add_member(request.user)
             # Ensure CallEmail RO group users have prefer_compliance_management=True
             preference, created = ComplianceManagementUserPreferences.objects.get_or_create(email_user=request.user)
             if is_compliance_management_callemail_readonly_user(request) and not preference.prefer_compliance_management:
