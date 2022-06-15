@@ -580,7 +580,6 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_allocated_group(self, obj):
-        return ''
         allocated_group = [{
             'email': '',
             'first_name': '',
@@ -590,7 +589,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'title': '',
             }]
         returned_allocated_group = ComplianceUserDetailsOptimisedSerializer(obj.allocated_group.get_members(), many=True).data
-        for member in returned_allocated_group.data['members']:
+        for member in returned_allocated_group:
             allocated_group.append(member)
 
         return allocated_group
