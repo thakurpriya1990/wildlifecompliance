@@ -42,6 +42,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from wildlifecompliance.components.main.api import save_location
 from wildlifecompliance.components.main.process_document import process_generic_document
 from wildlifecompliance.components.main.email import prepare_mail
+from wildlifecompliance.components.main.models import ComplianceManagementSystemGroup
 from wildlifecompliance.components.users.api import generate_dummy_email
 from wildlifecompliance.components.users.serializers import (
     UserAddressSerializer,
@@ -508,7 +509,9 @@ class CallEmailViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 if serializer.is_valid():
                     new_instance = serializer.save()
-                    #new_instance.set_allocated_group('volunteer')
+                    # set allocated group
+                    new_instance.allocated_group = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER)
+                    new_instance.save()
                     new_instance.log_user_action(
                             CallEmailUserAction.ACTION_CREATE_CALL_EMAIL.format(
                             new_instance.number), request)
