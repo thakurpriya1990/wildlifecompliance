@@ -23,7 +23,7 @@ EXISTING_REMOTES=$(git remote)
         echo "git remote add $DBCA_ORIGIN_HASH git@github.com:dbca-wa/$REPO.git"
         git remote add $DBCA_ORIGIN_HASH git@github.com:dbca-wa/$REPO.git
         git remote set-url --push $DBCA_ORIGIN_HASH no_push
-        git checkout -b $DBCA_ORIGIN_HASH_compliance_mgt_dev $DBCA_ORIGIN_HASH/compliance_mgt_dev
+        git checkout -b $DBCA_ORIGIN_HASH"_"$1 $DBCA_ORIGIN_HASH"/"$1
     fi
     echo "DBCA branch already exists"
 } ||
