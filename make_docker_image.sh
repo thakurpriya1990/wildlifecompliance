@@ -13,7 +13,7 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 REPO=$(awk '{split($0, arr, "\/"); print arr[2]}' <<< $(git config -l|grep remote|grep url|head -n 1|sed 's/-//g'|sed 's/....$//'))
 BUILD_TAG=dbcawa/$REPO:$1_v$(date +%Y.%m.%d.%H.%M%S)
 DBCA_ORIGIN_HASH=$(echo "$REPO" | md5sum -t | cut -c1-32)
-DBCA_BRANCH="$DBCA_ORIGIN_HASH_"$1
+DBCA_BRANCH=$DBCA_ORIGIN_HASH_$1
 EXISTING_REMOTES=$(git remote)
 
 {
@@ -35,6 +35,7 @@ EXISTING_REMOTES=$(git remote)
 
 {
     git checkout $DBCA_BRANCH
+    echo $(git status)
 } ||
 {
     echo "ERROR: Failed to checkout dbca branch"
