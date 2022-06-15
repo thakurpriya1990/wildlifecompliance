@@ -43,7 +43,11 @@ class APITestSetup(APITestCase):
         #self.callemailtriagegroup = CallEmailTriageGroup.objects.create(region=self.region, district=self.district)
         #self.volunteergroup = VolunteerGroup.objects.first()
         #self.callemailreadonlygroup = ComplianceManagementCallEmailReadOnlyGroup.objects.first()
-        self.callemailtriagegroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=self.region, district=self.district)
+        self.callemailtriagegroup = ComplianceManagementSystemGroup.objects.create(
+                name=settings.GROUP_CALL_EMAIL_TRIAGE, 
+                region=self.region, 
+                district=self.district
+                )
         self.volunteergroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER)
         self.callemailreadonlygroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY)
 
