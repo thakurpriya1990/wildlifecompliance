@@ -25,6 +25,7 @@ EXISTING_REMOTES=$(git remote)
         git remote set-url --push $DBCA_ORIGIN_HASH no_push
         git checkout -b $DBCA_ORIGIN_HASH_compliance_mgt_dev $DBCA_ORIGIN_HASH/compliance_mgt_dev
     fi
+    echo "DBCA branch already exists"
 } ||
 {
     echo "ERROR: Failed to create dbca branch"
@@ -36,10 +37,6 @@ EXISTING_REMOTES=$(git remote)
     git checkout $DBCA_BRANCH
 } ||
 {
-    #echo "ERROR: You must have your local code checked in and the DBCA branch set up on local with the 'dbca_' prefix.  Example Instructions:"
-    #echo "git remote add dbca git@github.com:dbca-wa/wildlifecompliance.git"
-    #echo "git checkout -b dbca_compliance_mgt_dev dbca/compliance_mgt_dev"
-
     echo "ERROR: Failed to checkout dbca branch"
     echo "$0 1"
     exit 1
