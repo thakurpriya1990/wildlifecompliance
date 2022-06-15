@@ -26,10 +26,10 @@ from wildlifecompliance.components.call_email.models import (
         CallType,
         )
 from wildlifecompliance.components.main.models import (
-        ComplianceManagementCallEmailReadOnlyGroup,
-        ComplianceManagementReadOnlyGroup,
-        VolunteerGroup,
-        CallEmailTriageGroup,
+        #ComplianceManagementCallEmailReadOnlyGroup,
+        #ComplianceManagementReadOnlyGroup,
+        #VolunteerGroup,
+        #CallEmailTriageGroup,
         Region,
         District,
         )
@@ -43,9 +43,12 @@ class APITestSetup(APITestCase):
         # Create security groups
         self.region = Region.objects.create(name="South West", cddp_name="South West")
         self.district = District.objects.create(name="Blackwood", cddp_name="Blackwood", region=self.region)
-        self.callemailtriagegroup = CallEmailTriageGroup.objects.create(region=self.region, district=self.district)
-        self.volunteergroup = VolunteerGroup.objects.first()
-        self.callemailreadonlygroup = ComplianceManagementCallEmailReadOnlyGroup.objects.first()
+        #self.callemailtriagegroup = CallEmailTriageGroup.objects.create(region=self.region, district=self.district)
+        #self.volunteergroup = VolunteerGroup.objects.first()
+        #self.callemailreadonlygroup = ComplianceManagementCallEmailReadOnlyGroup.objects.first()
+        self.callemailtriagegroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=self.region, district=self.district)
+        self.volunteergroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER)
+        self.callemailreadonlygroup = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY)
 
         self.superAdminUN = 'test.superadmin@dbcatest.com'
         self.adminUN = 'test.admin@dbcatest.com'
@@ -87,7 +90,7 @@ class APITestSetup(APITestCase):
         volunteer1_address = Address.objects.create(user=self.volunteer1, oscar_address=user_address)
         self.volunteer1.residential_address = volunteer1_address
         self.volunteer1.save()
-        self.volunteergroup.members.add(self.volunteer1)
+        self.volunteergroup.add_member(self.volunteer1)
 
         self.callemailtriage1 = EmailUser.objects.create(email="callemailtriage1@dbcatest.com", password="pass", is_staff=False, is_superuser=False)
         self.callemailtriage1.set_password('pass')
@@ -114,7 +117,7 @@ class APITestSetup(APITestCase):
         callemailtriage1_address = Address.objects.create(user=self.callemailtriage1, oscar_address=user_address)
         self.callemailtriage1.residential_address = callemailtriage1_address
         self.callemailtriage1.save()
-        self.callemailtriagegroup.members.add(self.callemailtriage1)
+        self.callemailtriagegroup.add_member(self.callemailtriage1)
 
         settings.SESSION_ENGINE = 'django.contrib.sessions.backends.file'
         engine = import_module(settings.SESSION_ENGINE)
