@@ -34,6 +34,8 @@ EXISTING_REMOTES=$(git remote)
 }
 
 {
+    echo "DBCA_BRANCH"
+    echo $DBCA_BRANCH
     git checkout $DBCA_BRANCH
     echo $(git status)
 } ||
