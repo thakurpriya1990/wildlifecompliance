@@ -208,31 +208,31 @@ def is_compliance_internal_user(request):
     return compliance_user
 
 def is_compliance_management_readonly_user(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY).exists()
 
 def is_compliance_management_callemail_readonly_user(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY).exists()
 
 def is_compliance_management_approved_external_user(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER).exists()
 
 def is_compliance_management_volunteer(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_VOLUNTEER)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_VOLUNTEER).exists()
 
 def is_compliance_management_officer(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_OFFICER)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_OFFICER).exists()
 
 def is_compliance_management_manager(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_MANAGER)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_MANAGER).exists()
 
 def is_compliance_management_infringement_notice_coordinator(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_INFRINGEMENT_NOTICE_COORDINATOR).exists()
 
 def is_cm_compliance_admin(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_ADMIN)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_COMPLIANCE_ADMIN).exists()
 
 def is_cm_licensing_admin(request):
-    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_LICENSING_ADMIN)
+    return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_LICENSING_ADMIN).exists()
 
 def is_able_to_view_sanction_outcome_pdf(user):
 #    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
