@@ -3,7 +3,9 @@ import traceback
 from rest_framework.fields import CharField
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
+from django.conf import settings
 from ledger.accounts.models import EmailUser, Address
+from wildlifecompliance.helpers import is_compliance_management_volunteer
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
@@ -20,7 +22,7 @@ from wildlifecompliance.components.call_email.models import (
     #ComplianceWorkflowLogEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
-from wildlifecompliance.components.main.models import Region, District
+from wildlifecompliance.components.main.models import Region, District, ComplianceManagementSystemGroup
 from wildlifecompliance.components.main.utils import get_region_gis, get_district_gis
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
@@ -295,8 +297,8 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
     #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #allocated_group_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)
+    allocated_group_id = serializers.IntegerField(
+        required=False, write_only=True, allow_null=True)
     volunteer_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
 
@@ -313,7 +315,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'age',
             'assigned_to_id',
             # 'allocated_to',
-            #'allocated_group_id',
+            'allocated_group_id',
             # 'status_display',
             'schema',
             'location',
@@ -422,7 +424,8 @@ class CallEmailOptimisedSerializer(serializers.ModelSerializer):
 
 
 #class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
-#    allocated_group = CompliancePermissionGroupMembersSerializer()
+#    #allocated_group = CompliancePermissionGroupMembersSerializer()
+#    allocated_group = ComplianceSystemGroupMembersSerializer()
 #
 #    class Meta:
 #        model = CallEmail
@@ -447,7 +450,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
     email_user = EmailUserSerializer(read_only=True)
     # allocated_group = CallEmailAllocatedGroupSerializer(many=True)
     # allocated_group = CompliancePermissionGroupMembersSerializer()
-    #allocated_group = serializers.SerializerMethodField()
+    allocated_group = serializers.SerializerMethodField()
     user_in_group = serializers.SerializerMethodField()
     related_items = serializers.SerializerMethodField()
     selected_referrers = serializers.SerializerMethodField()
@@ -473,8 +476,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'age',
             # 'status_display',
             'assigned_to_id',
-            #'allocated_group',
-            #'allocated_group_id',
+            'allocated_group',
+            'allocated_group_id',
             'location',
             'location_id',
             'classification',
@@ -554,43 +557,42 @@ class CallEmailSerializer(serializers.ModelSerializer):
 
     def get_user_in_group(self, obj):
         return True
-        #user_id = self.context.get('request', {}).user.id
+        user_id = self.context.get('request', {}).user.id
 
-        #if obj.allocated_group:
-        #   for member in obj.allocated_group.members:
-        #       if user_id == member.id:
-        #          return True
-        #
-        #return False
+        if obj.allocated_group:
+           for member in obj.allocated_group.get_members():
+               if user_id == member.id:
+                  return True
+        
+        return False
 
     def get_can_user_action(self, obj):
         return True
-        #user_id = self.context.get('request', {}).user.id
+        user_id = self.context.get('request', {}).user.id
 
-        #if user_id == obj.assigned_to_id:
-        #    return True
-        #elif obj.allocated_group and not obj.assigned_to_id:
-        #   for member in obj.allocated_group.members:
-        #       if user_id == member.id:
-        #          return True
-        #
-        #return False
+        if user_id == obj.assigned_to_id:
+            return True
+        elif obj.allocated_group and not obj.assigned_to_id:
+           for member in obj.allocated_group.get_members():
+               if user_id == member.id:
+                  return True
+        
+        return False
 
     def get_allocated_group(self, obj):
-        return ''
-        #allocated_group = [{
-        #    'email': '',
-        #    'first_name': '',
-        #    'full_name': '',
-        #    'id': None,
-        #    'last_name': '',
-        #    'title': '',
-        #    }]
-        #returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        #for member in returned_allocated_group.data['members']:
-        #    allocated_group.append(member)
+        allocated_group = [{
+            'email': '',
+            'first_name': '',
+            'full_name': '',
+            'id': None,
+            'last_name': '',
+            'title': '',
+            }]
+        returned_allocated_group = ComplianceUserDetailsOptimisedSerializer(obj.allocated_group.get_members(), many=True).data
+        for member in returned_allocated_group:
+            allocated_group.append(member)
 
-        #return allocated_group
+        return allocated_group
 
     def get_related_items(self, obj):
         return get_related_items(obj)
@@ -612,63 +614,48 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_can_user_edit_form(self, obj):
-        return True
-        #user_id = self.context.get('request', {}).user.id
+        user_id = self.context.get('request', {}).user.id
 
-        #if obj.status == 'draft':
-        #    if user_id == obj.assigned_to_id:
-        #        return True
-        #    elif obj.allocated_group and not obj.assigned_to_id:
-        #       for member in obj.allocated_group.members:
-        #           if user_id == member.id:
-        #              return True
-        #
-        #return False
+        if obj.status == 'draft':
+            if user_id == obj.assigned_to_id:
+                return True
+            elif obj.allocated_group and not obj.assigned_to_id:
+               for member in obj.allocated_group.get_members():
+                   if user_id == member.id:
+                      return True
+        
+        return False
 
     def get_can_user_search_person(self, obj):
-        return True
-        #user_id = self.context.get('request', {}).user.id
+        user_id = self.context.get('request', {}).user.id
 
-        #if obj.status == 'open':
-        #    if user_id == obj.assigned_to_id:
-        #        return True
-        #    elif obj.allocated_group and not obj.assigned_to_id:
-        #       for member in obj.allocated_group.members:
-        #           if user_id == member.id:
-        #              return True
-        #
-        #return False
+        if obj.status == 'open':
+            if user_id == obj.assigned_to_id:
+                return True
+            elif obj.allocated_group and not obj.assigned_to_id:
+               for member in obj.allocated_group.get_members():
+                   if user_id == member.id:
+                      return True
+        return False
 
     def get_user_is_volunteer(self, obj):
-        return True
-        #user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        #for group in user.groups.all():
-        #    for permission in group.permissions.all():
-        #        if permission.codename == 'volunteer':
-        #            return True
-        ## return false if 'volunteer' is not a permission of any group the user belongs to
-        #return False
+        return is_compliance_management_volunteer(self.context.get('request'))
 
     def get_volunteer_list(self, obj):
-        return ''
-        #volunteer_list = [{
-        #    'email': '',
-        #    'first_name': '',
-        #    'full_name': '',
-        #    'id': None,
-        #    'last_name': '',
-        #    'title': '',
-        #    }]
-        #compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup") 
-        ## user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        #permission = Permission.objects.filter(codename='volunteer').filter(content_type_id=compliance_content_type.id).first()
-        #group = CompliancePermissionGroup.objects.filter(permissions=permission).first()
-        #
-        #returned_volunteer_list = CompliancePermissionGroupMembersSerializer(instance=group)
-        #for member in returned_volunteer_list.data['members']:
-        #    volunteer_list.append(member)
+        volunteers = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER).get_members()
+        volunteer_list = [{
+            'email': '',
+            'first_name': '',
+            'full_name': '',
+            'id': None,
+            'last_name': '',
+            'title': '',
+            }]
+        serialized_volunteers = ComplianceUserDetailsOptimisedSerializer(volunteers, many=True).data
+        for member in serialized_volunteers:
+            volunteer_list.append(member)
 
-        #return volunteer_list
+        return volunteer_list
 
 
 class CallEmailDatatableSerializer(serializers.ModelSerializer):
@@ -729,15 +716,9 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
             returned_url = view_url
 
         return returned_url
-    
+
     def get_user_is_volunteer(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        for group in user.groups.all():
-            for permission in group.permissions.all():
-                if permission.codename == 'volunteer':
-                    return True
-        # return false if 'volunteer' is not a permission of any group the user belongs to
-        return False
+        return is_compliance_management_volunteer(self.context.get('request'))
 
 
 class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
