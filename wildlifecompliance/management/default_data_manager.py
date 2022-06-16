@@ -113,9 +113,9 @@ class DefaultDataManager(object):
         group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER)
         if created:
             logger.info("Created Compliance Management Approved External User Group")
-        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_ADMIN)
-        if created:
-            logger.info("Created Compliance Admin Group")
-        group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_LICENSING_ADMIN)
-        if created:
-            logger.info("Created Licensing Admin Group")
+        #group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_COMPLIANCE_ADMIN)
+        #if created:
+        #    logger.info("Created Compliance Admin Group")
+        #group, created = ComplianceManagementSystemGroup.objects.get_or_create(name=settings.GROUP_LICENSING_ADMIN)
+        #if created:
+        #    logger.info("Created Licensing Admin Group")
