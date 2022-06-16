@@ -203,10 +203,8 @@ class CallEmailPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
     
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
-        #user = self.request.user
-        #if is_internal(self.request):
-        if is_internal(self.request) or is_compliance_internal_user(self.request):
+        #if is_internal(self.request) or is_compliance_internal_user(self.request):
+        if is_compliance_internal_user(self.request):
             return CallEmail.objects.all()
         return CallEmail.objects.none()
 
@@ -227,10 +225,7 @@ class CallEmailViewSet(viewsets.ModelViewSet):
     serializer_class = CallEmailSerializer
 
     def get_queryset(self):
-        # import ipdb; ipdb.set_trace()
-        #user = self.request.user
-        #if is_internal(self.request):
-        if is_internal(self.request) or is_compliance_internal_user(self.request):
+        if is_compliance_internal_user(self.request):
             return CallEmail.objects.all()
         return CallEmail.objects.none()
 
