@@ -241,6 +241,7 @@ class LicenceSchemaUtility(LicenceUtility):
                 options.append(op_dict)
 
         for op in options:
+            conditions = {}
             op_name = '{}-{}'.format(parent_name, option_count)
             op_dict = {
                     'name': op_name,
