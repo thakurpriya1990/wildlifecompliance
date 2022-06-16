@@ -13,10 +13,6 @@ from django.conf import settings
 from wildlifecompliance import settings
 from wildlifecompliance.components.main.models import (
         RegionGIS, DistrictGIS, Region, ComplianceManagementSystemGroup,
-        #VolunteerGroup, InfringementNoticeCoordinatorGroup, ProsecutionCoordinatorGroup,
-        #ProsecutionManagerGroup, ProsecutionCouncilGroup, ComplianceManagementReadOnlyGroup,
-        #ComplianceManagementCallEmailReadOnlyGroup, ComplianceManagementApprovedExternalUserGroup,
-        #ComplianceAdminGroup, LicensingAdminGroup,
         )
 from wildlifecompliance.components.call_email.models import Classification
 
@@ -82,6 +78,14 @@ class DefaultDataManager(object):
             except Exception as e:
                 logger.error('{}, Call/Email Classification: {}'.format(e, item[1]))
 
+        # Compliance Management Auth Groups
+        for group_name in settings.CUSTOM_AUTH_GROUPS:
+            try:
+                group, created = Group.objects.get_or_create(name=group_name)
+                if created:
+                    logger.info("Created group: {}".format(group_name))
+            except Exception as e:
+                logger.error('{}, Group name: {}'.format(e, group_name))
 
         # Set up CM security Groups without Region/District
         created = None
