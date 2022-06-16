@@ -333,3 +333,8 @@ GROUP_NAME_CHOICES = (
     (GROUP_COMPLIANCE_ADMIN, "Compliance Admin"),
     (GROUP_LICENSING_ADMIN, "Licensing Admin"),
 )
+
+AUTH_GROUP_COMPLIANCE_BUSINESS_ADMIN = 'Wildlife Compliance - Compliance Business Admin'
+CUSTOM_AUTH_GROUPS = [
+    AUTH_GROUP_COMPLIANCE_BUSINESS_ADMIN,
+    ]

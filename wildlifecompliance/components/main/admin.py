@@ -90,6 +90,8 @@ def ComplianceManagementPermissionTemplate(model_instance):
         extra = 0
         raw_id_fields = ('emailuser',)
         model_instance = None
+        verbose_name = "Group member"
+        verbose_name_plural = "Group members"
 
         def __init__(self, *args, **kwargs):
             super(ComplianceManagementSystemGroupPermissionInline, self).__init__(*args, **kwargs)
@@ -126,6 +128,12 @@ class ComplianceManagementSystemGroupAdmin(admin.ModelAdmin):
         if db_field.name == "region":
             kwargs["required"] = False
         return super(ComplianceManagementSystemGroupAdmin, self).formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def get_actions(self, request):
+        return None
 
 
 @admin.register(models.GlobalSettings)
