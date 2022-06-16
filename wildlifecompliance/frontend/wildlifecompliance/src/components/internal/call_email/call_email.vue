@@ -23,7 +23,8 @@
                             </div>
                         </div>
 
-                        <div v-if="call_email.allocated_group && !(statusId === 'closed')" class="form-group">
+                        <!--div v-if="call_email.allocated_group && !(statusId === 'closed')" class="form-group"-->
+                        <div v-if="call_email.allocated_group && statusId === 'open'" class="form-group">
                           <div class="row">
                             <div class="col-sm-12 top-buffer-s">
                               <strong>Currently assigned to</strong><br/>
@@ -38,11 +39,11 @@
                               </select>
                             </div>
                           </div>
-                        </div>
-                        <div v-if="call_email.user_in_group">
-                            <a @click="updateAssignedToId('current_user')" class="btn pull-right">
-                                Assign to me
-                            </a>
+                          <div v-if="call_email.user_in_group">
+                              <a @click="updateAssignedToId('current_user')" class="btn pull-right">
+                                  Assign to me
+                              </a>
+                          </div>
                         </div>
                     </div>
                 </div>
