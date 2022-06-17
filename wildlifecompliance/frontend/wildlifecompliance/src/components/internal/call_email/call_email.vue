@@ -24,7 +24,7 @@
                         </div>
 
                         <!--div v-if="call_email.allocated_group && !(statusId === 'closed')" class="form-group"-->
-                        <div v-if="call_email.allocated_group && statusId === 'open'" class="form-group">
+                        <div v-if="assignToVisible" class="form-group">
                           <div class="row">
                             <div class="col-sm-12 top-buffer-s">
                               <strong>Currently assigned to</strong><br/>
@@ -335,14 +335,14 @@
                               </div>
                             </div></div>
 
-                            <div class="col-sm-12 form-group" v-if="speciesSubTypeDisabled">
+                            <!--div class="col-sm-12 form-group" v-if="speciesSubTypeDisabled">
                               <div class="row">
                                   <label class="col-sm-3">Species Name</label>
                                   <div class="col-sm-9">
                                     <input :disabled="readonlyForm" class="form-control" v-model="call_email.species_name"/>
                                   </div>
                               </div>
-                            </div>
+                            </div-->
 
                             <div class="col-sm-12 form-group"><div class="row">
                               <label class="col-sm-3">Age</label>
@@ -696,6 +696,13 @@ export default {
       renderer_form_data: 'renderer_form_data',
       //current_user: 'current_user',
     }),
+    assignToVisible: function() {
+        let visible = false;
+        if (this.call_email && this.call_email.allocated_group && this.call_email.can_user_action && this.statusId ==='open') {
+            visible = true;
+        }
+        return visible;
+    },
     personSearchVisibility: function() {
         let visible = false;
         if (this.statusId ==='open') {

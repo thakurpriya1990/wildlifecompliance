@@ -556,7 +556,6 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return self.context.get('request', {}).user.id
 
     def get_user_in_group(self, obj):
-        return True
         user_id = self.context.get('request', {}).user.id
 
         if obj.allocated_group:
@@ -567,7 +566,6 @@ class CallEmailSerializer(serializers.ModelSerializer):
         return False
 
     def get_can_user_action(self, obj):
-        return True
         user_id = self.context.get('request', {}).user.id
 
         if user_id == obj.assigned_to_id:
