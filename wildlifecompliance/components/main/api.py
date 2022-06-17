@@ -1375,7 +1375,8 @@ class RegionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         if is_internal(self.request):
-            return Region.objects.all()
+            #return Region.objects.all()
+            return Region.objects.filter(head_office=False)
         return Region.objects.none()
 
 

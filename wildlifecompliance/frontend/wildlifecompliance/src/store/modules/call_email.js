@@ -339,7 +339,8 @@ export const callemailStore = {
                 }
             }
         },
-        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal, close }) {
+        //async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal, close }) {
+        async saveCallEmail({ dispatch, state, rootGetters}, { crud, internal }) {
             let callId = null;
             let savedCallEmail = null;
             try {
@@ -396,21 +397,21 @@ export const callemailStore = {
                 } else if (crud === 'duplicate') {
                     const createUrl = api_endpoints.call_email;
                     savedCallEmail = await Vue.http.post(createUrl, payload);
-                } else if (close) {
-                        const closeUrl = helpers.add_endpoint_join(
+                } else if (crud === 'save') {
+                        //---Save the draft call/email
+                        const draftUrl = helpers.add_endpoint_join(
                         api_endpoints.call_email,
-                        state.call_email.id + "/close/")
+                        state.call_email.id + "/draft/")
                     try {
-                        savedCallEmail = await Vue.http.post(closeUrl, payload)
+                        savedCallEmail = await Vue.http.post(draftUrl, payload)
                     }catch(err) {
                         await swal({
-                            title: 'Mandatory Field',
+                            title: 'Error',
                             html: helpers.formatError(err),
                             type: "error",
                         })
                     }
                 } else {
-                    //---Save the draft call/email
                     try {
                         const fetchUrl = helpers.add_endpoint_join(
                         api_endpoints.call_email, 
