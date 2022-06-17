@@ -201,8 +201,7 @@ def is_compliance_internal_user(request):
     compliance_user = False
     if request.user.is_authenticated() and (
             is_compliance_management_readonly_user(request) or 
-            is_compliance_management_callemail_readonly_user(request) or
-            request.user.is_superuser
+            is_compliance_management_callemail_readonly_user(request)
             ):
         compliance_user = True
     return compliance_user
@@ -235,17 +234,10 @@ def is_cm_licensing_admin(request):
     return request.user.is_authenticated() and request.user.compliancemanagementsystemgrouppermission_set.filter(group__name=settings.GROUP_LICENSING_ADMIN).exists()
 
 def is_able_to_view_sanction_outcome_pdf(user):
-#    compliance_groups = [group.name for group in CompliancePermissionGroup.objects.filter(
-#        permissions__codename__in=['officer',
-#                                   'infringement_notice_coordinator',
-#                                   'manager'])]
-#    return user.is_authenticated() and (belongs_to_list(
-#        user, compliance_groups) or user.is_superuser)
     return request.user.is_authenticated() if (
         is_compliance_management_officer(request) or
         is_compliance_management_manager(request) or
-        is_compliance_management_infringement_notice_coordinator(request) or
-        request.user.is_superuser
+        is_compliance_management_infringement_notice_coordinator(request)
         ) else False
 
 
