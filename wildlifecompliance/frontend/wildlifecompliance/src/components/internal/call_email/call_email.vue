@@ -852,7 +852,6 @@ export default {
         this.uuid += 1;
     },
     entitySelected: async function(para) {
-        console.log(para);
         await this.setCaller(para);
     },
     loadReportAdviceUrl: function(url) {
@@ -1034,7 +1033,6 @@ export default {
     //  this.save(noPersonSave)
     //},
     save: async function (returnToDash) {
-        console.log(returnToDash)
         let savedCallEmail = null;
         let savedPerson = null;
         if (this.call_email.id) {
@@ -1211,7 +1209,6 @@ export default {
     /// large LOV(List Of Values) object
     const lovResponse = await Vue.http.get('/api/lov_collection/lov_collection_choices/');
     this.lovCollection = lovResponse.body;
-    console.log(this.lovCollection)
 
     // classification_types
     //let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
