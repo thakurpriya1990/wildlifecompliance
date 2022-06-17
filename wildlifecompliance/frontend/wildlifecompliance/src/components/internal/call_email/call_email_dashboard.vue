@@ -203,17 +203,11 @@
             Object.assign(this.complianceUser, returnedComplianceUserData.body);
             //let returned_classification_types = await cache_helper.getSetCacheList('CallEmail_ClassificationTypes', '/api/classification/classification_choices/');
             let returned_classification_types = await Vue.http.get('/api/classification/classification_choices/');
-            //console.log('classification types');
-            console.log(returned_classification_types);
             Object.assign(this.classification_types, returned_classification_types.body);
-            console.log(this.classification_types);
             this.classification_types.splice(0, 0, {id: 'all', display: 'All'});
 
             let returned_status_choices = await cache_helper.getSetCacheList('CallEmail_StatusChoices', '/api/call_email/status_choices');
-            console.log('returned_status_choices');
-            console.log(returned_status_choices);
             Object.assign(this.status_choices, returned_status_choices);
-            console.log(this.status_choices);
             this.status_choices.splice(0, 0, {id: 'all', display: 'All'});
 
         },
@@ -258,8 +252,6 @@
                 if (savedCallEmail) {
                     newCallId = savedCallEmail.body.id;
                 }
-                console.log("newCallId");
-                console.log(newCallId);
 
                 await this.$router.push({
                     name: 'view-call-email', 

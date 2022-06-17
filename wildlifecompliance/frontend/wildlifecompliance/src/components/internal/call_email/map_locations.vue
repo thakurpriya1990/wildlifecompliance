@@ -125,21 +125,6 @@ L.TileLayer.WMTS = L.TileLayer.extend({
         var tilerow=-Math.floor((nw.y-Y0)/tilewidth);
         var url = L.Util.template(this._url, {s: this._getSubdomain(coords)});
         return url + L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + tilematrix + "&tilerow=" + tilerow +"&tilecol=" + tilecol;
-        /*
-        var tileBounds = this._tileCoordsToBounds(coords);
-        var zoom = this._tileZoom;
-        var nw = this._crs.project(tileBounds.getNorthWest());
-        var se = this._crs.project(tileBounds.getSouthEast());
-        var tilewidth = se.x-nw.x;
-        var ident = this.matrixIds[zoom].identifier;
-        var X0 = this.matrixIds[zoom].topLeftCorner.lng;
-        var Y0 = this.matrixIds[zoom].topLeftCorner.lat;
-        var tilecol=Math.floor((nw.x+1-X0)/tilewidth);
-        var tilerow=-Math.floor((nw.y-1-Y0)/tilewidth);
-        var url = L.Util.template(this._url, {s: this._getSubdomain(coords)});
-        console.log(L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + ident + "&tilerow=" + tilerow +"&tilecol=" + tilecol );
-        return url + L.Util.getParamString(this.wmtsParams, url) + "&tilematrix=" + ident + "&tilerow=" + tilerow +"&tilecol=" + tilecol ;
-        */
     },
 
     setParams: function (params, noRedraw) {
@@ -369,7 +354,7 @@ module.exports = {
             }
         },
         onClick(e){
-            console.log(e.latlng.toString());
+            //console.log(e.latlng.toString());
         },
         onMouseMove: function(e){
             this.cursor_location = this.map.mouseEventToLatLng(e.originalEvent);
@@ -378,7 +363,6 @@ module.exports = {
             this.cursor_location = null;
         },
         initMap(){
-            console.log('Start initMap()');
 
             this.map = L.map('mapLeaf').setView([-24.9505, 122.8605], 5);
             this.tileLayer = L.tileLayer(
@@ -446,7 +430,6 @@ module.exports = {
                     vm.addMarkers(data);
                 },
                 error: function (e){
-                    console.log(e);
                 }
             });
         },

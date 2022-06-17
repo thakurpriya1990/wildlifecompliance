@@ -200,15 +200,12 @@ export default {
         }
         // post payload to url, then
         let relatedItems = await Vue.http.post(url, payload);
-        console.log(relatedItems)
         if (relatedItems.ok) {
             await this.parent_update_related_items(relatedItems.body);
         }
     },
 
     constructRelatedItemsTable: function() {
-        console.log('constructRelatedItemsTable');
-        console.log(this.displayedEntity);
         this.$refs.related_items_table.vmDataTable.clear().draw();
 
         if(this.displayedEntity && this.displayedEntity.related_items){
