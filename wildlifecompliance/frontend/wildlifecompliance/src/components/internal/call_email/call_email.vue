@@ -696,6 +696,14 @@ export default {
       renderer_form_data: 'renderer_form_data',
       //current_user: 'current_user',
     }),
+    locationExists: function() {
+        if (this.call_email && 
+            this.call_email.location && 
+            this.call_email.location.geometry && 
+            this.call_email.location.geometry.coordinates.length > 0) {
+            return true;
+        }
+    },
     assignToVisible: function() {
         let visible = false;
         if (this.call_email && this.call_email.allocated_group && this.call_email.can_user_action && this.statusId ==='open') {
@@ -894,14 +902,25 @@ export default {
         }
     },
     async addWorkflow(workflow_type) {
-      //await this.save();
-      await this.saveCallEmail({ crud: 'save', internal: true });
-      this.workflow_type = workflow_type;
-      this.updateWorkflowBindId();
-      this.$nextTick(() => {
-        this.$refs.add_workflow.isModalOpen = true;
-      });
-      // this.$refs.add_workflow.isModalOpen = true;
+      if (!this.locationExists) {
+            await swal({
+                title: 'Mandatory Field',
+                html: "Location must be specified",
+                type: "error",
+            })
+      } else {
+          try {
+              const res = await this.saveCallEmail({ crud: 'forward', internal: true });
+              if (res.ok) {
+                  this.workflow_type = workflow_type;
+                  this.updateWorkflowBindId();
+                  this.$nextTick(() => {
+                    this.$refs.add_workflow.isModalOpen = true;
+                  });
+              }
+          } catch (err) {
+          }
+      }
     },
     openSanctionOutcome(){
       this.sanctionOutcomeInitialised = true;
