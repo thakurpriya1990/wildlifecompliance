@@ -115,11 +115,9 @@ export default {
     },
     watch: {
         marker_latitude: function(){
-            console.log('watch lat');
             this.marker_lat = this.marker_latitude;
         },
         marker_longitude: function(){
-            console.log('watch lng');
             this.marker_lng = this.marker_longitude;
         },
         marker_lat: function(){
@@ -290,8 +288,6 @@ export default {
     refreshMarkerLocation: function() {
         if (!isNaN(this.marker_lat) && !isNaN(this.marker_lng)){
             let latlng = [this.marker_lat, this.marker_lng];
-            console.log('refreshMarkerLocation');
-            console.log(latlng);
 
             if (!this.feature_marker) {
                 this.addMarker(latlng);

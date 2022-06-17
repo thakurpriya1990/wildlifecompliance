@@ -561,7 +561,7 @@ export default {
         let value = [full_name, dob].filter(Boolean).join(", ");
         this.$refs.person_search.setInput(value);
       } else if (obj.err) {
-        console.log(err);
+        //console.log(err);
       } else {
         // Should not reach here
       }
@@ -592,11 +592,9 @@ export default {
                 if (alleged_offence.uuid == alleged_offence_uuid){
                     if (alleged_offence.id){
                         // this alleged_offence exists in the database
-                        console.log('existing');
                         alleged_offence.removed = true;
                     } else {
                         // this is new alleged_offence
-                        console.log('new');
                         this.offence.alleged_offences.splice(i, 1);
                     }
                 }
@@ -690,7 +688,6 @@ export default {
       vm.setCurrentOffenderEmpty();
     },
     addAllegedOffenceClicked: function() {
-        console.log('addAllegedOffenceClicked')
         if (this.current_alleged_offence && this.current_alleged_offence.id) {
 
             // Check if the item is already in the list
@@ -729,7 +726,6 @@ export default {
         }
     },
     addAllegedOffenceToTable: function(allegedOffence){
-        console.log('in addAllegedOffenceToTable')
         allegedOffence.uuid = uuid();
         this.$refs.alleged_offence_table.vmDataTable.row.add({ "allegedOffence": allegedOffence, "offence": this.offence }).draw();
     },
@@ -773,7 +769,6 @@ export default {
         }
     },
     processError: async function(err) {
-        console.log(typeof(err))
         let errorText = '';
         if (err.body){
             if (err.body.non_field_errors) {
@@ -823,7 +818,6 @@ export default {
       this.$refs.mapOffenceComponent.mapTabClicked();
     },
     sendData: async function() {
-        console.log('sendData');
         let vm = this;
 
         // If exists, set call_email_id and other attributes to the offence
@@ -1104,7 +1098,6 @@ export default {
       this.updateDistricts();
     },
     updateDistricts: function(updateFromUI) {
-      console.log('updateDistricts');
       if (updateFromUI) {
         // We don't want to clear the default district selection when initially loaded, which derived from the call_email
         this.offence.district_id = null;
@@ -1133,7 +1126,6 @@ export default {
     },
   },
     created: async function() {
-        console.log('created');
 
         let self = this;
         self.setOffenceEmpty();
