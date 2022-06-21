@@ -535,7 +535,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
     def get_region_gis(self, obj):
         try:
             res = get_region_gis(obj.location.wkb_geometry)
-            region_list = Region.objects.filter(name__iexact=res)
+            region_list = Region.objects.filter(cddp_name__iexact=res)
             if region_list:
                 return region_list[0].name
         except Exception as e:
@@ -545,7 +545,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
     def get_district_gis(self, obj):
         try:
             res = get_district_gis(obj.location.wkb_geometry)
-            district_list = District.objects.filter(name__iexact=res)
+            district_list = District.objects.filter(cddp_name__iexact=res)
             if district_list:
                 return district_list[0].name
         except Exception as e:
