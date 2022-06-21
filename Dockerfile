@@ -38,10 +38,10 @@ RUN apt-get upgrade -y
 
 RUN apt-get install --no-install-recommends -y wget git libmagic-dev gcc \
     binutils libproj-dev gdal-bin python3-setuptools python3-pip tzdata cron \
-    rsyslog gunicorn libreoffice
+    rsyslog gunicorn
 RUN apt-get install --no-install-recommends -y libpq-dev patch
 RUN apt-get install --no-install-recommends -y postgresql-client mtr htop \
-    vim ssh 
+    vim
 RUN apt-get install --no-install-recommends -y python3-gevent \
     software-properties-common imagemagick
 
