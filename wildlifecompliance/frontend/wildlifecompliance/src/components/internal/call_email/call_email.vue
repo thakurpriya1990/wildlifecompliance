@@ -191,7 +191,7 @@
                             </div>
                           </FormSection>
             
-                          <FormSection :formCollapse="false" label="Location" Index="1">
+                          <FormSection :formCollapse="false" label="Location *" Index="1">
                               <div v-if="call_email.location">
                                 <MapLocation 
                                 :isReadonly="readonlyForm"
@@ -304,7 +304,7 @@
                             </div></div>
 
                              <div class="col-sm-12 form-group"><div class="row">
-                              <label class="col-sm-3">Call Type</label>
+                              <label class="col-sm-3">Call Type *</label>
                               <div  class="col-sm-9">
                                 <div v-for="option in call_types">
                                   <input :disabled="readonlyForm"  @change="filterWildcareSpeciesType($event,option.all_wildcare_species)" type="radio" v-bind:value="option.id" :id="'call_type_'+option.id" v-model="call_email.call_type_id">
@@ -379,7 +379,7 @@
                             </div></div>
 
                              <div class="col-sm-12 form-group"><div class="row">
-                              <label class="col-sm-3">Female/ Male</label>
+                              <label class="col-sm-3">Female / Male</label>
                               <div>
                                 <div v-for="option in gender_choices" class="col-sm-2">
                                   <input :disabled="readonlyForm" type="checkbox" @change="checkFemalePinkyJoey" :value="option.id" :id="'gender_'+option.id" v-bind:key="option.id" v-model="call_email.gender"/>
@@ -389,7 +389,7 @@
                             </div></div>
 
                             <div v-if="isFemalePinkyJoey" class="col-sm-12 form-group"><div class="row">
-                              <label class="col-sm-3">Pinky/ Joey</label>
+                              <label class="col-sm-3">Pinky / Joey</label>
                               <div>
                                 <div v-for="option in baby_kangaroo_choices" class="col-sm-2">
                                   <input :disabled="readonlyForm" type="checkbox" :value="option.id" :id="'babyKangaroo'+option.id" v-bind:key="option.id" v-model="call_email.baby_kangaroo"/>
@@ -409,7 +409,7 @@
 
                             <div class="col-sm-12 form-group">
                               <div class="row">
-                                  <label class="col-sm-3">Brief nature of call</label>
+                                  <label class="col-sm-3">Brief nature of call *</label>
                                   <div class="col-sm-9">
                                     <textarea :disabled="readonlyForm" class="form-control" v-model="call_email.brief_nature_of_call" />
                                   </div>
@@ -1001,15 +1001,19 @@ export default {
           }
         }
         //---filter wildcare species sub type as per species type selected
+          /*
         if(this.speciesSubTypeDisabled === false)
         {
+        */
           for(let choice of this.wildcare_species_sub_types){
             if(choice.wildcare_species_type_id === this.call_email.wildcare_species_type_id)
             {
               this.filter_wildcare_species_sub_types.push(choice);
             }
           }
+          /*
         }
+        */
         //---to reset pinky/Joey onchange of species type
         this.checkFemalePinkyJoey();
       });

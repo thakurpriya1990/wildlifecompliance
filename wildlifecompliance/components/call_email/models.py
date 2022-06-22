@@ -265,12 +265,12 @@ class CallEmail(RevisionedMixin):
     )
 
     AGE_BABY = 'baby'
-    AGE_ADULT = 'adult'
     AGE_JUVENILE = 'juvenile'
+    AGE_ADULT = 'adult'
     AGE_CHOICES = (
         (AGE_BABY, 'Baby'),
-        (AGE_ADULT, 'Adult'),
         (AGE_JUVENILE, 'Juvenile'),
+        (AGE_ADULT, 'Adult'),
     )
 
     BABY_KANGAROO_PINKY = 'pinky'
