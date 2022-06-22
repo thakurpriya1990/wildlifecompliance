@@ -665,6 +665,7 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
     assigned_to = ComplianceUserDetailsOptimisedSerializer(read_only=True)
     user_action = serializers.SerializerMethodField()
     user_is_volunteer = serializers.SerializerMethodField()
+    species_sub_type = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -682,12 +683,15 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
             'user_action',
             'user_is_volunteer',
             'volunteer_id',
-
+            'species_sub_type',
         )
         read_only_fields = (
             'id', 
             )
-        
+
+    def get_species_sub_type(self, obj):
+        return obj.wildcare_species_sub_type.species_sub_name if obj.wildcare_species_sub_type else ''
+
     def get_user_is_assignee(self, obj):
         user_id = self.context.get('request', {}).user.id
         if user_id == obj.assigned_to_id:

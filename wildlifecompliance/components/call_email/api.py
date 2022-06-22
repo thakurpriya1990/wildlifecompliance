@@ -131,6 +131,9 @@ class CallEmailFilterBackend(DatatablesFilterBackend):
                         call_email.assigned_to.first_name.lower() + ' ' + call_email.assigned_to.last_name.lower()
                         if call_email.assigned_to else ''
                         )
+                    or search_text in (call_email.wildcare_species_sub_type.species_sub_name 
+                        if call_email.wildcare_species_sub_type else ''
+                        )
                     ):
                     search_text_callemail_ids.append(call_email.id)
 

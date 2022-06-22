@@ -56,7 +56,13 @@
 
         <div class="row">
             <div class="col-lg-12">
-                <datatable ref="call_email_table" id="call-email-table" :dtOptions="dtOptions" :dtHeaders="dtHeaders" />
+                <datatable 
+                ref="call_email_table" 
+                id="call-email-table" 
+                :dtOptions="dtOptions" 
+                :dtHeaders="dtHeaders"
+                parentStyle="wrap"
+                />
             </div>
         </div>
         </FormSection>
@@ -146,11 +152,16 @@
                             searchable: false,
                         },
                         {
+                            data: "species_sub_type",
+                            searchable: false,
+                            visible: false,
+                        },
+                        {
                             data: "classification",
                             searchable: false,
                             mRender: function (data, type, full) {
                                 if (data) {
-                                    return data.classification_display;
+                                    return data.classification_display + ': ' + full.species_sub_type;
                                 } else {
                                     return '';
                                 }
@@ -190,6 +201,7 @@
                 dtHeaders: [
                     "Number",
                     "Status",
+                    "SubSpecies",
                     "Classification",
                     "Lodged on",
                     "Caller",
