@@ -131,6 +131,7 @@ if env('EMAIL_INSTANCE') is not None and env('EMAIL_INSTANCE','') != 'PROD':
 MIDDLEWARE_CLASSES += [
     'wildlifecompliance.middleware.FirstTimeNagScreenMiddleware',
     'wildlifecompliance.middleware.CacheControlMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 LATEX_GRAPHIC_FOLDER = os.path.join(BASE_DIR,"templates","latex","images")
@@ -271,6 +272,7 @@ SITE_DOMAIN = env('SITE_DOMAIN')
 SITE_URL = env('SITE_URL', 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN)
 SITE_URL_WLC = env('SITE_URL_WLC')
 GROUP_PREFIX = env('GROUP_PREFIX', 'Wildlife Compliance')
+COMPLIANCE_GROUP_PREFIX = env('COMPLIANCE_GROUP_PREFIX', 'Compliance Management')
 EXT_USER_API_ROOT_URL = env('EXT_USER_API_ROOT_URL', None)
 EXCEL_OUTPUT_PATH = env('EXCEL_OUTPUT_PATH')
 ALLOW_EMAIL_ADMINS = env('ALLOW_EMAIL_ADMINS', False)  # Allows internal pages to be accessed via email authentication
@@ -301,3 +303,39 @@ SO_TYPE_CHOICES = (
     (SO_TYPE_LETTER_OF_ADVICE, 'Letter of Advice'),
     (SO_TYPE_REMEDIATION_NOTICE, 'Remediation Notice'),
 )
+HEAD_OFFICE_NAME=env('HEAD_OFFICE_NAME', 'KENSINGTON')
+HTTP_HOST_FOR_TEST = env('HTTP_HOST_FOR_TEST', 'localhost:8123')
+
+GROUP_CALL_EMAIL_TRIAGE = "call_email_triage"
+GROUP_OFFICER = "officer"
+GROUP_MANAGER = "manager"
+GROUP_VOLUNTEER = "volunteer"
+GROUP_INFRINGEMENT_NOTICE_COORDINATOR = "infringement_notice_coordinator"
+GROUP_PROSECUTION_COORDINATOR = "prosecution_coordinator"
+GROUP_PROSECUTION_MANAGER = "prosecution_manager"
+GROUP_PROSECUTION_COUNCIL = "prosecution_council"
+GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY = "compliance_management_read_only"
+GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY = "compliance_management_call_email_read_only"
+GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER = "compliance_management_approved_external_user"
+GROUP_COMPLIANCE_ADMIN = "compliance_admin"
+GROUP_LICENSING_ADMIN = "licensing_admin"
+GROUP_NAME_CHOICES = (
+    (GROUP_CALL_EMAIL_TRIAGE, "Call Email Triage"),
+    (GROUP_OFFICER, "Officer"),
+    (GROUP_MANAGER, "Manager"),
+    (GROUP_VOLUNTEER, "Volunteer"),
+    (GROUP_INFRINGEMENT_NOTICE_COORDINATOR, "Infringement Notice Coordinator"),
+    (GROUP_PROSECUTION_COORDINATOR, "Prosecution Notice Coordinator"),
+    (GROUP_PROSECUTION_MANAGER, "Prosecution Manager"),
+    (GROUP_PROSECUTION_COUNCIL, "Prosecution Council"),
+    (GROUP_COMPLIANCE_MANAGEMENT_READ_ONLY, "Compliance Management Read Only"),
+    (GROUP_COMPLIANCE_MANAGEMENT_CALL_EMAIL_READ_ONLY, "Compliance Management Call Email Read Only"),
+    (GROUP_COMPLIANCE_MANAGEMENT_APPROVED_EXTERNAL_USER, "Compliance Management Approved External User"),
+    (GROUP_COMPLIANCE_ADMIN, "Compliance Admin"),
+    (GROUP_LICENSING_ADMIN, "Licensing Admin"),
+)
+
+AUTH_GROUP_COMPLIANCE_BUSINESS_ADMIN = 'Wildlife Compliance - Compliance Business Admin'
+CUSTOM_AUTH_GROUPS = [
+    AUTH_GROUP_COMPLIANCE_BUSINESS_ADMIN,
+    ]

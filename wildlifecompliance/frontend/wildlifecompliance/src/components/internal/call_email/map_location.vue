@@ -162,7 +162,6 @@ export default {
     },
     mounted: async function(){
         this.$nextTick(function() {
-            console.debug('Start loading map');
             this.initMap();
             this.setBaseLayer('osm');
             this.initAwesomplete();
@@ -181,7 +180,6 @@ export default {
             } else {
                 this.showHideAddressDetailsFields(false, true);
             }
-            console.debug('End loading map');
         });
     },
     created: async function() {
@@ -209,7 +207,6 @@ export default {
                 let lng = vm.call_email.location.geometry.coordinates[0];
                 if (-90 < lat && lat < 90){
                     if(-180 < lng < 180){
-                        console.log(lat + ', ' + lng);
                         let lnglat = [lng, lat];
                         this.feature_marker.setLatLng({lat: lat, lng: lng });
                         vm.map.flyTo({lat: lat, lng: lng}, 12,{
@@ -253,9 +250,6 @@ export default {
         //     // this.saveLocation();
         // },
         reverseGeocoding: async function(coordinates_4326){
-            console.log('reverseGeocoding');
-            console.log('access token:');
-            console.log(this.mapboxAccessToken);
             var self = this;
             $.ajax({
                 url: api_endpoints.geocoding_address_search + coordinates_4326[0] + ',' + coordinates_4326[1] + '.json?' + $.param({
@@ -266,26 +260,19 @@ export default {
                 dataType: 'json',
 
                 success: function(data, status, xhr) {
-                    console.log('reverse results: ');
-                    console.log(data);
                     let address_found = false;
                     if (data.features && data.features.length > 0){
                         for (var i = 0; i < data.features.length; i++){
                             if(data.features[i].place_type.includes('address')){
-                                console.log(data.features[i]);
                                 self.updateAddressFields(data.features[i]);
                                 address_found = true;
                             }
                         }
                     }
-                    console.log('address found:');
-                    console.log(address_found);
                     if(address_found){
-                        console.log("address found");
                         self.showHideAddressDetailsFields(true, false);
                         self.setLocationDetailsFieldEmpty()
                     } else {
-                        console.log("address not found");
                         self.showHideAddressDetailsFields(false, true);
                         self.setLocationAddressEmpty();
                     }
@@ -369,7 +356,6 @@ export default {
         },
         updateAddressFields(feature){
             if(!this.isReadonly){
-                console.log('updateAddressField');
                 let properties_for_update = new Object();
                 let state_abbr_list = {
                         "New South Wales": "NSW",
@@ -489,7 +475,6 @@ export default {
             let self = this;
             if(!self.isReadonly){
                 let latlng = this.map.mouseEventToLatLng(e.originalEvent);
-                console.log(latlng);
                 if(!self.feature_marker){
                     self.addMarker([latlng.lat, latlng.lng]);
                 }

@@ -1,20 +1,26 @@
 from __future__ import unicode_literals
 import logging
 from django.db import models
+from django.conf import settings
 from django.contrib.gis.db import models
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.db.models import Max
+from django.contrib.auth.models import Permission, ContentType
 from multiselectfield import MultiSelectField
 from django.utils.encoding import python_2_unicode_compatible
+from rest_framework import serializers
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.licence.models import LicenceType
 from wildlifecompliance.components.main.models import (
         CommunicationsLogEntry,
         UserAction, 
-        Document
+        Document,
+        #CallEmailTriageGroup, OfficerGroup, ManagerGroup,
+        ComplianceManagementSystemGroup,
         )
 from wildlifecompliance.components.main.related_item import can_close_record
-from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
+from wildlifecompliance.components.main.models import Region, District
 
 logger = logging.getLogger(__name__)
 
@@ -259,12 +265,12 @@ class CallEmail(RevisionedMixin):
     )
 
     AGE_BABY = 'baby'
-    AGE_ADULT = 'adult'
     AGE_JUVENILE = 'juvenile'
+    AGE_ADULT = 'adult'
     AGE_CHOICES = (
         (AGE_BABY, 'Baby'),
-        (AGE_ADULT, 'Adult'),
         (AGE_JUVENILE, 'Juvenile'),
+        (AGE_ADULT, 'Adult'),
     )
 
     BABY_KANGAROO_PINKY = 'pinky'
@@ -357,22 +363,21 @@ class CallEmail(RevisionedMixin):
     )
     advice_given = models.BooleanField(default=False)
     advice_details = models.TextField(blank=True, null=True)
-    region = models.ForeignKey(
-        RegionDistrict, 
-        related_name='callemail_region', 
-        null=True
-    )
-    district = models.ForeignKey(
-        RegionDistrict, 
-        related_name='callemail_district', 
-        null=True
-    )
+    #region = models.ForeignKey(
+    #    Region, 
+    #    related_name='callemail_region', 
+    #    null=True
+    #)
+    #district = models.ForeignKey(
+    #    District, 
+    #    related_name='callemail_district', 
+    #    null=True
+    #)
     allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='callemail_allocated_group', 
+        ComplianceManagementSystemGroup,
         null=True
     )
-    
+
     class Meta:
         app_label = 'wildlifecompliance'
         verbose_name = 'CM_Call/Email'
@@ -422,35 +427,70 @@ class CallEmail(RevisionedMixin):
     # def related_items(self):
     #     return get_related_items(self)
 
+    #def set_allocated_group(self, permission_codename, region_id=None, district_id=None):
+    #    #import ipdb; ipdb.set_trace()
+    #    if district_id:
+    #        region_id = None
+    #    compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+    #    permission = Permission.objects.filter(codename=permission_codename).filter(content_type_id=compliance_content_type.id).first()
+    #    self.allocated_group = CompliancePermissionGroup.objects.get(permissions=permission, region_id=region_id, district_id=district_id)
+    #    #request_data.update({'allocated_group_id': group.id})
+    #    self.save()
+
     def forward_to_regions(self, request):
+        if not self.location:
+            raise serializers.ValidationError({"Location": "must be recorded"})
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        #self.allocated_group =  CallEmailTriageGroup.objects.get(region_id=region_id, district_id=district_id)
+        self.allocated_group =  ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN
         self.log_user_action(
-            CallEmailUserAction.ACTION_FORWARD_TO_REGIONS.format(self.number), 
+            CallEmailUserAction.ACTION_FORWARD_TO_REGIONS.format(self.number),
             request)
         self.save()
 
     def forward_to_wildlife_protection_branch(self, request):
+        if not self.location:
+            raise serializers.ValidationError({"Location": "must be recorded"})
+        self.allocated_group =  ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_CALL_EMAIL_TRIAGE, region=Region.objects.get(head_office=True))
+        #self.allocated_group = CallEmailTriageGroup.objects.get(region=Region.objects.get(head_office=True))
         self.status = self.STATUS_OPEN
         self.log_user_action(
-            CallEmailUserAction.ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH.format(self.number), 
+            CallEmailUserAction.ACTION_FORWARD_TO_WILDLIFE_PROTECTION_BRANCH.format(self.number),
             request)
         self.save()
 
     def allocate_for_follow_up(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_FOLLOWUP
         self.log_user_action(
-                CallEmailUserAction.ACTION_ALLOCATE_FOR_FOLLOWUP.format(self.number), 
+                CallEmailUserAction.ACTION_ALLOCATE_FOR_FOLLOWUP.format(self.number),
                 request)
         self.save()
 
     def allocate_for_inspection(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_INSPECTION
         self.log_user_action(
-                CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number), 
+                CallEmailUserAction.ACTION_ALLOCATE_FOR_INSPECTION.format(self.number),
                 request)
         self.save()
 
     def allocate_for_case(self, request):
+        region_id = None if not request.data.get('region_id') else request.data.get('region_id')
+        district_id = None if not request.data.get('district_id') else request.data.get('district_id')
+        if district_id:
+            region_id = None
+        self.allocated_group = OfficerGroup.objects.get(region_id=region_id, district_id=district_id)
         self.status = self.STATUS_OPEN_CASE
         self.log_user_action(
                 CallEmailUserAction.ACTION_ALLOCATE_FOR_CASE.format(self.number),

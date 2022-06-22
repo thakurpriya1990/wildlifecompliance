@@ -9,10 +9,10 @@ from ledger.accounts.models import RevisionedMixin, EmailUser
 from wildlifecompliance.components.call_email.models import Location, CallEmail
 from wildlifecompliance.components.legal_case.models import LegalCase
 from wildlifecompliance.components.inspection.models import Inspection
-from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
+from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry, Region, District
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.organisations.models import Organisation
 
 
@@ -85,13 +85,13 @@ class Offence(RevisionedMixin):
         related_name='offence_assigned_to',
         null=True
     )
-    allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='offence_allocated_group',
-        null=True
-    )
-    region = models.ForeignKey(RegionDistrict, related_name='offence_region', null=True,)
-    district = models.ForeignKey(RegionDistrict, related_name='offence_district', null=True,)
+    #allocated_group = models.ForeignKey(
+    #    CompliancePermissionGroup,
+    #    related_name='offence_allocated_group',
+    #    null=True
+    #)
+    #region = models.ForeignKey(Region, related_name='offence_region', null=True,)
+    #district = models.ForeignKey(District, related_name='offence_district', null=True,)
 
     class Meta:
         app_label = 'wildlifecompliance'
@@ -122,8 +122,9 @@ class Offence(RevisionedMixin):
         return self.lodgement_number
 
     @staticmethod
+    # Rewrite for Region District models
     def get_compliance_permission_group(regionDistrictId):
-        region_district = RegionDistrict.objects.filter(id=regionDistrictId)
+        #region_district = RegionDistrict.objects.filter(id=regionDistrictId)
 
         # 2. Determine which permission(s) is going to be applied
         compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
@@ -141,6 +142,7 @@ class Offence(RevisionedMixin):
         return groups.first()
 
     @property
+    # Rewrite for Region District models
     def regionDistrictId(self):
         return self.district.id if self.district else self.region.id
 

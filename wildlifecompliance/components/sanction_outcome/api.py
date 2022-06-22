@@ -49,7 +49,7 @@ from wildlifecompliance.components.sanction_outcome.serializers import SanctionO
     RemediationActionSerializer, RemediationActionUpdateStatusSerializer, AmendmentRequestReasonSerializer, \
     SaveAmendmentRequestForRemediationAction, AllegedCommittedOffenceCreateSerializer, \
     SanctionOutcomeDocumentAccessLogSerializer
-from wildlifecompliance.components.users.models import CompliancePermissionGroup, RegionDistrict
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty, InfringementPenaltyInvoice
 from wildlifecompliance.helpers import is_authorised_to_modify, is_internal
 from wildlifecompliance.components.main.models import TemporaryDocumentCollection
@@ -604,42 +604,42 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
         """
         return super(SanctionOutcomeViewSet, self).retrieve(request, *args, **kwargs)
 
-    def get_compliance_permission_groups(self, region_district_id, workflow_type):
-        """
-        Determine which CompliancePermissionGroup this sanction outcome should belong to
-        :param region_district_id: The regionDistrict id this sanction outcome is in
-        :param workflow_type: string like 'send_to_manager', 'return_to_officer', ...
-        :return: CompliancePermissionGroup quersyet
-        """
-        # 1. Determine regionDistrict of this sanction outcome
-        region_district = RegionDistrict.objects.filter(id=region_district_id)
+    #def get_compliance_permission_groups(self, region_district_id, workflow_type):
+    #    """
+    #    Determine which CompliancePermissionGroup this sanction outcome should belong to
+    #    :param region_district_id: The regionDistrict id this sanction outcome is in
+    #    :param workflow_type: string like 'send_to_manager', 'return_to_officer', ...
+    #    :return: CompliancePermissionGroup quersyet
+    #    """
+    #    # 1. Determine regionDistrict of this sanction outcome
+    #    region_district = RegionDistrict.objects.filter(id=region_district_id)
 
-        # 2. Determine which permission(s) is going to be apllied
-        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
-        codename = 'officer'
-        if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
-            codename = 'manager'
-        elif workflow_type == SanctionOutcome.WORKFLOW_DECLINE:
-            codename = '---'
-        elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
-            codename = 'infringement_notice_coordinator'
-        elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
-            codename = 'officer'
-        elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW:
-            codename = '---'
-        elif workflow_type == SanctionOutcome.WORKFLOW_CLOSE:
-            codename = '---'
-        else:
-            # Should not reach here
-            # instance.save()
-            pass
+    #    # 2. Determine which permission(s) is going to be apllied
+    #    compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
+    #    codename = 'officer'
+    #    if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
+    #        codename = 'manager'
+    #    elif workflow_type == SanctionOutcome.WORKFLOW_DECLINE:
+    #        codename = '---'
+    #    elif workflow_type == SanctionOutcome.WORKFLOW_ENDORSE:
+    #        codename = 'infringement_notice_coordinator'
+    #    elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_OFFICER:
+    #        codename = 'officer'
+    #    elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW:
+    #        codename = '---'
+    #    elif workflow_type == SanctionOutcome.WORKFLOW_CLOSE:
+    #        codename = '---'
+    #    else:
+    #        # Should not reach here
+    #        # instance.save()
+    #        pass
 
-        permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
+    #    permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
 
-        # 3. Find groups which has the permission(s) determined above in the regionDistrict.
-        groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
+    #    # 3. Find groups which has the permission(s) determined above in the regionDistrict.
+    #    groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
 
-        return groups
+    #    return groups
 
     @detail_route(methods=['POST', ])
     @renderer_classes((JSONRenderer,))
@@ -940,7 +940,7 @@ class SanctionOutcomeViewSet(viewsets.ModelViewSet):
 
                 if workflow_type == SanctionOutcome.WORKFLOW_SEND_TO_MANAGER:
                     # email_data = prepare_mail(request, instance, workflow_entry, send_mail)
-                    compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
+                    #compliance_group = CompliancePermissionGroup.objects.get(id=request.data.get('allocated_group_id'))
                     to_address = [user.email for user in compliance_group.members.all()]
                     cc = [request.user.email,]
                     bcc = None

@@ -43,6 +43,7 @@ from wildlifecompliance.components.wc_payments import views as payment_views
 from wildlifecompliance.components.legal_case import api as legal_case_api
 from wildlifecompliance.components.artifact import api as artifact_api
 
+from wildlifecompliance.management.default_data_manager import DefaultDataManager
 from wildlifecompliance.utils import are_migrations_running
 
 from ledger.urls import urlpatterns as ledger_patterns
@@ -91,10 +92,7 @@ router.register(r'emailidentities', users_api.EmailIdentityViewSet)
 router.register(r'call_email', call_email_api.CallEmailViewSet)
 router.register(r'call_email_location', call_email_api.LocationViewSet)
 router.register(r'classification', call_email_api.ClassificationViewSet)
-#router.register(r'call_type', call_email_api.CallTypeViewSet)
 router.register(r'lov_collection', call_email_api.LOVCollectionViewSet)
-#router.register(r'wildcare_species_type', call_email_api.WildcareSpeciesTypeViewSet)
-#router.register(r'wildcare_species_sub_type', call_email_api.WildcareSpeciesSubTypeViewSet)
 router.register(r'report_types', call_email_api.ReportTypeViewSet)
 router.register(r'location', call_email_api.LocationViewSet)
 router.register(r'referrers', call_email_api.ReferrerViewSet)
@@ -102,11 +100,12 @@ router.register(r'search_user', call_email_api.EmailUserViewSet)
 router.register(r'search_alleged_offences', offence_api.SearchSectionRegulation)
 router.register(r'search_organisation', offence_api.SearchOrganisation)
 router.register(r'map_layers', call_email_api.MapLayerViewSet)
-router.register(r'compliancepermissiongroup', users_api.CompliancePermissionGroupViewSet)
-router.register(r'region_district', users_api.RegionDistrictViewSet)
+#router.register(r'compliancepermissiongroup', users_api.CompliancePermissionGroupViewSet)
+#router.register(r'region_district', users_api.RegionDistrictViewSet)
+router.register(r'regions', main_api.RegionViewSet)
+router.register(r'districts', main_api.DistrictViewSet)
 router.register(r'legal_case_priorities', legal_case_api.LegalCasePriorityViewSet)
 router.register(r'inspection_types', inspection_api.InspectionTypeViewSet)
-# router.register(r'offence', offence_api.OffenceViewSet)
 router.register(r'call_email_paginated', call_email_api.CallEmailPaginatedViewSet)
 router.register(r'inspection', inspection_api.InspectionViewSet)
 router.register(r'inspection_paginated', inspection_api.InspectionPaginatedViewSet)
@@ -124,7 +123,6 @@ router.register(r'artifact_paginated', artifact_api.ArtifactPaginatedViewSet)
 router.register(r'physical_artifact', artifact_api.PhysicalArtifactViewSet)
 router.register(r'physical_artifact_types', artifact_api.PhysicalArtifactTypeViewSet)
 router.register(r'disposal_methods', artifact_api.PhysicalArtifactDisposalMethodViewSet)
-#router.register(r'document_artifact_types', artifact_api.DocumentAtrtifactTypeViewSet)
 
 router.register(
     r'schema_masterlist',
@@ -151,6 +149,9 @@ api_patterns = [url(r'^api/my_user_details/$',
                 url(r'^api/is_compliance_management_callemail_readonly_user$', 
                     users_api.IsComplianceManagementCallEmailReadonlyUser.as_view(), 
                     name='is-compliance-manegement-callemail-readonly-user'),
+                url(r'^api/allocated_group_members$', 
+                    main_api.AllocatedGroupMembers.as_view(), 
+                    name='allocated-group-members'),
                 url(r'^api/countries$', 
                     users_api.GetCountries.as_view(), 
                     name='get-countries'),
@@ -307,10 +308,11 @@ urlpatterns = [
 ] + ledger_patterns
 
 if not are_migrations_running():
+    DefaultDataManager()
     CollectorManager()
 
-if settings.DEBUG:  # Serve media locally in development.
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# whitenoise
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.SHOW_DEBUG_TOOLBAR:
     import debug_toolbar

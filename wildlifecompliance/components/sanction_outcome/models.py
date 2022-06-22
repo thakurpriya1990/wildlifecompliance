@@ -11,13 +11,13 @@ from django.db.models.signals import post_save
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from rest_framework import serializers
 
-from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry
+from wildlifecompliance.components.main.models import Document, CommunicationsLogEntry, Region, District
 from wildlifecompliance.components.main.related_item import can_close_record
 from wildlifecompliance.components.offence.models import Offence, Offender, AllegedOffence
 from wildlifecompliance.components.sanction_outcome_due.models import SanctionOutcomeDueDateConfiguration
 from wildlifecompliance.components.sanction_outcome_due.serializers import SaveSanctionOutcomeDueDateSerializer
 from wildlifecompliance.components.section_regulation.models import SectionRegulation
-from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
 from wildlifecompliance.components.wc_payments.models import InfringementPenalty
 from wildlifecompliance.management.classes.unpaid_infringement_file import UnpaidInfringementFileBody
 from wildlifecompliance.settings import SO_TYPE_CHOICES, SO_TYPE_INFRINGEMENT_NOTICE, SO_TYPE_CAUTION_NOTICE, \
@@ -125,8 +125,8 @@ class SanctionOutcome(models.Model):
     payment_status = models.CharField(max_length=30, choices=PAYMENT_STATUS_CHOICES, blank=True,)  # This value should always reflect ledger invoice.payment_status
                                                                                                    # Ref: functions for endorsement and post_save function in the wc_payment/utils.py
 
-    region = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_region', null=True,)
-    district = models.ForeignKey(RegionDistrict, related_name='sanction_outcome_district', null=True,)
+    #region = models.ForeignKey(Region, related_name='sanction_outcome_region', null=True,)
+    #district = models.ForeignKey(District, related_name='sanction_outcome_district', null=True,)
 
     identifier = models.CharField(max_length=50, blank=True,)
     lodgement_number = models.CharField(max_length=50, blank=True,)
@@ -142,7 +142,7 @@ class SanctionOutcome(models.Model):
     description = models.TextField(blank=True)
 
     assigned_to = models.ForeignKey(EmailUser, related_name='sanction_outcome_assigned_to', null=True)
-    allocated_group = models.ForeignKey(CompliancePermissionGroup, related_name='sanction_outcome_allocated_group', null=True)
+    #allocated_group = models.ForeignKey(CompliancePermissionGroup, related_name='sanction_outcome_allocated_group', null=True)
     # This field is used as recipient when manager returns a sanction outcome for amendment
     # Updated whenever the sanction outcome is sent to the manager
     responsible_officer = models.ForeignKey(EmailUser, related_name='sanction_outcome_responsible_officer', null=True)
@@ -368,8 +368,9 @@ class SanctionOutcome(models.Model):
         return self.district.display_name if self.district else self.region.display_name
 
     @staticmethod
+    # Rewrite for Region District models
     def get_compliance_permission_group(regionDistrictId, workflow_type):
-        region_district = RegionDistrict.objects.filter(id=regionDistrictId)
+        #region_district = RegionDistrict.objects.filter(id=regionDistrictId)
 
         # 2. Determine which permission(s) is going to be apllied
         compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup")
@@ -392,7 +393,7 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_ESCALATE_FOR_WITHDRAWAL:
             codename = 'manager'
             # Manager group in Kensington is the branch manager group
-            region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
+            #region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
             per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_MANAGER:
             codename = 'manager'
@@ -403,7 +404,7 @@ class SanctionOutcome(models.Model):
         elif workflow_type == SanctionOutcome.WORKFLOW_WITHDRAW_BY_BRANCH_MANAGER:
             codename = 'manager'
             # Manager group in Kensington is the branch manager group
-            region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
+            #region_district = RegionDistrict.objects.filter(district=RegionDistrict.DISTRICT_KENSINGTON)
             per_district = True
         elif workflow_type == SanctionOutcome.WORKFLOW_RETURN_TO_INFRINGEMENT_NOTICE_COORDINATOR:
             codename = 'infringement_notice_coordinator'
@@ -415,11 +416,11 @@ class SanctionOutcome(models.Model):
 
         permissions = Permission.objects.filter(codename=codename, content_type_id=compliance_content_type.id)
 
-        # 3. Find groups which has the permission(s) determined above in the regionDistrict.
-        if per_district:
-            groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
-        else:
-            groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
+        ## 3. Find groups which has the permission(s) determined above in the regionDistrict.
+        #if per_district:
+        #    groups = CompliancePermissionGroup.objects.filter(region_district__in=region_district, permissions__in=permissions)
+        #else:
+        #    groups = CompliancePermissionGroup.objects.filter(permissions__in=permissions)
 
         return groups.first()
 

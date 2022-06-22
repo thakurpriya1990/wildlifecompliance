@@ -78,9 +78,6 @@ from wildlifecompliance.components.artifact.serializers import (
         ArtifactPaginatedSerializer,
         )
 from wildlifecompliance.components.users.serializers import ComplianceManagementSaveUserSerializer
-from wildlifecompliance.components.users.models import (
-    CompliancePermissionGroup,
-)
 from django.contrib.auth.models import Permission, ContentType
 
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination

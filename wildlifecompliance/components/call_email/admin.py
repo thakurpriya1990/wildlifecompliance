@@ -30,9 +30,9 @@ class CallEmailAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(models.Classification)
-class ClassificationAdmin(admin.ModelAdmin):
-    pass
+#@admin.register(models.Classification)
+#class ClassificationAdmin(admin.ModelAdmin):
+ #   pass
 
 
 @admin.register(models.CallType)
@@ -42,6 +42,7 @@ class CallTypeAdmin(admin.ModelAdmin):
 @admin.register(models.WildcareSpeciesType)
 class WildcareSpeciesTypeAdmin(admin.ModelAdmin):
     list_display = ['species_name', 'call_type']
+    exclude = ['show_species_name_textbox',]
     form = forms.WildcareSpeciesTypeAdminForm
 
 @admin.register(models.WildcareSpeciesSubType)

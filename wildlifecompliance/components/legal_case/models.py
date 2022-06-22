@@ -17,7 +17,8 @@ from wildlifecompliance.components.main.models import (
         Document,
         )
 from wildlifecompliance.components.main.related_item import can_close_legal_case
-from wildlifecompliance.components.users.models import RegionDistrict, CompliancePermissionGroup
+#from wildlifecompliance.components.users.models import CompliancePermissionGroup
+from wildlifecompliance.components.users.models import Region, District
 from django.core.exceptions import ValidationError
 from treebeard.mp_tree import MP_Node
 from datetime import datetime, timedelta, date
@@ -120,21 +121,21 @@ class LegalCase(RevisionedMixin):
         related_name='legal_case_assigned_to',
         null=True
         )
-    allocated_group = models.ForeignKey(
-        CompliancePermissionGroup,
-        related_name='legal_case_allocated_group', 
-        null=True
-        )
-    region = models.ForeignKey(
-        RegionDistrict, 
-        related_name='legal_case_region', 
-        null=True
-    )
-    district = models.ForeignKey(
-        RegionDistrict, 
-        related_name='legal_case_district', 
-        null=True
-    )
+    #allocated_group = models.ForeignKey(
+    #    CompliancePermissionGroup,
+    #    related_name='legal_case_allocated_group', 
+    #    null=True
+    #    )
+    #region = models.ForeignKey(
+    #    Region, 
+    #    related_name='legal_case_region', 
+    #    null=True
+    #)
+    #district = models.ForeignKey(
+    #    District, 
+    #    related_name='legal_case_district', 
+    #    null=True
+    #)
     legal_case_priority = models.ForeignKey(
             LegalCasePriority,
             null=True
@@ -273,9 +274,14 @@ class LegalCase(RevisionedMixin):
             LegalCaseUserAction.ACTION_SEND_TO_MANAGER.format(self.number), 
             request)
         # set allocated group to 
-        region_district_id = self.district_id if self.district_id else self.region_id
-        region_district = RegionDistrict.objects.get(id=region_district_id)
-        self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="manager")
+        #region_district_id = self.district_id if self.district_id else self.region_id
+        #region_district = Region.objects.get(id=region_district_id)
+        region_district = self.allocated_group.region_district
+        if type(region_district) is District:
+            self.allocated_group = CompliancePermissionGroup.district_groups.get(district=region_district, permissions__codename="manager")
+        elif type(region_district) is Region:
+            self.allocated_group = CompliancePermissionGroup.district_groups.get(region=region_district, permissions__codename="manager")
+        #self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="manager")
         self.save()
 
     def back_to_case(self, request):
@@ -293,9 +299,14 @@ class LegalCase(RevisionedMixin):
             LegalCaseUserAction.ACTION_BACK_TO_OFFICER.format(self.number), 
             request)
         # set allocated group to 
-        region_district_id = self.district_id if self.district_id else self.region_id
-        region_district = RegionDistrict.objects.get(id=region_district_id)
-        self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="officer")
+        #region_district_id = self.district_id if self.district_id else self.region_id
+        #region_district = RegionDistrict.objects.get(id=region_district_id)
+        #self.allocated_group = CompliancePermissionGroup.objects.get(region_district=region_district, permissions__codename="officer")
+        region_district = self.allocated_group.region_district
+        if type(region_district) is District:
+            self.allocated_group = CompliancePermissionGroup.district_groups.get(district=region_district, permissions__codename="officer")
+        elif type(region_district) is Region:
+            self.allocated_group = CompliancePermissionGroup.district_groups.get(region=region_district, permissions__codename="officer")
         self.save()
 
 

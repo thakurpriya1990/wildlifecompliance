@@ -7,8 +7,7 @@ from wildlifecompliance.components.organisations.models import (
     OrganisationContact
 )
 from wildlifecompliance.components.users.models import (
-        CompliancePermissionGroup, 
-        RegionDistrict, 
+        #CompliancePermissionGroup, 
         ComplianceManagementUserPreferences
         )
 from wildlifecompliance.components.organisations.utils import can_admin_org, is_consultant
@@ -610,41 +609,41 @@ class EmailIdentitySerializer(serializers.ModelSerializer):
         )
 
 
-class RegionDistrictSerializer(serializers.ModelSerializer):
-    # region = RegionDistrictSerializer(many=True)
-
-    class Meta:
-        model = RegionDistrict
-        fields = (
-            'id',
-            'district',
-            'region',
-            'display_name',
-            'districts'
-        )
-
-
-class CompliancePermissionGroupSerializer(serializers.ModelSerializer):
-    region_district = RegionDistrictSerializer(many=True)
-
-    class Meta:
-        model = CompliancePermissionGroup
-        fields = (
-            'id',
-            'name',
-            'region_district',
-            'display_name',
-            )
+#class RegionDistrictSerializer(serializers.ModelSerializer):
+#    # region = RegionDistrictSerializer(many=True)
+#
+#    class Meta:
+#        model = RegionDistrict
+#        fields = (
+#            'id',
+#            'district',
+#            'region',
+#            'display_name',
+#            'districts'
+#        )
 
 
-class CompliancePermissionGroupMembersSerializer(serializers.ModelSerializer):
-    members = ComplianceUserDetailsOptimisedSerializer(many=True)
-
-    class Meta:
-        model = CompliancePermissionGroup
-        fields = (
-            'members',
-            )
+#class CompliancePermissionGroupSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = CompliancePermissionGroup
+#        fields = (
+#            'id',
+#            'name',
+#            'region_id',
+#            'district_id',
+#            'display_name',
+#            )
+#
+#
+#class CompliancePermissionGroupMembersSerializer(serializers.ModelSerializer):
+#    members = ComplianceUserDetailsOptimisedSerializer(many=True)
+#
+#    class Meta:
+#        model = CompliancePermissionGroup
+#        fields = (
+#            'members',
+#            )
 
 
 class PermissionSerializer(serializers.ModelSerializer):
@@ -659,26 +658,28 @@ class PermissionSerializer(serializers.ModelSerializer):
         )
 
 
-class CompliancePermissionGroupDetailedSerializer(serializers.ModelSerializer):
-    region_district = RegionDistrictSerializer(many=True)
-    members = ComplianceUserDetailsOptimisedSerializer(many=True)
-    # permissions = PermissionSerializer(many=True)
-    permissions_list = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = CompliancePermissionGroup
-        fields = (
-            'id',
-            'name',
-            'region_district',
-            'display_name',
-            'members',
-            # 'permissions',
-            'permissions_list',
-            )
-
-    def get_permissions_list(self, obj):
-        permissions_list = []
-        for permission in obj.permissions.all():
-            permissions_list.append(permission.codename)
-        return permissions_list
+#class CompliancePermissionGroupDetailedSerializer(serializers.ModelSerializer):
+#    #region_district = RegionDistrictSerializer(many=True)
+#    members = ComplianceUserDetailsOptimisedSerializer(many=True)
+#    # permissions = PermissionSerializer(many=True)
+#    permissions_list = serializers.SerializerMethodField(read_only=True)
+#
+#    class Meta:
+#        model = CompliancePermissionGroup
+#        fields = (
+#            'id',
+#            'name',
+#            #'region_district',
+#            'region_id', 
+#            'district_id',
+#            'display_name',
+#            'members',
+#            # 'permissions',
+#            'permissions_list',
+#            )
+#
+#    def get_permissions_list(self, obj):
+#        permissions_list = []
+#        for permission in obj.permissions.all():
+#            permissions_list.append(permission.codename)
+#        return permissions_list

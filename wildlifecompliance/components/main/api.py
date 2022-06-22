@@ -45,10 +45,13 @@ from wildlifecompliance.components.main.serializers import (
     DTSchemaPurposeSerializer,
     SchemaGroupSerializer,
     DTSchemaGroupSerializer,
+    RegionSerializer,
+    DistrictSerializer,
 )
 from wildlifecompliance.components.main.models import (
-    TemporaryDocumentCollection
+    TemporaryDocumentCollection, Region, District, get_group_members
 )
+from wildlifecompliance.components.users.serializers import ComplianceUserDetailsSerializer
 from wildlifecompliance.components.main.process_document import save_document
 from wildlifecompliance.components.main.process_document import cancel_document
 from wildlifecompliance.components.main.process_document import delete_document
@@ -1364,3 +1367,65 @@ class OracleJob(views.APIView):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e[0]))
+
+
+class RegionViewSet(viewsets.ModelViewSet):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            #return Region.objects.all()
+            return Region.objects.filter(head_office=False)
+        return Region.objects.none()
+
+
+class DistrictViewSet(viewsets.ModelViewSet):
+    queryset = District.objects.all()
+    serializer_class = DistrictSerializer
+
+    def get_queryset(self):
+        if is_internal(self.request):
+            return District.objects.all()
+        return District.objects.none()
+
+
+class AllocatedGroupMembers(views.APIView):
+    renderer_classes = [JSONRenderer, ]
+
+    def post(self, request, format=None):
+        try:
+            region_id = request.data.get('region_id')
+            district_id = request.data.get('district_id')
+            workflow_type = request.data.get('workflow_type')
+            members = get_group_members(workflow_type, region_id, district_id)
+
+            allocated_group = [{
+                'email': '',
+                'first_name': '',
+                'full_name': '',
+                'id': None,
+                'last_name': '',
+                'title': '',
+                }]
+            #serializer = ComplianceUserDetailsOptimisedSerializer(group.members, many=True)
+            data = ComplianceUserDetailsSerializer(members, many=True).data
+            for member in data:
+                allocated_group.append(member)
+
+            #daily_admission_url = env('DAILY_ADMISSION_PAGE_URL', '')
+            #data = {'daily_admission_url': daily_admission_url}
+            return Response(allocated_group)
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                # raise serializers.ValidationError(repr(e[0].encode('utf-8')))
+                raise serializers.ValidationError(repr(e[0]))
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+

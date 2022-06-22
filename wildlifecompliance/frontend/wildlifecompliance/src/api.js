@@ -2,6 +2,7 @@ var site_url = location.origin
 
 module.exports = {
     person_org_lookup: '/api/person_org_lookup',
+    allocated_group_members: '/api/allocated_group_members',
     staff_member_lookup: '/api/staff_member_lookup',
     organisations: '/api/organisations/',
     organisations_paginated: '/api/organisations_paginated/',
@@ -54,7 +55,9 @@ module.exports = {
     referrers: "/api/referrers/",
     location: "/api/location/",
     compliancepermissiongroup: '/api/compliancepermissiongroup/',
-    region_district: '/api/region_district/',
+    //region_district: '/api/region_district/',
+    regions: '/api/regions/',
+    districts: '/api/districts/',
     case_priorities: '/api/case_priorities/',
     inspection_types: '/api/inspection_types/',
     call_email_paginated: '/api/call_email_paginated/',

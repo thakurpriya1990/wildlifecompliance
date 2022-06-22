@@ -3,7 +3,9 @@ import traceback
 from rest_framework.fields import CharField
 from rest_framework_gis.serializers import GeoFeatureModelSerializer, GeometryField
 
+from django.conf import settings
 from ledger.accounts.models import EmailUser, Address
+from wildlifecompliance.helpers import is_compliance_management_volunteer
 from wildlifecompliance.components.call_email.models import (
     CallEmail,
     Classification,
@@ -20,19 +22,18 @@ from wildlifecompliance.components.call_email.models import (
     #ComplianceWorkflowLogEntry,
     )
 from wildlifecompliance.components.main.related_item import get_related_items
+from wildlifecompliance.components.main.models import Region, District, ComplianceManagementSystemGroup
+from wildlifecompliance.components.main.utils import get_region_gis, get_district_gis
 from wildlifecompliance.components.main.serializers import CommunicationLogEntrySerializer
 from wildlifecompliance.components.users.serializers import (
     ComplianceUserDetailsOptimisedSerializer,
-    CompliancePermissionGroupMembersSerializer
+    #CompliancePermissionGroupMembersSerializer
 )
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 from wildlifecompliance.components.main.fields import CustomChoiceField
 
 from wildlifecompliance.components.users.serializers import UserAddressSerializer
-from wildlifecompliance.components.users.models import (
-        CompliancePermissionGroup
-)
 from django.contrib.auth.models import Permission, ContentType
 
 
@@ -288,16 +289,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)
-    #referrers_selected = serializer.ListField(
-     #   required=False, write_only=True, blank=True)
     email_user_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
     allocated_group_id = serializers.IntegerField(
@@ -337,8 +334,6 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'report_type_id',
             'caller',
-            
-            #'referrer_selected',
             'referrer',
             'caller_phone_number',
             'anonymous_call',
@@ -354,13 +349,12 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
             'advice_details',
             'email_user',
             'email_user_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'volunteer_id',
         )
         read_only_fields = (
             'id', 
-            # 'status_display',
             'number', 
             'location',
             'classification',
@@ -371,7 +365,7 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         custom_errors = {}
-        if self.context.get('close'):
+        if not self.context.get('draft'):
             if not data.get("call_type_id"):
                 custom_errors["Call Type"] = "You must choose call type"
             if not data.get("brief_nature_of_call"):
@@ -429,14 +423,15 @@ class CallEmailOptimisedSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', )
 
 
-class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
-    allocated_group = CompliancePermissionGroupMembersSerializer()
-
-    class Meta:
-        model = CallEmail
-        fields = (
-            'allocated_group',
-        )
+#class CallEmailAllocatedGroupSerializer(serializers.ModelSerializer):
+#    #allocated_group = CompliancePermissionGroupMembersSerializer()
+#    allocated_group = ComplianceSystemGroupMembersSerializer()
+#
+#    class Meta:
+#        model = CallEmail
+#        fields = (
+#            'allocated_group',
+#        )
 
 
 class CallEmailSerializer(serializers.ModelSerializer):
@@ -466,6 +461,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
     user_is_volunteer = serializers.SerializerMethodField()
     volunteer_list = serializers.SerializerMethodField()
     current_user_id = serializers.SerializerMethodField()
+    region_gis = serializers.SerializerMethodField()
+    district_gis = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -512,12 +509,11 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'date_of_call',
             'time_of_call',
             'referrer',
-            # 'referrer_id',
             'advice_given',
             'advice_details',
             'email_user',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'user_in_group',
             'related_items',
             'selected_referrers',
@@ -529,10 +525,32 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'volunteer_list',
             'volunteer_id',
             'current_user_id',
+            'region_gis',
+            'district_gis',
         )
         read_only_fields = (
             'id', 
             )
+
+    def get_region_gis(self, obj):
+        try:
+            res = get_region_gis(obj.location.wkb_geometry)
+            region_list = Region.objects.filter(cddp_name__iexact=res.strip())
+            if region_list:
+                return region_list[0].name
+        except Exception as e:
+            return ''
+        return ''
+
+    def get_district_gis(self, obj):
+        try:
+            res = get_district_gis(obj.location.wkb_geometry)
+            district_list = District.objects.filter(cddp_name__iexact=res.strip())
+            if district_list:
+                return district_list[0].name
+        except Exception as e:
+            return ''
+        return ''
 
     def get_current_user_id(self, obj):
         return self.context.get('request', {}).user.id
@@ -541,7 +559,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
         user_id = self.context.get('request', {}).user.id
 
         if obj.allocated_group:
-           for member in obj.allocated_group.members:
+           for member in obj.allocated_group.get_members():
                if user_id == member.id:
                   return True
         
@@ -553,7 +571,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
         if user_id == obj.assigned_to_id:
             return True
         elif obj.allocated_group and not obj.assigned_to_id:
-           for member in obj.allocated_group.members:
+           for member in obj.allocated_group.get_members():
                if user_id == member.id:
                   return True
         
@@ -568,8 +586,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'last_name': '',
             'title': '',
             }]
-        returned_allocated_group = CompliancePermissionGroupMembersSerializer(instance=obj.allocated_group)
-        for member in returned_allocated_group.data['members']:
+        returned_allocated_group = ComplianceUserDetailsOptimisedSerializer(obj.allocated_group.get_members(), many=True).data
+        for member in returned_allocated_group:
             allocated_group.append(member)
 
         return allocated_group
@@ -600,7 +618,7 @@ class CallEmailSerializer(serializers.ModelSerializer):
             if user_id == obj.assigned_to_id:
                 return True
             elif obj.allocated_group and not obj.assigned_to_id:
-               for member in obj.allocated_group.members:
+               for member in obj.allocated_group.get_members():
                    if user_id == member.id:
                       return True
         
@@ -613,22 +631,16 @@ class CallEmailSerializer(serializers.ModelSerializer):
             if user_id == obj.assigned_to_id:
                 return True
             elif obj.allocated_group and not obj.assigned_to_id:
-               for member in obj.allocated_group.members:
+               for member in obj.allocated_group.get_members():
                    if user_id == member.id:
                       return True
-        
         return False
 
     def get_user_is_volunteer(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        for group in user.groups.all():
-            for permission in group.permissions.all():
-                if permission.codename == 'volunteer':
-                    return True
-        # return false if 'volunteer' is not a permission of any group the user belongs to
-        return False
+        return is_compliance_management_volunteer(self.context.get('request'))
 
     def get_volunteer_list(self, obj):
+        volunteers = ComplianceManagementSystemGroup.objects.get(name=settings.GROUP_VOLUNTEER).get_members()
         volunteer_list = [{
             'email': '',
             'first_name': '',
@@ -637,13 +649,8 @@ class CallEmailSerializer(serializers.ModelSerializer):
             'last_name': '',
             'title': '',
             }]
-        compliance_content_type = ContentType.objects.get(model="compliancepermissiongroup") 
-        # user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        permission = Permission.objects.filter(codename='volunteer').filter(content_type_id=compliance_content_type.id).first()
-        group = CompliancePermissionGroup.objects.filter(permissions=permission).first()
-        
-        returned_volunteer_list = CompliancePermissionGroupMembersSerializer(instance=group)
-        for member in returned_volunteer_list.data['members']:
+        serialized_volunteers = ComplianceUserDetailsOptimisedSerializer(volunteers, many=True).data
+        for member in serialized_volunteers:
             volunteer_list.append(member)
 
         return volunteer_list
@@ -658,6 +665,7 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
     assigned_to = ComplianceUserDetailsOptimisedSerializer(read_only=True)
     user_action = serializers.SerializerMethodField()
     user_is_volunteer = serializers.SerializerMethodField()
+    species_sub_type = serializers.SerializerMethodField()
 
     class Meta:
         model = CallEmail
@@ -675,12 +683,15 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
             'user_action',
             'user_is_volunteer',
             'volunteer_id',
-
+            'species_sub_type',
         )
         read_only_fields = (
             'id', 
             )
-        
+
+    def get_species_sub_type(self, obj):
+        return obj.wildcare_species_sub_type.species_sub_name if obj.wildcare_species_sub_type else ''
+
     def get_user_is_assignee(self, obj):
         user_id = self.context.get('request', {}).user.id
         if user_id == obj.assigned_to_id:
@@ -691,6 +702,7 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
         view_url = '<a href=/internal/call_email/' + str(obj.id) + '>View</a>'
         process_url = '<a href=/internal/call_email/' + str(obj.id) + '>Process</a>'
         returned_url = ''
+        #return process_url
 
         if obj.status == 'closed':
             returned_url = view_url
@@ -698,7 +710,7 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
             returned_url = process_url
         elif (obj.allocated_group
                 and not obj.assigned_to_id):
-            for member in obj.allocated_group.members:
+            for member in obj.allocated_group.get_members():
                 if user_id == member.id:
                     returned_url = process_url
 
@@ -706,15 +718,9 @@ class CallEmailDatatableSerializer(serializers.ModelSerializer):
             returned_url = view_url
 
         return returned_url
-    
+
     def get_user_is_volunteer(self, obj):
-        user = EmailUser.objects.get(id=self.context.get('request', {}).user.id)
-        for group in user.groups.all():
-            for permission in group.permissions.all():
-                if permission.codename == 'volunteer':
-                    return True
-        # return false if 'volunteer' is not a permission of any group the user belongs to
-        return False
+        return is_compliance_management_volunteer(self.context.get('request'))
 
 
 class UpdateAssignedToIdSerializer(serializers.ModelSerializer):
@@ -750,18 +756,14 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
         required=False, write_only=True, allow_null=True)
     location_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)        
-    #referrer_id = serializers.IntegerField(
-     #   required=False, write_only=True, allow_null=True)   
-    region_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    district_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
-    # allocated_to = serializers.ListField(
-    #     required=False, write_only=True, allow_empty=True)
+    #region_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
+    #district_id = serializers.IntegerField(
+    #    required=False, write_only=True, allow_null=True)
     assigned_to_id = serializers.IntegerField(
         required=False, write_only=True, allow_null=True)
-    allocated_group_id = serializers.IntegerField(
-        required=False, write_only=True, allow_null=True)
+    #allocated_group_id = serializers.IntegerField(
+     #   required=False, write_only=True, allow_null=True)
 
     class Meta:
         model = CallEmail
@@ -774,8 +776,7 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'baby_kangaroo',
             'age',
             'assigned_to_id',
-            # 'allocated_to',
-            'allocated_group_id',
+            #'allocated_group_id',
             'location_id',
             'classification_id',
             'call_type_id',
@@ -785,7 +786,6 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'brief_nature_of_call',
             'lodgement_date',
             'caller',
-            
             'report_type_id',
             'caller_phone_number',
             'anonymous_call',
@@ -797,9 +797,8 @@ class CreateCallEmailSerializer(serializers.ModelSerializer):
             'occurrence_time_end',
             'advice_given',
             'advice_details',
-            #'referrer_id',
-            'region_id',
-            'district_id',
+            #'region_id',
+            #'district_id',
             'dead',
             'euthanise',
             'number_of_animals'

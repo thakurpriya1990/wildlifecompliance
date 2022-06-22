@@ -5,6 +5,8 @@ from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.main.models import (
     TemporaryDocumentCollection,
     CommunicationsLogEntry,
+    Region,
+    District,
 )
 
 from wildlifecompliance.components.licences.models import SectionQuestion
@@ -14,6 +16,36 @@ from wildlifecompliance.components.licences.models import MasterlistQuestion
 from wildlifecompliance.components.licences.models import LicencePurpose
 from wildlifecompliance.components.licences.models import QuestionOption
 
+
+class DistrictSerializer(serializers.ModelSerializer):
+    region = serializers.SerializerMethodField()
+
+    class Meta:
+        model = District
+        fields = (
+                'id',
+                'name',
+                'region',
+                )
+
+    def get_region(self, obj):
+        #return obj.region.name
+        return {"region_name": obj.region.name, "region_id": obj.region.id}
+
+class RegionSerializer(serializers.ModelSerializer):
+    districts = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Region
+        fields = (
+                'id',
+                'name',
+                'districts',
+                'head_office',
+                )
+
+    def get_districts(self, obj):
+        return [{"district_name": district.name, "district_id": district.id} for district in obj.district_set.all()]
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
     customer = serializers.PrimaryKeyRelatedField(
