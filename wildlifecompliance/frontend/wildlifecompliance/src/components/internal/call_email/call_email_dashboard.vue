@@ -161,10 +161,9 @@
                             searchable: false,
                             mRender: function (data, type, full) {
                                 if (data) {
-                                    return data.classification_display + ': ' + full.species_sub_type;
-                                } else {
-                                    return '';
+                                    return full.species_sub_type ? data.classification_display + ': ' + full.species_sub_type : data.classification_display;
                                 }
+                                return '';
                             }
                         },
                         {
@@ -174,7 +173,6 @@
                                 return data != '' && data != null ? moment(data).format(vm.dateFormat) : '';
                             }
                         },
-                        
                         {
                             data: "caller",
                             searchable: false
