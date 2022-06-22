@@ -1001,15 +1001,19 @@ export default {
           }
         }
         //---filter wildcare species sub type as per species type selected
+          /*
         if(this.speciesSubTypeDisabled === false)
         {
+        */
           for(let choice of this.wildcare_species_sub_types){
             if(choice.wildcare_species_type_id === this.call_email.wildcare_species_type_id)
             {
               this.filter_wildcare_species_sub_types.push(choice);
             }
           }
+          /*
         }
+        */
         //---to reset pinky/Joey onchange of species type
         this.checkFemalePinkyJoey();
       });
