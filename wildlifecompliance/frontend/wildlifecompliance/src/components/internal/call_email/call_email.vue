@@ -289,7 +289,7 @@
                             </div></div>
               
                             <div class="col-sm-12 form-group"><div class="row">
-                              <label class="col-sm-3">Classification</label>
+                              <label class="col-sm-3">Classification *</label>
                               <!-- <select :disabled="readonlyForm" class="form-control" v-model="call_email.classification_id">
                                     <option v-for="option in classification_types" :value="option.id" v-bind:key="option.id">
                                       {{ option.display }} 

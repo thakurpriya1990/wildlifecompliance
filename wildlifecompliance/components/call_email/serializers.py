@@ -366,6 +366,8 @@ class SaveCallEmailSerializer(serializers.ModelSerializer):
     def validate(self, data):
         custom_errors = {}
         if not self.context.get('draft'):
+            if not data.get("classification_id"):
+                custom_errors["Classification"] = "You must choose classification"
             if not data.get("call_type_id"):
                 custom_errors["Call Type"] = "You must choose call type"
             if not data.get("brief_nature_of_call"):
