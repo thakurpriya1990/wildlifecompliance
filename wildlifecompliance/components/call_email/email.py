@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse
 from django.conf import settings
 from ledger.payments.pdf import create_invoice_pdf_bytes
 from ledger.payments.models import Invoice
+from ledger.accounts.models import EmailUser
 from wildlifecompliance.components.main.utils import get_choice_value
 from wildlifecompliance.components.emails.emails import TemplateEmailBase
 from wildlifecompliance.components.main.email import prepare_attachments, _extract_email_headers
@@ -45,7 +46,7 @@ def send_mail(select_group, call_email, workflow_entry, request=None, email_type
         'call_email': call_email,
         'workflow_entry_details': request.data.get('details'),
     }
-    email_group = [item.email for item in select_group]
+    email_group = [item.email for item in select_group] if isinstance(select_group[0], EmailUser) else select_group
     msg = email.send(email_group, 
         context=context,
         attachments= 
